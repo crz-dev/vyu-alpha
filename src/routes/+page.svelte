@@ -1,10 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { convertFileSrc } from '@tauri-apps/api/core';
+  import { convertFileSrc, invoke } from '@tauri-apps/api/core';
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { readDir, stat } from '@tauri-apps/plugin-fs';
   import { open } from '@tauri-apps/plugin-dialog';
 
+  let filePath = $state('');
   let fileSrc = $state('');
   let fileName = $state('no file open');
   let isVideo = $state(false);
@@ -20,12 +21,19 @@
   let videoEl = $state<HTMLVideoElement | null>(null);
   let playing = $state(false);
   let muted = $state(false);
+  let looping = $state(true);
   let progress = $state(0);
-  let currentTime = $state('0:00');
-  let duration = $state('0:00');
+  let rawCurrentSecs = $state(0);
+  let rawDurationSecs = $state(0);
+  let timerShowRemaining = $state(false);
+  let imageRotation = $state(0);
+  let imageFlipped = $state(false);
 
   let volume = $state(1);
   let volumeHovered = $state(false);
+  let volumeTooltipX = $state(0);
+  let volumeTooltipY = $state(0);
+  let volumeTooltipVisible = $state(false);
   const VOLUME_SEGMENTS = 8;
 
   let hoverZone = $state('none');
@@ -39,21 +47,53 @@
   let translateY = $state(0);
   let isDragging = $state(false);
   let dragStart = $state({ x: 0, y: 0, tx: 0, ty: 0 });
-  let lastClickTime = 0;
+  let lastLeftClickTime = 0;
   let pendingPlay: ReturnType<typeof setTimeout> | undefined;
+
+  interface CtxMenu {
+    x: number;
+    y: number;
+    visible: boolean;
+  }
+  let contextMenu = $state<CtxMenu>({ x: 0, y: 0, visible: false });
+  let deleteConfirm = $state(false);
+  let deletePermanently = $state(false);
+  let deleteNoAsk = $state(false);
+
+  interface Timestamp {
+    time: number;
+  }
+  let timestamps = $state<Timestamp[]>([]);
+  let tsTooltip = $state<{ visible: boolean; x: number; y: number; label: string }>({
+    visible: false,
+    x: 0,
+    y: 0,
+    label: '',
+  });
 
   const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
   const videoExts = ['mp4', 'webm', 'mkv', 'avi', 'mov', 'wmv'];
   const allExts = [...imageExts, ...videoExts];
 
-  const mediaTransform = $derived(
+  const imageStyle = $derived(
+    `transform: scale(${zoomLevel / 100}) translate(${translateX / (zoomLevel / 100)}px, ${translateY / (zoomLevel / 100)}px) rotate(${imageRotation}deg) scaleX(${imageFlipped ? -1 : 1}); transform-origin: center center; max-width: 100%; max-height: 100%; object-fit: contain; display: block;`,
+  );
+  const videoWrapperTransform = $derived(
     `transform: scale(${zoomLevel / 100}) translate(${translateX / (zoomLevel / 100)}px, ${translateY / (zoomLevel / 100)}px); transform-origin: 0 0;`,
   );
   const panCursor = $derived(zoomLevel > 100 ? (isDragging ? 'grabbing' : 'grab') : 'default');
   const fsCursor = $derived(!fsControlsVisible ? 'none' : panCursor);
 
+  function currentTimeDisplay(): string {
+    if (!timerShowRemaining) return formatTime(rawCurrentSecs);
+    const rem = rawDurationSecs - rawCurrentSecs;
+    return `-${formatTime(rem)}`;
+  }
+  const durationDisplay = $derived(formatTime(rawDurationSecs));
+  const timerTooltip = $derived(timerShowRemaining ? 'Remaining' : 'Elapsed');
+
   function formatTime(seconds: number): string {
-    if (!seconds || isNaN(seconds)) return '0:00';
+    if (!seconds || isNaN(seconds) || seconds < 0) return '0:00';
     const m = Math.floor(seconds / 60);
     const s = Math.floor(seconds % 60);
     return `${m}:${s.toString().padStart(2, '0')}`;
@@ -77,9 +117,9 @@
 
   function updateProgress() {
     if (!videoEl) return;
-    progress = (videoEl.currentTime / videoEl.duration) * 100;
-    currentTime = formatTime(videoEl.currentTime);
-    duration = formatTime(videoEl.duration);
+    rawCurrentSecs = videoEl.currentTime;
+    rawDurationSecs = videoEl.duration || 0;
+    progress = rawDurationSecs > 0 ? (rawCurrentSecs / rawDurationSecs) * 100 : 0;
     playing = !videoEl.paused;
   }
 
@@ -95,8 +135,19 @@
     videoEl.muted = muted;
   }
 
+  function toggleLoop() {
+    looping = !looping;
+    if (videoEl) videoEl.loop = looping;
+  }
+
+  function toggleTimer() {
+    timerShowRemaining = !timerShowRemaining;
+  }
+
   function startScrubbing(e: MouseEvent) {
+    if (e.button !== 0) return;
     e.preventDefault();
+    e.stopPropagation();
     if (!videoEl) return;
 
     const bar = e.currentTarget as HTMLElement;
@@ -107,18 +158,18 @@
       const rect = bar.getBoundingClientRect();
       const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
       videoEl!.currentTime = ratio * videoEl!.duration;
+      rawCurrentSecs = videoEl!.currentTime;
       progress = ratio * 100;
-      currentTime = formatTime(videoEl!.currentTime);
     }
 
     scrubTo(e.clientX);
 
     let lastScrub = 0;
-    function onMouseMove(e: MouseEvent) {
+    function onMouseMove(ev: MouseEvent) {
       const now = Date.now();
       if (now - lastScrub < 60) return;
       lastScrub = now;
-      scrubTo(e.clientX);
+      scrubTo(ev.clientX);
     }
 
     function onMouseUp() {
@@ -147,31 +198,95 @@
   }
 
   function startVolumeDrag(e: MouseEvent) {
+    if (e.button !== 0) return;
     e.preventDefault();
     const diamonds = (e.currentTarget as HTMLElement).querySelectorAll('.volume-diamond');
 
-    function dragTo(clientX: number) {
+    function dragTo(clientX: number, clientY: number) {
       const first = diamonds[0].getBoundingClientRect();
       const last = diamonds[diamonds.length - 1].getBoundingClientRect();
       const ratio = Math.max(0, Math.min(1, (clientX - first.left) / (last.right - first.left)));
       setVolume(Math.ceil(ratio * VOLUME_SEGMENTS) / VOLUME_SEGMENTS);
+      volumeTooltipX = clientX;
+      volumeTooltipY = clientY;
+      volumeTooltipVisible = true;
     }
 
-    dragTo(e.clientX);
+    dragTo(e.clientX, e.clientY);
 
-    function onMouseMove(e: MouseEvent) {
-      dragTo(e.clientX);
+    function onMouseMove(ev: MouseEvent) {
+      dragTo(ev.clientX, ev.clientY);
     }
     function onMouseUp() {
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
+      volumeTooltipVisible = false;
     }
 
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
   }
 
+  function handleVolumeDiamondHover(e: MouseEvent) {
+    volumeTooltipX = e.clientX;
+    volumeTooltipY = e.clientY;
+    volumeTooltipVisible = true;
+  }
+
+  function handleVolumeAreaLeave() {
+    volumeTooltipVisible = false;
+    volumeHovered = false;
+  }
+
+  function loadTimestamps() {
+    if (!filePath) {
+      timestamps = [];
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(`vyu-ts-${filePath}`);
+      timestamps = raw ? (JSON.parse(raw) as Timestamp[]) : [];
+    } catch {
+      timestamps = [];
+    }
+  }
+
+  function saveTimestamps() {
+    if (!filePath) return;
+    localStorage.setItem(`vyu-ts-${filePath}`, JSON.stringify(timestamps));
+  }
+
+  function addTimestamp() {
+    if (!videoEl || rawDurationSecs <= 0) return;
+    const t = videoEl.currentTime;
+    if (timestamps.some((ts) => Math.abs(ts.time - t) < 0.3)) return;
+    timestamps = [...timestamps, { time: t }].sort((a, b) => a.time - b.time);
+    saveTimestamps();
+  }
+
+  function removeTimestamp(time: number) {
+    timestamps = timestamps.filter((ts) => ts.time !== time);
+    saveTimestamps();
+  }
+
+  function clearAllTimestamps() {
+    timestamps = [];
+    if (filePath) localStorage.removeItem(`vyu-ts-${filePath}`);
+  }
+
+  function seekToTimestamp(time: number) {
+    if (!videoEl) return;
+    videoEl.currentTime = time;
+    rawCurrentSecs = time;
+    progress = rawDurationSecs > 0 ? (time / rawDurationSecs) * 100 : 0;
+  }
+
+  function getTimestampPct(time: number): number {
+    return rawDurationSecs > 0 ? (time / rawDurationSecs) * 100 : 0;
+  }
+
   async function displayFile(path: string) {
+    filePath = path;
     fileName = path.split('\\').pop() || path.split('/').pop() || path;
     const ext = path.split('.').pop()?.toLowerCase() || '';
     isVideo = videoExts.includes(ext);
@@ -179,8 +294,15 @@
     fileSize = '';
     fileDimensions = '';
     fileInfoLoading = true;
+    imageRotation = 0;
+    imageFlipped = false;
+    rawCurrentSecs = 0;
+    rawDurationSecs = 0;
+    progress = 0;
+    playing = false;
+    timestamps = [];
     resetZoom();
-
+    if (isVideo) loadTimestamps();
     try {
       const info = await stat(path);
       fileSize = formatFileSize(info.size);
@@ -198,10 +320,12 @@
     if (!videoEl) return;
     fileDimensions = `${videoEl.videoWidth} × ${videoEl.videoHeight}`;
     videoEl.volume = volume;
+    videoEl.muted = muted;
+    videoEl.loop = looping;
     fileInfoLoading = false;
+    rawCurrentSecs = 0;
+    rawDurationSecs = videoEl.duration || 0;
     progress = 0;
-    currentTime = '0:00';
-    duration = formatTime(videoEl.duration);
     playing = !videoEl.paused;
     if (isLoadingFile) finishLoading();
   }
@@ -210,9 +334,7 @@
     clearTimeout(loadingTimer);
     isLoadingFile = true;
     loadingFadingOut = false;
-
     await displayFile(path);
-
     const sep = path.includes('\\') ? '\\' : '/';
     const folder = path.substring(0, path.lastIndexOf(sep));
     try {
@@ -222,9 +344,7 @@
         .map((e) => `${folder}${sep}${e.name}`)
         .sort();
       currentIndex = fileList.indexOf(path);
-    } catch (err) {
-      console.error('could not read folder:', err);
-    }
+    } catch {}
   }
 
   function navigate(direction: number) {
@@ -234,6 +354,7 @@
   }
 
   function closeFile() {
+    filePath = '';
     fileSrc = '';
     fileName = 'no file open';
     isVideo = false;
@@ -241,12 +362,15 @@
     currentIndex = 0;
     playing = false;
     progress = 0;
-    currentTime = '0:00';
-    duration = '0:00';
+    rawCurrentSecs = 0;
+    rawDurationSecs = 0;
     fileSize = '';
     fileDimensions = '';
     isLoadingFile = false;
     loadingFadingOut = false;
+    imageRotation = 0;
+    imageFlipped = false;
+    timestamps = [];
     clearTimeout(loadingTimer);
     resetZoom();
   }
@@ -283,7 +407,6 @@
   function handleViewerScroll(e: WheelEvent) {
     if (!fileSrc) return;
     e.preventDefault();
-
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
@@ -291,7 +414,6 @@
     const raw = zoomLevel * (e.deltaY > 0 ? 1 / 1.1 : 1.1);
     const newZoom = Math.max(100, Math.min(1000, zoomLevel > 100 && raw < 100 ? 100 : raw));
     const newScale = newZoom / 100;
-
     if (newZoom === 100) {
       translateX = 0;
       translateY = 0;
@@ -299,23 +421,19 @@
       translateX = mouseX - (mouseX - translateX) * (newScale / oldScale);
       translateY = mouseY - (mouseY - translateY) * (newScale / oldScale);
     }
-
     zoomLevel = newZoom;
   }
 
   function handleTouchZoom(e: TouchEvent) {
     if (e.touches.length !== 2) return;
     e.preventDefault();
-
     const dx = e.touches[0].clientX - e.touches[1].clientX;
     const dy = e.touches[0].clientY - e.touches[1].clientY;
     const dist = Math.sqrt(dx * dx + dy * dy);
-
     if (lastPinchDist === 0) {
       lastPinchDist = dist;
       return;
     }
-
     const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
     const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -324,7 +442,6 @@
     const oldScale = zoomLevel / 100;
     const newZoom = Math.max(100, Math.min(1000, zoomLevel * (dist / lastPinchDist)));
     const newScale = newZoom / 100;
-
     if (newZoom === 100) {
       translateX = 0;
       translateY = 0;
@@ -332,7 +449,6 @@
       translateX = mouseX - (mouseX - translateX) * (newScale / oldScale);
       translateY = mouseY - (mouseY - translateY) * (newScale / oldScale);
     }
-
     zoomLevel = newZoom;
     lastPinchDist = dist;
   }
@@ -342,9 +458,10 @@
   }
 
   function startPan(e: MouseEvent) {
+    if (e.button !== 0) return;
     if (
       (e.target as HTMLElement).closest(
-        '.video-controls, .fs-controls, .fs-topbar, .fs-nav-left, .fs-nav-right',
+        '.video-controls, .fs-controls, .fs-topbar, .fs-nav-left, .fs-nav-right, .context-menu, .delete-overlay',
       )
     )
       return;
@@ -353,9 +470,9 @@
     isDragging = true;
     dragStart = { x: e.clientX, y: e.clientY, tx: translateX, ty: translateY };
 
-    function onMove(e: MouseEvent) {
-      const dx = e.clientX - dragStart.x;
-      const dy = e.clientY - dragStart.y;
+    function onMove(ev: MouseEvent) {
+      const dx = ev.clientX - dragStart.x;
+      const dy = ev.clientY - dragStart.y;
       if (!hasMoved && Math.sqrt(dx * dx + dy * dy) < 8) return;
       hasMoved = true;
       if (zoomLevel > 100) {
@@ -368,8 +485,8 @@
       isDragging = false;
       if (!hasMoved) {
         const now = Date.now();
-        const timeSinceLast = now - lastClickTime;
-        lastClickTime = now;
+        const timeSinceLast = now - lastLeftClickTime;
+        lastLeftClickTime = now;
         if (isVideo) {
           if (timeSinceLast < 300) {
             clearTimeout(pendingPlay);
@@ -390,11 +507,19 @@
   }
 
   async function startDrag(e: MouseEvent) {
-    if ((e.target as HTMLElement).closest('button')) return;
+    if (e.button !== 0) return;
+    if ((e.target as HTMLElement).closest('button, .filename')) return;
     await getCurrentWindow().startDragging();
   }
 
   function handleKeydown(e: KeyboardEvent) {
+    if (contextMenu.visible || deleteConfirm) {
+      if (e.key === 'Escape') {
+        contextMenu.visible = false;
+        deleteConfirm = false;
+      }
+      return;
+    }
     if (e.key === 'f' || e.key === 'F') {
       toggleFullscreen();
       return;
@@ -414,7 +539,6 @@
       return;
     }
     if (['ArrowRight', 'ArrowLeft', ' '].includes(e.key)) e.preventDefault();
-
     if (isVideo && videoEl && (hoverZone === 'video' || isFullscreen)) {
       if (e.key === ' ') togglePlay();
       if (e.key === 'ArrowRight')
@@ -435,6 +559,122 @@
     if (selected) loadFile(selected as string);
   }
 
+  function openContextMenu(e: MouseEvent) {
+    if (!fileSrc) return;
+    e.preventDefault();
+    e.stopPropagation();
+    let x = e.clientX;
+    let y = e.clientY;
+    const menuW = 200;
+    const menuH = isVideo ? 300 : 260;
+    if (x + menuW > window.innerWidth) x = window.innerWidth - menuW - 8;
+    if (y + menuH > window.innerHeight) y = window.innerHeight - menuH - 8;
+    contextMenu = { x, y, visible: true };
+  }
+
+  function closeContextMenu() {
+    contextMenu = { ...contextMenu, visible: false };
+  }
+
+  async function ctxCopyImage() {
+    closeContextMenu();
+    try {
+      const response = await fetch(fileSrc);
+      const blob = await response.blob();
+      await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+    } catch {}
+  }
+
+  async function ctxCopyFrame() {
+    closeContextMenu();
+    if (!videoEl) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = videoEl.videoWidth;
+    canvas.height = videoEl.videoHeight;
+    const ctx2d = canvas.getContext('2d');
+    if (!ctx2d) return;
+    ctx2d.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      } catch {}
+    }, 'image/png');
+  }
+
+  function ctxCopyPath() {
+    closeContextMenu();
+    navigator.clipboard.writeText(filePath);
+  }
+  function ctxRotate() {
+    closeContextMenu();
+    imageRotation = (imageRotation + 90) % 360;
+  }
+  function ctxFlip() {
+    closeContextMenu();
+    imageFlipped = !imageFlipped;
+  }
+  function ctxToggleLoop() {
+    closeContextMenu();
+    toggleLoop();
+  }
+  function ctxAddTimestamp() {
+    closeContextMenu();
+    addTimestamp();
+  }
+  function ctxClearTimestamps() {
+    closeContextMenu();
+    clearAllTimestamps();
+  }
+
+  async function ctxShowInExplorer() {
+    closeContextMenu();
+    try {
+      await invoke('show_in_explorer', { path: filePath });
+    } catch {}
+  }
+
+  function ctxDelete() {
+    closeContextMenu();
+    const noAsk = localStorage.getItem('vyu-delete-no-ask') === 'true';
+    if (noAsk) performDelete();
+    else deleteConfirm = true;
+  }
+
+  async function performDelete() {
+    deleteConfirm = false;
+    if (deleteNoAsk) localStorage.setItem('vyu-delete-no-ask', 'true');
+    const pathToDelete = filePath;
+    const prevList = [...fileList];
+    const prevIndex = currentIndex;
+    closeFile();
+    try {
+      if (deletePermanently) await invoke('delete_file', { path: pathToDelete });
+      else await invoke('trash_file', { path: pathToDelete });
+    } catch {}
+    const remaining = prevList.filter((p) => p !== pathToDelete);
+    if (remaining.length > 0) {
+      const nextIndex = Math.min(prevIndex, remaining.length - 1);
+      loadFile(remaining[nextIndex]);
+    }
+  }
+
+  function showFilenameTooltip(e: MouseEvent) {
+    const el = e.currentTarget as HTMLElement;
+    const rect = el.getBoundingClientRect();
+    const tip = document.getElementById('filename-tooltip');
+    if (!tip) return;
+    tip.textContent = 'File name';
+    tip.style.left = `${rect.left}px`;
+    tip.style.top = `${rect.bottom + 6}px`;
+    tip.style.opacity = '1';
+  }
+
+  function hideFilenameTooltip() {
+    const tip = document.getElementById('filename-tooltip');
+    if (tip) tip.style.opacity = '0';
+  }
+
   onMount(() => {
     const initial = (window as any).__INITIAL_FILE__;
     if (initial) loadFile(initial);
@@ -448,6 +688,11 @@
     });
 
     window.addEventListener('keydown', handleKeydown);
+    window.addEventListener('mousedown', (e) => {
+      if (contextMenu.visible && !(e.target as HTMLElement).closest('.context-menu'))
+        closeContextMenu();
+    });
+
     return () => window.removeEventListener('keydown', handleKeydown);
   });
 </script>
@@ -457,11 +702,14 @@
   onmousemove={isFullscreen ? resetFsTimer : undefined}
   ondrop={(e) => e.preventDefault()}
   ondragover={(e) => e.preventDefault()}
+  oncontextmenu={openContextMenu}
 >
   <div class="topbar" onmousedown={startDrag} role="toolbar" tabindex="-1">
     <span class="app-name">vyu</span>
     <span class="divider">/</span>
-    <span class="filename tooltip-below" data-tooltip="Current file">{fileName}</span>
+    <span class="filename" onmouseenter={showFilenameTooltip} onmouseleave={hideFilenameTooltip}
+      >{fileName}</span
+    >
     {#if fileSrc}
       <span class="divider">/</span>
       <button
@@ -480,13 +728,13 @@
     {/if}
     <div class="window-controls">
       <button
-        class="wc-btn minimize tooltip-below"
+        class="wc-btn tooltip-below"
         data-tooltip="Minimize"
         onclick={minimizeWindow}
         aria-label="minimize">−</button
       >
       <button
-        class="wc-btn maximize tooltip-below"
+        class="wc-btn tooltip-below"
         data-tooltip="Maximize"
         onclick={maximizeWindow}
         aria-label="maximize">▢</button
@@ -525,7 +773,7 @@
       role="presentation"
     >
       {#if fileSrc && !isVideo}
-        <img src={fileSrc} alt={fileName} onload={onImageLoad} style={mediaTransform} />
+        <img src={fileSrc} alt={fileName} onload={onImageLoad} style={imageStyle} />
       {:else if fileSrc && isVideo}
         <div
           class="video-wrapper"
@@ -533,7 +781,7 @@
           onmouseenter={() => (hoverZone = 'video')}
           onmouseleave={() => (hoverZone = 'none')}
           onmousedown={startPan}
-          style="{mediaTransform} cursor: {panCursor}"
+          style="{videoWrapperTransform} cursor: {panCursor}"
         >
           <video
             bind:this={videoEl}
@@ -548,6 +796,7 @@
             <div
               class="progress-bar"
               onmousedown={startScrubbing}
+              oncontextmenu={(e) => e.preventDefault()}
               role="slider"
               aria-label="video scrubber"
               aria-valuenow={progress}
@@ -556,51 +805,115 @@
               tabindex="0"
             >
               <div class="progress-fill" style="width: {progress}%"></div>
-              <div class="progress-diamond" style="left: {progress}%"></div>
+              <div class="progress-playhead" style="left: {progress}%"></div>
+              {#each timestamps as ts (ts.time)}
+                <div
+                  class="ts-marker"
+                  style="left: {getTimestampPct(ts.time)}%"
+                  role="button"
+                  tabindex="0"
+                  onmousedown={(e) => e.stopPropagation()}
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    seekToTimestamp(ts.time);
+                  }}
+                  oncontextmenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    removeTimestamp(ts.time);
+                  }}
+                  onmouseenter={(e) => {
+                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                    tsTooltip = {
+                      visible: true,
+                      x: rect.left + rect.width / 2,
+                      y: rect.top - 8,
+                      label: formatTime(ts.time),
+                    };
+                  }}
+                  onmouseleave={() => {
+                    tsTooltip = { ...tsTooltip, visible: false };
+                  }}
+                  aria-label="timestamp {formatTime(ts.time)}"
+                ></div>
+              {/each}
             </div>
             <div class="controls-row">
-              <button class="ctrl-btn" onclick={togglePlay} aria-label="play/pause">
+              <button
+                class="ctrl-btn tooltip-ctrl"
+                data-tooltip={playing ? 'Pause' : 'Play'}
+                onclick={togglePlay}
+                aria-label={playing ? 'pause' : 'play'}
+              >
                 {#if playing}
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
+                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none"
+                    ><rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor" /><rect
+                      x="9.5"
+                      y="2"
+                      width="3.5"
+                      height="12"
+                      rx="1"
+                      fill="currentColor"
+                    /></svg
                   >
-                    <rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
-                    <rect x="9.5" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
-                  </svg>
                 {:else}
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
+                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none"
+                    ><path d="M3 2L14 8L3 14V2Z" fill="currentColor" /></svg
                   >
-                    <path d="M3 2L14 8L3 14V2Z" fill="currentColor" />
-                  </svg>
                 {/if}
+              </button>
+              <button
+                class="ctrl-btn loop-btn tooltip-ctrl"
+                class:active={looping}
+                data-tooltip="Loop video"
+                onclick={toggleLoop}
+                aria-label="toggle loop"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M17 2L21 6L17 10"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M3 11V9C3 7.9 3.9 7 5 7H21"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                  <path
+                    d="M7 22L3 18L7 14"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M21 13V15C21 16.1 20.1 17 19 17H3"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                </svg>
               </button>
               <div
                 class="volume-control"
                 onmouseenter={() => (volumeHovered = true)}
-                onmouseleave={() => (volumeHovered = false)}
+                onmouseleave={handleVolumeAreaLeave}
                 onwheel={handleVolumeScroll}
                 role="presentation"
               >
-                <button class="ctrl-btn volume-btn" onclick={toggleMute} aria-label="toggle mute">
+                <button
+                  class="ctrl-btn volume-btn tooltip-ctrl"
+                  data-tooltip={muted || volume === 0 ? 'Unmute' : 'Mute'}
+                  onclick={toggleMute}
+                  aria-label={muted ? 'unmute' : 'mute'}
+                >
                   {#if muted || volume === 0}
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 18 18"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path d="M9 4L5 7H2V11H5L9 14V4Z" fill="currentColor" />
-                      <line
+                    <svg width="15" height="15" viewBox="0 0 18 18" fill="none"
+                      ><path d="M9 4L5 7H2V11H5L9 14V4Z" fill="currentColor" /><line
                         x1="12"
                         y1="6"
                         x2="16"
@@ -608,8 +921,7 @@
                         stroke="currentColor"
                         stroke-width="1.5"
                         stroke-linecap="round"
-                      />
-                      <line
+                      /><line
                         x1="16"
                         y1="6"
                         x2="12"
@@ -617,64 +929,87 @@
                         stroke="currentColor"
                         stroke-width="1.5"
                         stroke-linecap="round"
-                      />
-                    </svg>
+                      /></svg
+                    >
                   {:else if volume < 0.5}
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 18 18"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path d="M9 4L5 7H2V11H5L9 14V4Z" fill="currentColor" />
-                      <path
+                    <svg width="15" height="15" viewBox="0 0 18 18" fill="none"
+                      ><path d="M9 4L5 7H2V11H5L9 14V4Z" fill="currentColor" /><path
                         d="M11.5 7C12.5 7.8 13 8.4 13 9C13 9.6 12.5 10.2 11.5 11"
                         stroke="currentColor"
                         stroke-width="1.5"
                         stroke-linecap="round"
-                      />
-                    </svg>
+                      /></svg
+                    >
                   {:else}
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 18 18"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path d="M9 4L5 7H2V11H5L9 14V4Z" fill="currentColor" />
-                      <path
+                    <svg width="15" height="15" viewBox="0 0 18 18" fill="none"
+                      ><path d="M9 4L5 7H2V11H5L9 14V4Z" fill="currentColor" /><path
                         d="M11.5 7C12.5 7.8 13 8.4 13 9C13 9.6 12.5 10.2 11.5 11"
                         stroke="currentColor"
                         stroke-width="1.5"
                         stroke-linecap="round"
-                      />
-                      <path
+                      /><path
                         d="M13.5 5C15.5 6.5 16.5 7.7 16.5 9C16.5 10.3 15.5 11.5 13.5 13"
                         stroke="currentColor"
                         stroke-width="1.5"
                         stroke-linecap="round"
-                      />
-                    </svg>
+                      /></svg
+                    >
                   {/if}
                 </button>
                 {#if volumeHovered}
-                  <div class="volume-diamonds" onmousedown={startVolumeDrag} role="presentation">
+                  <div
+                    class="volume-diamonds"
+                    onmousedown={startVolumeDrag}
+                    onmousemove={handleVolumeDiamondHover}
+                    role="presentation"
+                  >
                     {#each Array(VOLUME_SEGMENTS) as _, i}
                       <button
                         class="volume-diamond"
-                        class:filled={i < Math.round(volume * VOLUME_SEGMENTS)}
+                        class:filled={!muted && i < Math.round(volume * VOLUME_SEGMENTS)}
+                        class:muted-diamond={muted}
                         style="--i: {i}"
                         onclick={() => setVolume((i + 1) / VOLUME_SEGMENTS)}
                         aria-label="set volume {Math.round(((i + 1) / VOLUME_SEGMENTS) * 100)}%"
                       ></button>
                     {/each}
-                    <span class="volume-tooltip">{muted ? '0' : Math.round(volume * 100)}%</span>
                   </div>
                 {/if}
               </div>
-              <span class="time-display">{currentTime} / {duration}</span>
+              <div class="controls-spacer"></div>
+              <button
+                class="ctrl-btn add-ts-btn tooltip-ctrl"
+                data-tooltip="Place timestamp"
+                onclick={addTimestamp}
+                aria-label="add timestamp"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                  ><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" /><path
+                    d="M12 7v5l3 3"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  /><path
+                    d="M18.5 3.5L20 2"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  /><path
+                    d="M12 3V1"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  /></svg
+                >
+              </button>
+              <button
+                class="time-display tooltip-ctrl"
+                data-tooltip={timerTooltip}
+                onclick={toggleTimer}
+                aria-label="toggle timer mode"
+              >
+                {currentTimeDisplay()} / {durationDisplay}
+              </button>
             </div>
           </div>
         </div>
@@ -697,13 +1032,10 @@
   </div>
 
   <div class="bottombar">
-    <span class="file-count tooltip-above" data-tooltip="File position"
+    <span class="file-count tooltip-above-left" data-tooltip="File position"
       >{fileList.length > 0 ? `${currentIndex + 1} / ${fileList.length}` : '—'}</span
     >
-    <span
-      class="file-info tooltip-above"
-      data-tooltip={fileDimensions ? `${fileDimensions} · ${fileSize}` : fileName}
-    >
+    <span class="file-info tooltip-above" data-tooltip="Resolution · File size">
       {#if fileDimensions && fileSize}
         {fileDimensions} · {fileSize}
       {:else if !fileInfoLoading && fileName !== 'no file open'}
@@ -722,20 +1054,14 @@
         onclick={toggleFullscreen}
         aria-label="toggle fullscreen"
       >
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 12 12"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+          ><path
             d="M1 4V1H4M8 1H11V4M11 8V11H8M4 11H1V8"
             stroke="currentColor"
             stroke-width="0.6"
             stroke-linecap="round"
-          />
-        </svg>
+          /></svg
+        >
       </button>
     </div>
   </div>
@@ -763,7 +1089,6 @@
           <button class="fs-wc-btn close" onclick={closeWindow} aria-label="close">✕</button>
         </div>
       </div>
-
       <div class="fs-nav-left">
         <button class="fs-nav-btn" onclick={() => navigate(-1)} aria-label="previous file">‹</button
         >
@@ -777,6 +1102,7 @@
           <div
             class="fs-progress"
             onmousedown={startScrubbing}
+            oncontextmenu={(e) => e.preventDefault()}
             role="slider"
             aria-label="video scrubber"
             aria-valuenow={progress}
@@ -785,51 +1111,115 @@
             tabindex="0"
           >
             <div class="fs-progress-fill" style="width: {progress}%"></div>
-            <div class="fs-progress-diamond" style="left: {progress}%"></div>
+            <div class="fs-progress-playhead" style="left: {progress}%"></div>
+            {#each timestamps as ts (ts.time)}
+              <div
+                class="ts-marker"
+                style="left: {getTimestampPct(ts.time)}%"
+                role="button"
+                tabindex="0"
+                onmousedown={(e) => e.stopPropagation()}
+                onclick={(e) => {
+                  e.stopPropagation();
+                  seekToTimestamp(ts.time);
+                }}
+                oncontextmenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  removeTimestamp(ts.time);
+                }}
+                onmouseenter={(e) => {
+                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  tsTooltip = {
+                    visible: true,
+                    x: rect.left + rect.width / 2,
+                    y: rect.top - 8,
+                    label: formatTime(ts.time),
+                  };
+                }}
+                onmouseleave={() => {
+                  tsTooltip = { ...tsTooltip, visible: false };
+                }}
+                aria-label="timestamp {formatTime(ts.time)}"
+              ></div>
+            {/each}
           </div>
           <div class="fs-controls-row">
-            <button class="fs-ctrl-btn" onclick={togglePlay} aria-label="play/pause">
+            <button
+              class="fs-ctrl-btn tooltip-ctrl"
+              data-tooltip={playing ? 'Pause' : 'Play'}
+              onclick={togglePlay}
+              aria-label={playing ? 'pause' : 'play'}
+            >
               {#if playing}
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
+                <svg width="18" height="18" viewBox="0 0 16 16" fill="none"
+                  ><rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor" /><rect
+                    x="9.5"
+                    y="2"
+                    width="3.5"
+                    height="12"
+                    rx="1"
+                    fill="currentColor"
+                  /></svg
                 >
-                  <rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
-                  <rect x="9.5" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
-                </svg>
               {:else}
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
+                <svg width="18" height="18" viewBox="0 0 16 16" fill="none"
+                  ><path d="M3 2L14 8L3 14V2Z" fill="currentColor" /></svg
                 >
-                  <path d="M3 2L14 8L3 14V2Z" fill="currentColor" />
-                </svg>
               {/if}
+            </button>
+            <button
+              class="fs-ctrl-btn loop-btn tooltip-ctrl"
+              class:active={looping}
+              data-tooltip="Loop video"
+              onclick={toggleLoop}
+              aria-label="toggle loop"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M17 2L21 6L17 10"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M3 11V9C3 7.9 3.9 7 5 7H21"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M7 22L3 18L7 14"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M21 13V15C21 16.1 20.1 17 19 17H3"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
             </button>
             <div
               class="volume-control"
               onmouseenter={() => (volumeHovered = true)}
-              onmouseleave={() => (volumeHovered = false)}
+              onmouseleave={handleVolumeAreaLeave}
               onwheel={handleVolumeScroll}
               role="presentation"
             >
-              <button class="fs-ctrl-btn volume-btn" onclick={toggleMute} aria-label="mute">
+              <button
+                class="fs-ctrl-btn volume-btn tooltip-ctrl"
+                data-tooltip={muted || volume === 0 ? 'Unmute' : 'Mute'}
+                onclick={toggleMute}
+                aria-label={muted ? 'unmute' : 'mute'}
+              >
                 {#if muted || volume === 0}
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 18 18"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path d="M9 4L5 7H2V11H5L9 14V4Z" fill="currentColor" />
-                    <line
+                  <svg width="19" height="19" viewBox="0 0 18 18" fill="none"
+                    ><path d="M9 4L5 7H2V11H5L9 14V4Z" fill="currentColor" /><line
                       x1="12"
                       y1="6"
                       x2="16"
@@ -837,8 +1227,7 @@
                       stroke="currentColor"
                       stroke-width="1.5"
                       stroke-linecap="round"
-                    />
-                    <line
+                    /><line
                       x1="16"
                       y1="6"
                       x2="12"
@@ -846,80 +1235,97 @@
                       stroke="currentColor"
                       stroke-width="1.5"
                       stroke-linecap="round"
-                    />
-                  </svg>
+                    /></svg
+                  >
                 {:else if volume < 0.5}
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 18 18"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path d="M9 4L5 7H2V11H5L9 14V4Z" fill="currentColor" />
-                    <path
+                  <svg width="19" height="19" viewBox="0 0 18 18" fill="none"
+                    ><path d="M9 4L5 7H2V11H5L9 14V4Z" fill="currentColor" /><path
                       d="M11.5 7C12.5 7.8 13 8.4 13 9C13 9.6 12.5 10.2 11.5 11"
                       stroke="currentColor"
                       stroke-width="1.5"
                       stroke-linecap="round"
-                    />
-                  </svg>
+                    /></svg
+                  >
                 {:else}
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 18 18"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path d="M9 4L5 7H2V11H5L9 14V4Z" fill="currentColor" />
-                    <path
+                  <svg width="19" height="19" viewBox="0 0 18 18" fill="none"
+                    ><path d="M9 4L5 7H2V11H5L9 14V4Z" fill="currentColor" /><path
                       d="M11.5 7C12.5 7.8 13 8.4 13 9C13 9.6 12.5 10.2 11.5 11"
                       stroke="currentColor"
                       stroke-width="1.5"
                       stroke-linecap="round"
-                    />
-                    <path
+                    /><path
                       d="M13.5 5C15.5 6.5 16.5 7.7 16.5 9C16.5 10.3 15.5 11.5 13.5 13"
                       stroke="currentColor"
                       stroke-width="1.5"
                       stroke-linecap="round"
-                    />
-                  </svg>
+                    /></svg
+                  >
                 {/if}
               </button>
               {#if volumeHovered}
-                <div class="volume-diamonds" onmousedown={startVolumeDrag} role="presentation">
+                <div
+                  class="volume-diamonds"
+                  onmousedown={startVolumeDrag}
+                  onmousemove={handleVolumeDiamondHover}
+                  role="presentation"
+                >
                   {#each Array(VOLUME_SEGMENTS) as _, i}
                     <button
                       class="volume-diamond"
-                      class:filled={i < Math.round(volume * VOLUME_SEGMENTS)}
+                      class:filled={!muted && i < Math.round(volume * VOLUME_SEGMENTS)}
+                      class:muted-diamond={muted}
                       style="--i: {i}"
                       onclick={() => setVolume((i + 1) / VOLUME_SEGMENTS)}
                       aria-label="set volume {Math.round(((i + 1) / VOLUME_SEGMENTS) * 100)}%"
                     ></button>
                   {/each}
-                  <span class="volume-tooltip">{muted ? '0' : Math.round(volume * 100)}%</span>
                 </div>
               {/if}
             </div>
-            <span class="fs-time">{currentTime} / {duration}</span>
+            <div class="controls-spacer"></div>
+            <button
+              class="fs-ctrl-btn add-ts-btn tooltip-ctrl"
+              data-tooltip="Place timestamp"
+              onclick={addTimestamp}
+              aria-label="add timestamp"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                ><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" /><path
+                  d="M12 7v5l3 3"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                /><path
+                  d="M18.5 3.5L20 2"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                /><path
+                  d="M12 3V1"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                /></svg
+              >
+            </button>
+            <button
+              class="fs-time tooltip-ctrl"
+              data-tooltip={timerTooltip}
+              onclick={toggleTimer}
+              aria-label="toggle timer mode"
+            >
+              {currentTimeDisplay()} / {durationDisplay}
+            </button>
             <div class="fs-right">
               <button class="fs-ctrl-btn" onclick={toggleFullscreen} aria-label="exit fullscreen">
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 12 12"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+                  ><path
                     d="M4 1H1V4M8 1H11V4M11 8V11H8M4 11H1V8"
                     stroke="currentColor"
                     stroke-width="1.2"
                     stroke-linecap="round"
-                  />
-                </svg>
+                  /></svg
+                >
               </button>
             </div>
           </div>
@@ -932,20 +1338,14 @@
             >
             <div class="fs-right">
               <button class="fs-ctrl-btn" onclick={toggleFullscreen} aria-label="exit fullscreen">
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 12 12"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+                  ><path
                     d="M4 1H1V4M8 1H11V4M11 8V11H8M4 11H1V8"
                     stroke="currentColor"
                     stroke-width="1.2"
                     stroke-linecap="round"
-                  />
-                </svg>
+                  /></svg
+                >
               </button>
             </div>
           </div>
@@ -957,13 +1357,316 @@
   {#if isLoadingFile}
     <div class="border-sweep" class:fading={loadingFadingOut}></div>
   {/if}
+
+  {#if contextMenu.visible}
+    <div class="context-menu" style="left: {contextMenu.x}px; top: {contextMenu.y}px;" role="menu">
+      {#if !isVideo}
+        <button class="ctx-item green" onclick={ctxCopyImage} role="menuitem">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+            ><rect
+              x="8"
+              y="8"
+              width="13"
+              height="13"
+              rx="2"
+              stroke="currentColor"
+              stroke-width="2"
+            /><path
+              d="M4 16V5a1 1 0 011-1h11"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /></svg
+          >
+          Copy image
+        </button>
+        <button class="ctx-item green" onclick={ctxCopyPath} role="menuitem">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+            ><path
+              d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /><path
+              d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /></svg
+          >
+          Copy file path
+        </button>
+        <div class="ctx-sep"></div>
+        <button class="ctx-item blue" onclick={ctxRotate} role="menuitem">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+            ><path
+              d="M21 2v6h-6"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            /><path
+              d="M21 13a9 9 0 11-3-7.7L21 8"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /></svg
+          >
+          Rotate 90°
+        </button>
+        <button class="ctx-item blue" onclick={ctxFlip} role="menuitem">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+            ><path
+              d="M12 3v18"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /><path
+              d="M5 8l-3 4 3 4M19 8l3 4-3 4"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            /></svg
+          >
+          Flip horizontal
+        </button>
+        <div class="ctx-sep"></div>
+        <button class="ctx-item yellow" onclick={ctxShowInExplorer} role="menuitem">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+            ><path
+              d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
+              stroke="currentColor"
+              stroke-width="2"
+            /></svg
+          >
+          Show in explorer
+        </button>
+        <div class="ctx-sep"></div>
+        <button class="ctx-item red" onclick={ctxDelete} role="menuitem">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+            ><polyline
+              points="3 6 5 6 21 6"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /><path
+              d="M19 6l-1 14H6L5 6"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /><path
+              d="M10 11v6M14 11v6"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /><path
+              d="M9 6V4h6v2"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /></svg
+          >
+          Delete
+        </button>
+      {:else}
+        <button class="ctx-item green" onclick={ctxCopyFrame} role="menuitem">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+            ><rect
+              x="2"
+              y="4"
+              width="20"
+              height="16"
+              rx="2"
+              stroke="currentColor"
+              stroke-width="2"
+            /><circle cx="8.5" cy="10.5" r="1.5" fill="currentColor" /><path
+              d="M2 17l5-5 4 4 3-3 5 5"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /></svg
+          >
+          Copy current frame
+        </button>
+        <button class="ctx-item green" onclick={ctxCopyPath} role="menuitem">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+            ><path
+              d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /><path
+              d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /></svg
+          >
+          Copy file path
+        </button>
+        <div class="ctx-sep"></div>
+        <button
+          class="ctx-item blue"
+          class:ctx-active={looping}
+          onclick={ctxToggleLoop}
+          role="menuitem"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+            ><path
+              d="M17 2L21 6L17 10"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            /><path
+              d="M3 11V9C3 7.9 3.9 7 5 7H21"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /><path
+              d="M7 22L3 18L7 14"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            /><path
+              d="M21 13V15C21 16.1 20.1 17 19 17H3"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /></svg
+          >
+          {looping ? 'Looping video' : 'Loop video'}
+        </button>
+        <button class="ctx-item blue" onclick={ctxAddTimestamp} role="menuitem">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+            ><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" /><path
+              d="M12 7v5l3 3"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /><path
+              d="M18.5 3.5L20 2"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /><path
+              d="M12 3V1"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /></svg
+          >
+          Place timestamp
+        </button>
+        {#if timestamps.length > 0}
+          <button class="ctx-item blue" onclick={ctxClearTimestamps} role="menuitem">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+              ><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" /><path
+                d="M9 9l6 6M15 9l-6 6"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              /></svg
+            >
+            Delete all timestamps
+          </button>
+        {/if}
+        <div class="ctx-sep"></div>
+        <button class="ctx-item yellow" onclick={ctxShowInExplorer} role="menuitem">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+            ><path
+              d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
+              stroke="currentColor"
+              stroke-width="2"
+            /></svg
+          >
+          Show in explorer
+        </button>
+        <div class="ctx-sep"></div>
+        <button class="ctx-item red" onclick={ctxDelete} role="menuitem">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+            ><polyline
+              points="3 6 5 6 21 6"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /><path
+              d="M19 6l-1 14H6L5 6"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /><path
+              d="M10 11v6M14 11v6"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /><path
+              d="M9 6V4h6v2"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /></svg
+          >
+          Delete
+        </button>
+      {/if}
+    </div>
+  {/if}
+
+  {#if deleteConfirm}
+    <div class="delete-overlay" role="presentation" onmousedown={(e) => e.stopPropagation()}>
+      <div class="delete-dialog" role="dialog" aria-modal="true">
+        <p class="delete-title">Delete file?</p>
+        <p class="delete-subtitle">{fileName}</p>
+        <div class="delete-toggles">
+          <label class="toggle-row">
+            <span class="toggle-label">Do not ask again</span>
+            <input type="checkbox" bind:checked={deleteNoAsk} />
+            <span class="toggle-track" class:on={deleteNoAsk}
+              ><span class="toggle-thumb"></span></span
+            >
+          </label>
+          <label class="toggle-row">
+            <span class="toggle-label">Delete permanently</span>
+            <input type="checkbox" bind:checked={deletePermanently} />
+            <span class="toggle-track" class:on={deletePermanently}
+              ><span class="toggle-thumb"></span></span
+            >
+          </label>
+        </div>
+        <div class="delete-actions">
+          <button class="delete-cancel" onclick={() => (deleteConfirm = false)}>Cancel</button>
+          <button class="delete-confirm-btn" onclick={performDelete}>Delete</button>
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  {#if tsTooltip.visible}
+    <div class="ts-tooltip" style="left: {tsTooltip.x}px; top: {tsTooltip.y}px;">
+      {tsTooltip.label}
+    </div>
+  {/if}
+
+  {#if volumeTooltipVisible}
+    <div class="vol-tooltip" style="left: {volumeTooltipX}px; top: {volumeTooltipY - 32}px;">
+      {muted ? '0' : Math.round(volume * 100)}%
+    </div>
+  {/if}
+
+  <div
+    id="filename-tooltip"
+    style="position:fixed;opacity:0;transition:opacity 0.15s ease 0.4s;background:#1a1a1a;color:#aaaaaa;font-size:11px;font-family:Inter,sans-serif;white-space:nowrap;padding:4px 8px;border-radius:4px;border:0.5px solid #2a2a2a;pointer-events:none;z-index:9999;"
+  ></div>
 </main>
 
 <style>
   main {
     width: 100vw;
     height: 100vh;
-    background: #000000;
+    background: #000;
     margin: 0;
     padding: 0;
     overflow: hidden;
@@ -983,19 +1686,16 @@
     cursor: grab;
     user-select: none;
   }
-
   .app-name {
     font-size: 16px;
     color: #888888;
     font-family: Inter, sans-serif;
   }
-
   .divider {
     font-size: 14px;
     color: #444444;
     font-family: Inter, sans-serif;
   }
-
   .filename {
     font-size: 12px;
     color: #cccccc;
@@ -1004,8 +1704,9 @@
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 300px;
+    pointer-events: auto;
+    cursor: default;
   }
-
   .folder-btn {
     background: none;
     border: none;
@@ -1016,19 +1717,16 @@
     transition: background 0.2s;
     color: #666666;
   }
-
   .folder-btn:hover {
     background: #1a1a1a;
     color: #aaaaaa;
   }
-
   .window-controls {
     margin-left: auto;
     display: flex;
     align-items: center;
     gap: 4px;
   }
-
   .wc-btn {
     width: 28px;
     height: 28px;
@@ -1045,12 +1743,10 @@
       color 0.2s;
     color: #666666;
   }
-
   .wc-btn:hover {
     background: #1a1a1a;
     color: #cccccc;
   }
-
   .wc-btn.close:hover {
     background: #3a1a1a;
     color: #ff6666;
@@ -1063,7 +1759,6 @@
     overflow: hidden;
     background: #0a0a0a;
   }
-
   .sidebar {
     width: 48px;
     background: transparent;
@@ -1072,7 +1767,6 @@
     justify-content: center;
     flex-shrink: 0;
   }
-
   .nav-btn {
     width: 36px;
     height: 36px;
@@ -1090,7 +1784,6 @@
       background 0.2s;
     line-height: 1;
   }
-
   .nav-btn:hover {
     color: #cccccc;
     background: #222222;
@@ -1107,13 +1800,6 @@
     box-sizing: border-box;
   }
 
-  .viewer img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-    display: block;
-  }
-
   .empty {
     background: none;
     border: 1px dashed #222222;
@@ -1126,16 +1812,13 @@
     cursor: pointer;
     transition: border-color 0.2s;
   }
-
   .empty:hover {
     border-color: #444444;
   }
-
   .empty-icon {
     font-size: 24px;
     color: #333333;
   }
-
   .empty-text {
     font-size: 13px;
     color: #333333;
@@ -1152,20 +1835,17 @@
     padding: 0 16px;
     flex-shrink: 0;
   }
-
   .file-count,
   .file-info {
     font-size: 12px;
     color: #444444;
     font-family: Inter, sans-serif;
   }
-
   .bottombar-right {
     display: flex;
     align-items: center;
     gap: 8px;
   }
-
   .zoom {
     font-size: 12px;
     color: #444444;
@@ -1177,11 +1857,9 @@
     background: none;
     border: none;
   }
-
   .zoom:hover {
     color: #888888;
   }
-
   .fs-btn {
     background: none;
     border: none;
@@ -1194,7 +1872,6 @@
     border-radius: 3px;
     transition: color 0.2s;
   }
-
   .fs-btn:hover {
     color: #888888;
   }
@@ -1211,11 +1888,9 @@
     outline: 4px solid transparent;
     transition: outline-color 0.5s;
   }
-
   .video-wrapper:hover {
     outline-color: #444444;
   }
-
   .video-wrapper video {
     display: block;
     max-width: calc(100vw - 96px - 32px);
@@ -1239,7 +1914,6 @@
     opacity: 0;
     transition: opacity 0.2s;
   }
-
   .video-wrapper:hover .video-controls {
     opacity: 1;
   }
@@ -1255,15 +1929,13 @@
     padding: 0;
     overflow: visible;
   }
-
   .progress-fill {
     height: 100%;
     background: #ffffff;
     border-radius: 2px;
     pointer-events: none;
   }
-
-  .progress-diamond {
+  .progress-playhead {
     position: absolute;
     top: 50%;
     width: 14px;
@@ -1274,9 +1946,52 @@
     opacity: 0;
     transition: opacity 0.2s;
   }
-
-  .video-wrapper:hover .progress-diamond {
+  .video-wrapper:hover .progress-playhead {
     opacity: 1;
+  }
+
+  .ts-marker {
+    position: absolute;
+    top: 50%;
+    width: 10px;
+    height: 10px;
+    background: #f5c518;
+    transform: translate(-50%, -50%) rotate(45deg);
+    cursor: pointer;
+    z-index: 2;
+    transition: transform 0.15s;
+  }
+  .ts-marker:hover {
+    transform: translate(-50%, -50%) rotate(45deg) scale(1.4);
+  }
+
+  .ts-tooltip {
+    position: fixed;
+    transform: translate(-50%, -100%);
+    background: #1a1a1a;
+    color: #f5c518;
+    font-size: 11px;
+    font-family: Inter, sans-serif;
+    padding: 3px 7px;
+    border-radius: 4px;
+    border: 0.5px solid #f5c518;
+    pointer-events: none;
+    z-index: 9999;
+    white-space: nowrap;
+  }
+  .vol-tooltip {
+    position: fixed;
+    transform: translateX(-50%);
+    background: #1a1a1a;
+    color: #ffffff;
+    font-size: 11px;
+    font-family: Inter, sans-serif;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 0.5px solid #333333;
+    pointer-events: none;
+    z-index: 9999;
+    white-space: nowrap;
   }
 
   .controls-row {
@@ -1284,35 +1999,67 @@
     align-items: center;
     gap: 2px;
   }
+  .controls-spacer {
+    flex: 1;
+  }
 
   .ctrl-btn {
     background: none;
     border: none;
     color: #cccccc;
     cursor: pointer;
-    padding: 2px 4px;
-    font-family: Inter, sans-serif;
+    padding: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
+    border-radius: 4px;
+    transition:
+      background 0.15s,
+      color 0.15s;
   }
-
   .ctrl-btn:hover {
     color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
   }
-
-  .ctrl-btn svg {
-    width: 28px;
-    height: 28px;
+  .loop-btn {
+    color: #555555;
+  }
+  .loop-btn.active {
+    color: #ffffff;
+  }
+  .loop-btn:hover {
+    color: #aaaaaa;
+  }
+  .loop-btn.active:hover {
+    color: #ffffff;
+  }
+  .add-ts-btn {
+    color: #555555;
+  }
+  .add-ts-btn:hover {
+    color: #f5c518;
+    background: rgba(245, 197, 24, 0.1);
   }
 
   .time-display {
-    font-size: 16px;
+    font-size: 12px;
     color: #cccccc;
     font-family: Inter, sans-serif;
-    margin-left: auto;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 3px 7px;
+    border-radius: 4px;
+    transition:
+      background 0.15s,
+      color 0.15s;
+    white-space: nowrap;
+  }
+  .time-display:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
   }
 
   .volume-control {
@@ -1322,20 +2069,10 @@
     gap: 4px;
     height: 28px;
   }
-
   .volume-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 32px;
-    width: 32px;
+    width: 26px;
+    height: 26px;
   }
-
-  .volume-btn svg {
-    width: 28px;
-    height: 28px;
-  }
-
   .volume-diamonds {
     display: flex;
     align-items: center;
@@ -1343,7 +2080,6 @@
     animation: volumeBarIn 0.2s ease forwards;
     cursor: pointer;
   }
-
   @keyframes volumeBarIn {
     from {
       opacity: 0;
@@ -1354,25 +2090,23 @@
       transform: translateX(0);
     }
   }
-
   .volume-diamond {
-    width: 12px;
-    height: 12px;
+    width: 11px;
+    height: 11px;
     background: none;
     border: 1px solid #555555;
     transform: rotate(45deg);
     cursor: pointer;
     padding: 0;
     transition:
-      background 0.2s ease,
-      border-color 0.2s ease,
-      transform 0.2s ease;
+      background 0.15s ease,
+      border-color 0.15s ease,
+      opacity 0.15s ease;
     flex-shrink: 0;
-    animation: diamondSpin 0.3s ease forwards;
-    animation-delay: calc(var(--i) * 0.04s);
+    animation: diamondSpin 0.25s ease forwards;
+    animation-delay: calc(var(--i) * 0.03s);
     opacity: 0;
   }
-
   @keyframes diamondSpin {
     from {
       opacity: 0;
@@ -1383,23 +2117,19 @@
       transform: rotate(45deg) scale(1);
     }
   }
-
   .volume-diamond.filled {
     background: #ffffff;
     border-color: #ffffff;
   }
-
+  .volume-diamond.muted-diamond {
+    opacity: 0.25;
+  }
+  .volume-diamond.muted-diamond.filled {
+    background: #666666;
+    border-color: #666666;
+  }
   .volume-diamond:hover {
     border-color: #aaaaaa;
-    transform: rotate(45deg) scale(1.2);
-  }
-
-  .volume-tooltip {
-    font-size: 12px;
-    color: #666666;
-    font-family: Inter, sans-serif;
-    margin-left: 4px;
-    min-width: 28px;
   }
 
   main.fullscreen .topbar {
@@ -1417,12 +2147,10 @@
   main.fullscreen .video-controls {
     display: none;
   }
-
   main.fullscreen .video-wrapper {
     width: 100%;
     height: 100%;
   }
-
   main.fullscreen .video-wrapper video {
     max-width: 100vw;
     max-height: 100vh;
@@ -1439,12 +2167,9 @@
     transition: opacity 0.3s;
     z-index: 100;
   }
-
   .fs-overlay.visible {
     opacity: 1;
-    pointer-events: all;
   }
-
   .fs-topbar {
     position: absolute;
     top: 0;
@@ -1457,19 +2182,16 @@
     align-items: center;
     justify-content: space-between;
   }
-
   .fs-filename {
     font-size: 12px;
     color: #888888;
     font-family: Inter, sans-serif;
   }
-
   .fs-window-controls {
     display: flex;
     align-items: center;
     gap: 4px;
   }
-
   .fs-wc-btn {
     width: 28px;
     height: 28px;
@@ -1486,12 +2208,10 @@
       color 0.2s;
     color: #666666;
   }
-
   .fs-wc-btn:hover {
     background: rgba(255, 255, 255, 0.1);
     color: #cccccc;
   }
-
   .fs-wc-btn.close:hover {
     background: rgba(255, 0, 0, 0.2);
     color: #ff6666;
@@ -1508,11 +2228,9 @@
     flex-direction: column;
     gap: 8px;
   }
-
   .fs-controls.image-only {
     background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
   }
-
   .fs-progress {
     width: 100%;
     height: 4px;
@@ -1522,15 +2240,13 @@
     position: relative;
     overflow: visible;
   }
-
   .fs-progress-fill {
     height: 100%;
     background: #ffffff;
     border-radius: 2px;
     pointer-events: none;
   }
-
-  .fs-progress-diamond {
+  .fs-progress-playhead {
     position: absolute;
     top: 50%;
     width: 12px;
@@ -1539,54 +2255,80 @@
     transform: translate(-50%, -50%) rotate(45deg);
     pointer-events: none;
   }
-
   .fs-controls-row {
     display: flex;
     align-items: center;
     gap: 2px;
   }
-
   .fs-ctrl-btn {
     background: none;
     border: none;
     color: #cccccc;
     cursor: pointer;
-    font-size: 16px;
-    padding: 2px 4px;
+    padding: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: color 0.2s;
+    border-radius: 4px;
+    transition:
+      background 0.15s,
+      color 0.15s;
   }
-
   .fs-ctrl-btn:hover {
     color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
   }
-
   .fs-ctrl-btn svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
   }
-
+  .fs-ctrl-btn.loop-btn {
+    color: #555555;
+  }
+  .fs-ctrl-btn.loop-btn.active {
+    color: #ffffff;
+  }
+  .fs-ctrl-btn.loop-btn:hover {
+    color: #aaaaaa;
+  }
+  .fs-ctrl-btn.loop-btn.active:hover {
+    color: #ffffff;
+  }
+  .fs-ctrl-btn.add-ts-btn {
+    color: #555555;
+  }
+  .fs-ctrl-btn.add-ts-btn:hover {
+    color: #f5c518;
+    background: rgba(245, 197, 24, 0.1);
+  }
   .fs-ctrl-btn.volume-btn svg {
-    width: 32px;
-    height: 32px;
+    width: 19px;
+    height: 19px;
   }
-
   .fs-time {
-    font-size: 14px;
+    font-size: 13px;
     color: #888888;
     font-family: Inter, sans-serif;
-    margin-left: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 3px 7px;
+    border-radius: 4px;
+    transition:
+      background 0.15s,
+      color 0.15s;
+    white-space: nowrap;
   }
-
+  .fs-time:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
   .fs-right {
     margin-left: auto;
     display: flex;
     align-items: center;
     gap: 8px;
   }
-
   .fs-nav-left,
   .fs-nav-right {
     position: absolute;
@@ -1596,14 +2338,12 @@
     align-items: center;
     justify-content: center;
   }
-
   .fs-nav-left {
     left: 16px;
   }
   .fs-nav-right {
     right: 16px;
   }
-
   .fs-nav-btn {
     width: 40px;
     height: 40px;
@@ -1621,10 +2361,191 @@
       background 0.2s;
     line-height: 1;
   }
-
   .fs-nav-btn:hover {
     color: #cccccc;
     background: rgba(0, 0, 0, 0.7);
+  }
+
+  .context-menu {
+    position: fixed;
+    background: #141414;
+    border: 0.5px solid #2a2a2a;
+    border-radius: 10px;
+    padding: 5px;
+    z-index: 1000;
+    min-width: 185px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .ctx-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 10px;
+    border-radius: 7px;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: Inter, sans-serif;
+    text-align: left;
+    transition: filter 0.12s;
+  }
+  .ctx-item.green {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+  }
+  .ctx-item.green:hover {
+    background: rgba(34, 197, 94, 0.26);
+  }
+  .ctx-item.blue {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+  }
+  .ctx-item.blue:hover {
+    background: rgba(59, 130, 246, 0.26);
+  }
+  .ctx-item.blue.ctx-active {
+    background: rgba(59, 130, 246, 0.28);
+    color: #93c5fd;
+  }
+  .ctx-item.yellow {
+    background: rgba(234, 179, 8, 0.15);
+    color: #facc15;
+  }
+  .ctx-item.yellow:hover {
+    background: rgba(234, 179, 8, 0.26);
+  }
+  .ctx-item.red {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+  }
+  .ctx-item.red:hover {
+    background: rgba(239, 68, 68, 0.26);
+  }
+  .ctx-sep {
+    height: 0.5px;
+    background: #2a2a2a;
+    margin: 2px 4px;
+  }
+
+  .delete-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .delete-dialog {
+    background: #141414;
+    border: 0.5px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 24px;
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8);
+  }
+  .delete-title {
+    font-size: 15px;
+    color: #ffffff;
+    font-family: Inter, sans-serif;
+    font-weight: 600;
+    margin: 0;
+  }
+  .delete-subtitle {
+    font-size: 11px;
+    color: #555555;
+    font-family: Inter, sans-serif;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .delete-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 4px 0;
+  }
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+  }
+  .toggle-row input {
+    display: none;
+  }
+  .toggle-label {
+    font-size: 12px;
+    color: #888888;
+    font-family: Inter, sans-serif;
+  }
+  .toggle-track {
+    width: 36px;
+    height: 20px;
+    background: #2a2a2a;
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle-track.on {
+    background: #3b82f6;
+  }
+  .toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    background: #ffffff;
+    border-radius: 50%;
+    transition: left 0.2s;
+  }
+  .toggle-track.on .toggle-thumb {
+    left: 19px;
+  }
+  .delete-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .delete-cancel {
+    padding: 7px 16px;
+    border-radius: 7px;
+    border: 0.5px solid #2a2a2a;
+    background: #1a1a1a;
+    color: #888888;
+    font-size: 12px;
+    font-family: Inter, sans-serif;
+    cursor: pointer;
+    transition:
+      background 0.2s,
+      color 0.2s;
+  }
+  .delete-cancel:hover {
+    background: #222222;
+    color: #cccccc;
+  }
+  .delete-confirm-btn {
+    padding: 7px 16px;
+    border-radius: 7px;
+    border: none;
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    font-size: 12px;
+    font-family: Inter, sans-serif;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .delete-confirm-btn:hover {
+    background: rgba(239, 68, 68, 0.35);
   }
 
   :global(.border-sweep) {
@@ -1643,7 +2564,6 @@
     mask-composite: exclude;
     padding: 3px;
   }
-
   :global(.border-sweep::before) {
     content: '';
     position: absolute;
@@ -1662,13 +2582,11 @@
     );
     animation: borderSweep 1.2s linear infinite;
   }
-
   :global(.border-sweep.fading::before) {
     animation:
       borderSweep 1s linear infinite,
       sweepFade 0.5s ease-out forwards;
   }
-
   @keyframes borderSweep {
     from {
       transform: rotate(0deg);
@@ -1677,7 +2595,6 @@
       transform: rotate(360deg);
     }
   }
-
   @keyframes sweepFade {
     from {
       opacity: 1;
@@ -1691,7 +2608,6 @@
     position: relative;
     display: inline-block;
   }
-
   [data-tooltip]::after {
     content: attr(data-tooltip);
     position: absolute;
@@ -1711,16 +2627,45 @@
     transition-delay: 0.4s;
     z-index: 999;
   }
-
   [data-tooltip].tooltip-above::after {
     bottom: calc(100% + 6px);
   }
-
+  [data-tooltip].tooltip-above-left::after {
+    bottom: calc(100% + 6px);
+    left: 0;
+    transform: none;
+  }
   [data-tooltip].tooltip-below::after {
     top: calc(100% + 6px);
   }
-
   [data-tooltip]:hover::after {
+    opacity: 1;
+  }
+
+  .tooltip-ctrl {
+    position: relative;
+  }
+  .tooltip-ctrl::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a1a1a;
+    color: #aaaaaa;
+    font-size: 11px;
+    font-family: Inter, sans-serif;
+    white-space: nowrap;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 0.5px solid #2a2a2a;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    transition-delay: 0.5s;
+    z-index: 9999;
+  }
+  .tooltip-ctrl:hover::after {
     opacity: 1;
   }
 </style>
