@@ -22,6 +22,21 @@
     TimestampDragRange,
   } from "$lib/types";
 
+  import {
+    loadVolume,
+    saveVolume,
+    loadDeleteNoAsk,
+    saveDeleteNoAsk,
+    loadClipPrefs,
+    saveClipPrefs,
+    readTimestamps,
+    writeTimestamps,
+    eraseTimestamps,
+    readClipBoundaries,
+    writeClipBoundaries,
+    eraseClipBoundaries,
+  } from "$lib/services/storage";
+
   let filePath = $state("");
   let fileSrc = $state("");
   let fileName = $state("no file open");
@@ -329,7 +344,7 @@
       muted = volume === 0;
       videoEl.muted = muted;
     }
-    localStorage.setItem("vyu-volume", String(volume));
+    saveVolume(volume);
   }
 
   function handleVolumeScroll(e: WheelEvent) {
@@ -384,31 +399,11 @@
   }
 
   function loadTimestamps() {
-    if (!filePath) {
-      timestamps = [];
-      return;
-    }
-    try {
-      const raw = localStorage.getItem(`vyu-ts-${filePath}`);
-      const parsed = raw ? (JSON.parse(raw) as Array<Partial<Timestamp>>) : [];
-      timestamps = parsed
-        .filter((ts) => typeof ts?.time === "number")
-        .map((ts) => ({
-          id:
-            ts.id ||
-            `ts-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          time: ts.time as number,
-          title: typeof ts.title === "string" ? ts.title : "",
-        }))
-        .sort((a, b) => a.time - b.time);
-    } catch {
-      timestamps = [];
-    }
+    timestamps = readTimestamps(filePath);
   }
 
   function saveTimestamps() {
-    if (!filePath) return;
-    localStorage.setItem(`vyu-ts-${filePath}`, JSON.stringify(timestamps));
+    writeTimestamps(filePath, timestamps);
   }
 
   function addTimestamp() {
@@ -437,7 +432,7 @@
     tsTooltip = { ...tsTooltip, visible: false };
     tsEditMenu = { ...tsEditMenu, visible: false };
     timestamps = [];
-    if (filePath) localStorage.removeItem(`vyu-ts-${filePath}`);
+    eraseTimestamps(filePath);
   }
 
   function updateTimestampTitle(id: string, title: string) {
@@ -614,7 +609,7 @@
     tsTooltip = { ...tsTooltip, visible: false };
     tsEditMenu = { ...tsEditMenu, visible: false };
     clipBoundaries = [];
-    if (filePath) localStorage.removeItem(`vyu-clips-${filePath}`);
+    eraseClipBoundaries(filePath);
   }
 
   function setClipBoundaryKind(id: string, kind: "start" | "end") {
@@ -847,41 +842,11 @@
   }
 
   function loadClipBoundaries() {
-    if (!filePath) {
-      clipBoundaries = [];
-      return;
-    }
-    try {
-      const raw = localStorage.getItem(`vyu-clips-${filePath}`);
-      const parsed = raw
-        ? (JSON.parse(raw) as Array<Partial<ClipBoundary>>)
-        : [];
-      clipBoundaries = parsed
-        .filter(
-          (m) =>
-            typeof m?.time === "number" &&
-            (m.kind === "start" || m.kind === "end"),
-        )
-        .map((m) => ({
-          id:
-            m.id ||
-            `${m.kind}-${m.time}-${Math.random().toString(36).slice(2, 8)}`,
-          time: m.time as number,
-          kind: m.kind as "start" | "end",
-          title: typeof m.title === "string" ? m.title : "",
-        }))
-        .sort((a, b) => a.time - b.time);
-    } catch {
-      clipBoundaries = [];
-    }
+    clipBoundaries = readClipBoundaries(filePath);
   }
 
   function saveClipBoundaries() {
-    if (!filePath) return;
-    localStorage.setItem(
-      `vyu-clips-${filePath}`,
-      JSON.stringify(clipBoundaries),
-    );
+    writeClipBoundaries(filePath, clipBoundaries);
   }
 
   function addClipBoundary(kind: "start" | "end") {
@@ -970,12 +935,11 @@
   }
 
   function persistClipPrefs() {
-    localStorage.setItem(
-      "vyu-clip-delete-original",
-      String(clipDeleteOriginal),
-    );
-    localStorage.setItem("vyu-clip-use-custom-path", String(clipUseCustomPath));
-    localStorage.setItem("vyu-clip-merge-segments", String(clipMergeSegments));
+    saveClipPrefs({
+      deleteOriginal: clipDeleteOriginal,
+      useCustomPath: clipUseCustomPath,
+      mergeSegments: clipMergeSegments,
+    });
   }
 
   function getClipTargetDir(): string {
@@ -1089,7 +1053,7 @@
       return;
     }
     clipOutputDir = selected as string;
-    localStorage.setItem("vyu-clip-output-dir", clipOutputDir);
+    saveClipPrefs({ outputDir: clipOutputDir });
     clipUseCustomPath = true;
     persistClipPrefs();
   }
@@ -1685,14 +1649,14 @@
 
   function ctxDelete() {
     closeContextMenu();
-    const noAsk = localStorage.getItem("vyu-delete-no-ask") === "true";
+    const noAsk = loadDeleteNoAsk();
     if (noAsk) performDelete();
     else deleteConfirm = true;
   }
 
   async function performDelete() {
     deleteConfirm = false;
-    if (deleteNoAsk) localStorage.setItem("vyu-delete-no-ask", "true");
+    if (deleteNoAsk) saveDeleteNoAsk();
     const pathToDelete = filePath;
     const prevList = [...fileList];
     const prevIndex = currentIndex;
@@ -1744,16 +1708,12 @@
     const initial = (window as any).__INITIAL_FILE__;
     if (initial) loadFile(initial);
 
-    const saved = localStorage.getItem("vyu-volume");
-    if (saved !== null) volume = parseFloat(saved);
-    const savedClipOutput = localStorage.getItem("vyu-clip-output-dir");
-    if (savedClipOutput) clipOutputDir = savedClipOutput;
-    clipDeleteOriginal =
-      localStorage.getItem("vyu-clip-delete-original") === "true";
-    clipUseCustomPath =
-      localStorage.getItem("vyu-clip-use-custom-path") === "true";
-    clipMergeSegments =
-      localStorage.getItem("vyu-clip-merge-segments") === "true";
+    volume = loadVolume();
+    const prefs = loadClipPrefs();
+    clipOutputDir = prefs.outputDir;
+    clipDeleteOriginal = prefs.deleteOriginal;
+    clipUseCustomPath = prefs.useCustomPath;
+    clipMergeSegments = prefs.mergeSegments;
 
     getCurrentWindow().onDragDropEvent((event) => {
       if (event.payload.type === "drop" && event.payload.paths?.length > 0)
