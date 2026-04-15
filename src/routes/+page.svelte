@@ -64,8 +64,8 @@
   } from "$lib/services/files";
 
   import { createPlaybackActions } from "$lib/core/playback.svelte";
-
   import { createTimeline } from "$lib/core/timeline.svelte";
+  import { createClips } from "$lib/core/clips.svelte";
 
   let filePath = $state("");
   let fileSrc = $state("");
@@ -85,6 +85,7 @@
 
   const playback = createPlaybackActions(() => videoEl);
   const timeline = createTimeline();
+  const clips = createClips();
 
   let playing = $state(false);
   let muted = $state(false);
@@ -223,25 +224,7 @@
   const fsCursor = $derived(!fsControlsVisible ? "none" : panCursor);
   const isGifVideo = $derived(isVideo && fileExt() === "gif");
   const clipPairs = $derived.by(() => {
-    const sorted = [...clipBoundaries].sort((a, b) => a.time - b.time);
-    const pendingStarts: ClipBoundary[] = [];
-    const pairs: ClipPair[] = [];
-    for (const marker of sorted) {
-      if (marker.kind === "start") {
-        pendingStarts.push(marker);
-      } else if (pendingStarts.length > 0) {
-        const start = pendingStarts.shift()!;
-        if (marker.time > start.time) {
-          pairs.push({
-            start: start.time,
-            end: marker.time,
-            startId: start.id,
-            endId: marker.id,
-          });
-        }
-      }
-    }
-    return pairs.sort((a, b) => a.start - b.start);
+    return clips.computePairs(clipBoundaries);
   });
   const clipCount = $derived(clipPairs.length);
 
@@ -865,22 +848,13 @@
 
   function addClipBoundary(kind: "start" | "end") {
     if (!videoEl || rawDurationSecs <= 0) return;
+
     const time = Math.max(0, Math.min(videoEl.currentTime, rawDurationSecs));
-    if (
-      clipBoundaries.some(
-        (m) => m.kind === kind && Math.abs(m.time - time) < 0.25,
-      )
-    )
-      return;
-    clipBoundaries = [
-      ...clipBoundaries,
-      {
-        id: `${kind}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        time,
-        kind,
-        title: "",
-      },
-    ].sort((a, b) => a.time - b.time);
+
+    clips.addClipBoundary(kind, time, clipBoundaries, (v) => {
+      clipBoundaries = v;
+    });
+
     saveClipBoundaries();
   }
 
@@ -944,7 +918,12 @@
 
   function removeClipBoundary(id: string) {
     tsTooltip = { ...tsTooltip, visible: false };
-    clipBoundaries = clipBoundaries.filter((m) => m.id !== id);
+    tsEditMenu = { ...tsEditMenu, visible: false };
+
+    clips.removeClipBoundary(id, clipBoundaries, (v) => {
+      clipBoundaries = v;
+    });
+
     saveClipBoundaries();
   }
 
