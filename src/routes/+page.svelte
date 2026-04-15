@@ -63,6 +63,8 @@
     getFileName,
   } from "$lib/services/files";
 
+  import { createPlaybackActions } from "$lib/core/playback.svelte";
+
   let filePath = $state("");
   let fileSrc = $state("");
   let fileName = $state("no file open");
@@ -79,6 +81,9 @@
   let loadingTimer: ReturnType<typeof setTimeout> | undefined;
 
   let videoEl = $state<HTMLVideoElement | null>(null);
+
+  const playback = createPlaybackActions(() => videoEl);
+
   let playing = $state(false);
   let muted = $state(false);
   let looping = $state(true);
@@ -293,29 +298,25 @@
   }
 
   function updateProgress() {
-    if (!videoEl) return;
-    rawCurrentSecs = videoEl.currentTime;
-    rawDurationSecs = videoEl.duration || 0;
-    progress =
-      rawDurationSecs > 0 ? (rawCurrentSecs / rawDurationSecs) * 100 : 0;
-    playing = !videoEl.paused;
+    playback.updateProgress((data) => {
+      rawCurrentSecs = data.rawCurrentSecs;
+      rawDurationSecs = data.rawDurationSecs;
+      progress = data.progress;
+      playing = data.playing;
+    });
   }
 
   function togglePlay() {
-    if (!videoEl) return;
-    videoEl.paused ? videoEl.play() : videoEl.pause();
-    playing = !videoEl.paused;
+    playback.togglePlay();
+    playing = !playing;
   }
 
   function toggleMute() {
-    if (!videoEl) return;
-    muted = !muted;
-    videoEl.muted = muted;
+    playback.toggleMute((v) => (muted = v), muted);
   }
 
   function toggleLoop() {
-    looping = !looping;
-    if (videoEl) videoEl.loop = looping;
+    playback.toggleLoop((v) => (looping = v), looping);
   }
 
   function toggleTimer() {
@@ -364,12 +365,11 @@
   }
 
   function setVolume(val: number) {
-    volume = Math.max(0, Math.min(1, val));
-    if (videoEl) {
-      videoEl.volume = volume;
-      muted = volume === 0;
-      videoEl.muted = muted;
-    }
+    playback.setVolume(val, ({ volume: v, muted: m }) => {
+      volume = v;
+      muted = m;
+    });
+
     saveVolume(volume);
   }
 
