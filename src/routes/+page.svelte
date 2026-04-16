@@ -1,9 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { fade, fly } from "svelte/transition";
-  import { convertFileSrc } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { stat } from "@tauri-apps/plugin-fs";
   import { open } from "@tauri-apps/plugin-dialog";
   import { createPlaybackActions } from "$lib/core/playback.svelte";
   import { createTimeline } from "$lib/core/timeline.svelte";
@@ -32,13 +30,10 @@
     saveDeleteNoAsk,
     loadClipPrefs,
     saveClipPrefs,
-    readTimestamps,
     writeTimestamps,
     eraseTimestamps,
-    readClipBoundaries,
     writeClipBoundaries,
     eraseClipBoundaries,
-    loadResumePoint,
     saveResumePoint,
     eraseResumePoint,
   } from "$lib/services/storage";
@@ -62,12 +57,8 @@
     copyAllPropertiesToClipboard,
   } from "$lib/services/clipboard";
 
-  import {
-    readMediaFilesInFolder,
-    getParentFolder,
-    getFileExt,
-    getFileName,
-  } from "$lib/services/files";
+  import { getParentFolder, getFileExt } from "$lib/services/files";
+  import { createMedia } from "$lib/core/media.svelte";
 
   let filePath = $state("");
   let fileSrc = $state("");
@@ -82,12 +73,59 @@
   let fileInfoLoading = $state(false);
   let isLoadingFile = $state(false);
   let loadingFadingOut = $state(false);
-  let loadingTimer: ReturnType<typeof setTimeout> | undefined;
   let videoEl = $state<HTMLVideoElement | null>(null);
 
   const playback = createPlaybackActions(() => videoEl);
   const timeline = createTimeline();
   const clips = createClips();
+
+  function setMediaState(
+    data: Partial<import("$lib/core/media.svelte").MediaState>,
+  ) {
+    if (data.filePath !== undefined) filePath = data.filePath;
+    if (data.fileSrc !== undefined) fileSrc = data.fileSrc;
+    if (data.fileName !== undefined) fileName = data.fileName;
+    if (data.isVideo !== undefined) isVideo = data.isVideo;
+    if (data.fileList !== undefined) fileList = data.fileList;
+    if (data.currentIndex !== undefined) currentIndex = data.currentIndex;
+    if (data.fileSize !== undefined) fileSize = data.fileSize;
+    if (data.fileDimensions !== undefined) fileDimensions = data.fileDimensions;
+    if (data.fileCreated !== undefined) fileCreated = data.fileCreated;
+    if (data.fileModified !== undefined) fileModified = data.fileModified;
+    if (data.fileInfoLoading !== undefined)
+      fileInfoLoading = data.fileInfoLoading;
+    if (data.isLoadingFile !== undefined) isLoadingFile = data.isLoadingFile;
+    if (data.loadingFadingOut !== undefined)
+      loadingFadingOut = data.loadingFadingOut;
+    if (data.imageRotation !== undefined) imageRotation = data.imageRotation;
+    if (data.imageFlipped !== undefined) imageFlipped = data.imageFlipped;
+    if (data.imageNaturalWidth !== undefined)
+      imageNaturalWidth = data.imageNaturalWidth;
+    if (data.imageNaturalHeight !== undefined)
+      imageNaturalHeight = data.imageNaturalHeight;
+    if (data.rawCurrentSecs !== undefined) rawCurrentSecs = data.rawCurrentSecs;
+    if (data.rawDurationSecs !== undefined)
+      rawDurationSecs = data.rawDurationSecs;
+    if (data.progress !== undefined) progress = data.progress;
+    if (data.playing !== undefined) playing = data.playing;
+    if (data.timestamps !== undefined) timestamps = data.timestamps;
+    if (data.clipBoundaries !== undefined) clipBoundaries = data.clipBoundaries;
+    if (data.resumePoint !== undefined) resumePoint = data.resumePoint;
+  }
+
+  const media = createMedia(
+    () => videoEl,
+    () => volume,
+    () => muted,
+    () => looping,
+    () => {
+      clearTimeout(tsDragFadeTimer);
+      clearTimestampDragRange();
+      tsTooltip = { ...tsTooltip, visible: false };
+      tsEditMenu = { ...tsEditMenu, visible: false };
+      resetZoom();
+    },
+  );
 
   let playing = $state(false);
   let muted = $state(false);
@@ -247,43 +285,12 @@
     return `${m}:${s.toString().padStart(2, "0")}`;
   }
 
-  function formatFileSize(bytes: number): string {
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
-
-  function formatMetaDate(value: unknown): string {
-    if (value === null || value === undefined) return "Unknown";
-    const asNumber = typeof value === "number" ? value : Number(value);
-    if (!Number.isFinite(asNumber)) return "Unknown";
-    const ms = asNumber < 10_000_000_000 ? asNumber * 1000 : asNumber;
-    const d = new Date(ms);
-    if (Number.isNaN(d.getTime())) return "Unknown";
-    return d.toLocaleString();
-  }
-
   function showFrameCopyToast(message: string, tone: "success" | "error") {
     clearTimeout(frameCopyToastTimer);
     frameCopyToast = { visible: true, message, tone };
     frameCopyToastTimer = setTimeout(() => {
       frameCopyToast = { ...frameCopyToast, visible: false };
     }, 2200);
-  }
-
-  function getMetaValue(obj: unknown, key: string): unknown {
-    if (!obj || typeof obj !== "object") return undefined;
-    return (obj as Record<string, unknown>)[key];
-  }
-
-  function finishLoading() {
-    clearTimeout(loadingTimer);
-    loadingTimer = setTimeout(() => {
-      loadingFadingOut = true;
-      setTimeout(() => {
-        isLoadingFile = false;
-        loadingFadingOut = false;
-      }, 400);
-    }, 400);
   }
 
   function updateProgress() {
@@ -411,10 +418,6 @@
   function handleVolumeAreaLeave() {
     volumeTooltipVisible = false;
     volumeHovered = false;
-  }
-
-  function loadTimestamps() {
-    timestamps = readTimestamps(filePath);
   }
 
   function saveTimestamps() {
@@ -842,10 +845,6 @@
     return rawDurationSecs > 0 ? (time / rawDurationSecs) * 100 : 0;
   }
 
-  function loadResumePointForFile() {
-    resumePoint = loadResumePoint(filePath);
-  }
-
   function removeResumePoint() {
     tsTooltip = { ...tsTooltip, visible: false };
     resumeTooltipVisible = false;
@@ -857,10 +856,6 @@
     if (videoEl && resumePoint !== null) {
       videoEl.currentTime = resumePoint;
     }
-  }
-
-  function loadClipBoundaries() {
-    clipBoundaries = readClipBoundaries(filePath);
   }
 
   function saveClipBoundaries() {
@@ -1087,128 +1082,44 @@
   }
 
   async function displayFile(path: string) {
-    filePath = path;
-    fileName = getFileName(path);
-    const ext = path.split(".").pop()?.toLowerCase() || "";
-    isVideo = VIDEO_EXTS.includes(ext);
-    fileSrc = convertFileSrc(path);
-    fileSize = "";
-    fileDimensions = "";
-    fileCreated = "";
-    fileModified = "";
-    fileInfoLoading = true;
-    imageRotation = 0;
-    imageFlipped = false;
-    imageNaturalWidth = 0;
-    imageNaturalHeight = 0;
-    rawCurrentSecs = 0;
-    rawDurationSecs = 0;
-    progress = 0;
-    playing = false;
-    clearTimeout(tsDragFadeTimer);
-    clearTimestampDragRange();
-    tsTooltip = { ...tsTooltip, visible: false };
-    tsEditMenu = { ...tsEditMenu, visible: false };
-    timestamps = [];
-    clipBoundaries = [];
-    resetZoom();
-    if (isVideo) loadTimestamps();
-    if (isVideo) loadClipBoundaries();
-    if (isVideo) loadResumePointForFile();
-    try {
-      const info = await stat(path);
-      fileSize = formatFileSize(info.size);
-      fileCreated = formatMetaDate(
-        getMetaValue(info, "birthtime") ??
-          getMetaValue(info, "birthtimeMs") ??
-          getMetaValue(info, "createdAt"),
-      );
-      fileModified = formatMetaDate(
-        getMetaValue(info, "mtime") ??
-          getMetaValue(info, "mtimeMs") ??
-          getMetaValue(info, "modifiedAt"),
-      );
-    } catch {}
+    await media.displayFile(path, setMediaState);
   }
 
   function onImageLoad(e: Event) {
-    const img = e.target as HTMLImageElement;
-    imageNaturalWidth = img.naturalWidth;
-    imageNaturalHeight = img.naturalHeight;
-    fileDimensions = `${img.naturalWidth} × ${img.naturalHeight}`;
-    fileInfoLoading = false;
-    if (isLoadingFile) finishLoading();
+    media.onImageLoad(e, isLoadingFile, setMediaState, () =>
+      media.finishLoading(setMediaState),
+    );
   }
 
   function onVideoLoad() {
-    if (!videoEl) return;
-    fileDimensions = `${videoEl.videoWidth} × ${videoEl.videoHeight}`;
-    videoEl.volume = volume;
-    videoEl.muted = muted;
-    videoEl.loop = looping;
-    fileInfoLoading = false;
-    rawCurrentSecs = 0;
-    rawDurationSecs = videoEl.duration || 0;
-    progress = 0;
-    playing = !videoEl.paused;
-    if (isLoadingFile) finishLoading();
+    media.onVideoLoad(isLoadingFile, setMediaState, () =>
+      media.finishLoading(setMediaState),
+    );
   }
 
   async function loadFile(path: string) {
-    clearTimeout(loadingTimer);
-    isLoadingFile = true;
-    loadingFadingOut = false;
-    await displayFile(path);
-    try {
-      fileList = await readMediaFilesInFolder(path);
-      currentIndex = fileList.indexOf(path);
-    } catch {}
+    await media.loadFile(path, setMediaState, (list, index) => {
+      fileList = list;
+      currentIndex = index;
+    });
   }
 
   function navigate(direction: number) {
-    if (fileList.length === 0) return;
-    currentIndex =
-      (currentIndex + direction + fileList.length) % fileList.length;
-    displayFile(fileList[currentIndex]);
+    currentIndex = media.navigate(
+      direction,
+      fileList,
+      currentIndex,
+      setMediaState,
+    );
   }
 
   function navigateToEdge(first: boolean) {
-    if (fileList.length === 0) return;
-    currentIndex = first ? 0 : fileList.length - 1;
-    displayFile(fileList[currentIndex]);
+    currentIndex = media.navigateToEdge(first, fileList, setMediaState);
   }
 
   function closeFile() {
-    filePath = "";
-    fileSrc = "";
-    fileName = "no file open";
-    isVideo = false;
-    fileList = [];
-    currentIndex = 0;
-    playing = false;
-    progress = 0;
-    rawCurrentSecs = 0;
-    rawDurationSecs = 0;
-    fileSize = "";
-    fileDimensions = "";
-    fileCreated = "";
-    fileModified = "";
-    isLoadingFile = false;
-    loadingFadingOut = false;
-    imageRotation = 0;
-    imageFlipped = false;
-    imageNaturalWidth = 0;
-    imageNaturalHeight = 0;
-    clearTimeout(tsDragFadeTimer);
-    clearTimestampDragRange();
-    tsTooltip = { ...tsTooltip, visible: false };
-    tsEditMenu = { ...tsEditMenu, visible: false };
-    timestamps = [];
-    clipBoundaries = [];
-    resumePoint = null;
     resumeTooltipVisible = false;
-    clearTimeout(loadingTimer);
-    resetZoom();
+    media.closeFile(setMediaState);
   }
 
   async function minimizeWindow() {
