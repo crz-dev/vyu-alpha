@@ -6,6 +6,7 @@
   import { createPlaybackActions } from "$lib/core/playback.svelte";
   import { createTimeline } from "$lib/core/timeline.svelte";
   import { createClips } from "$lib/core/clips.svelte";
+  import { setupKeybinds } from "$lib/keybinds";
 
   import {
     IMAGE_EXTS,
@@ -1214,68 +1215,27 @@
     await getCurrentWindow().startDragging();
   }
 
+  const configuredKeydown = setupKeybinds({
+    areDialogsOpen: () => contextMenu.visible || deleteConfirm || propertiesOpen,
+    closeDialogs: () => {
+      contextMenu.visible = false;
+      deleteConfirm = false;
+      propertiesOpen = false;
+    },
+    navigateToEdge,
+    navigate,
+    toggleFullscreen,
+    setVolume,
+    getVolume: () => volume,
+    isVideo: () => isVideo,
+    getVideoEl: () => videoEl,
+    getHoverZone: () => hoverZone,
+    isFullscreen: () => viewer.state.isFullscreen,
+    togglePlay,
+  });
+
   function handleKeydown(e: KeyboardEvent) {
-    if (contextMenu.visible || deleteConfirm || propertiesOpen) {
-      if (e.key === "Escape") {
-        contextMenu.visible = false;
-        deleteConfirm = false;
-        propertiesOpen = false;
-      }
-      return;
-    }
-    if (e.ctrlKey && e.key === "ArrowRight") {
-      e.preventDefault();
-      navigateToEdge(false);
-      return;
-    }
-    if (e.ctrlKey && e.key === "ArrowLeft") {
-      e.preventDefault();
-      navigateToEdge(true);
-      return;
-    }
-    if (e.altKey && e.key === "ArrowRight") {
-      e.preventDefault();
-      navigate(1);
-      return;
-    }
-    if (e.altKey && e.key === "ArrowLeft") {
-      e.preventDefault();
-      navigate(-1);
-      return;
-    }
-    if (e.key === "f" || e.key === "F") {
-      toggleFullscreen();
-      return;
-    }
-    if (e.key === "Escape" && viewer.state.isFullscreen) {
-      toggleFullscreen();
-      return;
-    }
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setVolume(volume + 0.125);
-      return;
-    }
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setVolume(volume - 0.125);
-      return;
-    }
-    if (["ArrowRight", "ArrowLeft", " "].includes(e.key)) e.preventDefault();
-    if (isVideo && videoEl && (hoverZone === "video" || viewer.state.isFullscreen)) {
-      if (e.key === " ") togglePlay();
-      if (e.key === "ArrowRight")
-        videoEl.currentTime = Math.min(
-          videoEl.currentTime + 5,
-          videoEl.duration,
-        );
-      if (e.key === "ArrowLeft")
-        videoEl.currentTime = Math.max(videoEl.currentTime - 5, 0);
-    } else {
-      if (e.key === " " && isVideo && videoEl) togglePlay();
-      if (e.key === "ArrowRight") navigate(1);
-      if (e.key === "ArrowLeft") navigate(-1);
-    }
+    configuredKeydown(e);
   }
 
   async function openFileDialog() {
@@ -1885,319 +1845,40 @@
     ctxDelete={ctxDelete}
     ctxClearTimestamps={ctxClearTimestamps}
     ctxClearSegments={ctxClearSegments}
+    {clipDeleteConfirm}
+    {deleteConfirm}
+    {propertiesOpen}
+    {deleteNoAsk}
+    {deletePermanently}
+    {fileName}
+    {filePath}
+    {fileExt}
+    {fileDimensions}
+    {fileSize}
+    {fileCreated}
+    {fileModified}
+    {durationDisplay}
+    {ffprobeChecked}
+    {ffprobeAvailable}
+    {ffmpegInstalling}
+    {ffmpegInstallError}
+    {mediaPropsLoading}
+    {mediaProps}
+    {installFfmpegAndWait}
+    {refreshFfprobeAvailability}
+    {loadMediaProperties}
+    {showValue}
+    {propsCopyPath}
+    {propsOpenFolder}
+    {propsCopyAll}
+    {performDelete}
+    {runClipAction}
+    closeClipDeleteConfirm={() => (clipDeleteConfirm = { visible: false, mode: null })}
+    closeDeleteConfirm={() => (deleteConfirm = false)}
+    closeProperties={() => (propertiesOpen = false)}
+    updateDeleteNoAsk={(v) => (deleteNoAsk = v)}
+    updateDeletePermanently={(v) => (deletePermanently = v)}
   />
-
-  {#if clipDeleteConfirm.visible}
-    <div
-      class="delete-overlay"
-      role="presentation"
-      onmousedown={(e) => e.stopPropagation()}
-    >
-      <div class="delete-dialog" role="dialog" aria-modal="true">
-        <p class="delete-title">Delete original after export?</p>
-        <p class="delete-subtitle">{fileName}</p>
-        <div class="delete-actions">
-          <button
-            class="delete-cancel"
-            onclick={() => (clipDeleteConfirm = { visible: false, mode: null })}
-            >Cancel</button
-          >
-          <button
-            class="delete-confirm-btn"
-            onclick={() => {
-              if (clipDeleteConfirm.mode) runClipAction(clipDeleteConfirm.mode);
-            }}>Continue</button
-          >
-        </div>
-      </div>
-    </div>
-  {/if}
-
-  {#if deleteConfirm}
-    <div
-      class="delete-overlay"
-      role="presentation"
-      onmousedown={(e) => e.stopPropagation()}
-    >
-      <div class="delete-dialog" role="dialog" aria-modal="true">
-        <p class="delete-title">Delete file?</p>
-        <p class="delete-subtitle">{fileName}</p>
-        <div class="delete-toggles">
-          <label class="toggle-row">
-            <span class="toggle-label">Do not ask again</span>
-            <input type="checkbox" bind:checked={deleteNoAsk} />
-            <span class="toggle-track" class:on={deleteNoAsk}
-              ><span class="toggle-thumb"></span></span
-            >
-          </label>
-          <label class="toggle-row">
-            <span class="toggle-label">Delete permanently</span>
-            <input type="checkbox" bind:checked={deletePermanently} />
-            <span class="toggle-track" class:on={deletePermanently}
-              ><span class="toggle-thumb"></span></span
-            >
-          </label>
-        </div>
-        <div class="delete-actions">
-          <button class="delete-cancel" onclick={() => (deleteConfirm = false)}
-            >Cancel</button
-          >
-          <button class="delete-confirm-btn" onclick={performDelete}
-            >Delete</button
-          >
-        </div>
-      </div>
-    </div>
-  {/if}
-
-  {#if propertiesOpen}
-    <div
-      class="delete-overlay"
-      role="presentation"
-      onmousedown={(e) => e.stopPropagation()}
-    >
-      <div class="delete-dialog props-dialog" role="dialog" aria-modal="true">
-        <p class="delete-title">Properties</p>
-        <p class="delete-subtitle">{fileName}</p>
-        <div class="props-list">
-          <div class="props-row">
-            <span class="props-k">Type</span>
-            <span class="props-v"
-              >{isVideo ? "Video" : "Image"} ({fileExt() || "unknown"})</span
-            >
-          </div>
-          <div class="props-row">
-            <span class="props-k">Dimensions</span>
-            <span class="props-v">{fileDimensions || "Unknown"}</span>
-          </div>
-          {#if ffprobeChecked && !ffprobeAvailable}
-            <div class="ffprobe-note">
-              <p class="ffprobe-title">Advanced metadata needs FFmpeg</p>
-              <p class="ffprobe-sub">
-                To show Container, Codec, Color, and Frame Rate, install FFmpeg.
-                Your files stay local on your device and are not uploaded
-                anywhere.
-              </p>
-              <div class="ffprobe-actions">
-                <button
-                  class="props-btn"
-                  onclick={installFfmpegAndWait}
-                  disabled={ffmpegInstalling}
-                >
-                  {ffmpegInstalling ? "Installing FFmpeg..." : "Install FFmpeg"}
-                </button>
-                <button
-                  class="props-btn props-btn-secondary"
-                  onclick={async () => {
-                    await refreshFfprobeAvailability();
-                    if (ffprobeAvailable) {
-                      ffmpegInstallError = "";
-                      await loadMediaProperties();
-                    }
-                  }}
-                  disabled={ffmpegInstalling}
-                >
-                  Retry detection
-                </button>
-                {#if ffmpegInstalling}
-                  <div class="ffprobe-progress"><span></span></div>
-                {/if}
-              </div>
-              {#if ffmpegInstallError}
-                <p class="ffprobe-error">{ffmpegInstallError}</p>
-              {/if}
-            </div>
-          {:else}
-            <div class="props-row">
-              <span class="props-k">Container</span>
-              <span class="props-v"
-                >{mediaPropsLoading
-                  ? "Loading..."
-                  : showValue(mediaProps?.container)}</span
-              >
-            </div>
-            <div class="props-row">
-              <span class="props-k">Codec</span>
-              <span class="props-v">
-                {mediaPropsLoading
-                  ? "Loading..."
-                  : `${showValue(mediaProps?.video_codec)}${mediaProps?.audio_codec ? ` / ${mediaProps.audio_codec}` : ""}`}
-              </span>
-            </div>
-            <div class="props-row">
-              <span class="props-k">Color</span>
-              <span class="props-v">
-                {mediaPropsLoading
-                  ? "Loading..."
-                  : `${showValue(mediaProps?.pixel_format)}${mediaProps?.color_space ? ` · ${mediaProps.color_space}` : ""}${mediaProps?.bit_depth ? ` · ${mediaProps.bit_depth} bit` : ""}`}
-              </span>
-            </div>
-            {#if isVideo}
-              <div class="props-row">
-                <span class="props-k">Duration</span>
-                <span class="props-v">{durationDisplay}</span>
-              </div>
-              <div class="props-row">
-                <span class="props-k">Frame rate</span>
-                <span class="props-v"
-                  >{mediaPropsLoading
-                    ? "Loading..."
-                    : showValue(mediaProps?.frame_rate)}</span
-                >
-              </div>
-            {/if}
-          {/if}
-          <div class="props-row">
-            <span class="props-k">Size</span>
-            <span class="props-v">{fileSize || "Unknown"}</span>
-          </div>
-          <div class="props-row">
-            <span class="props-k">Created</span>
-            <span class="props-v">{fileCreated || "Unknown"}</span>
-          </div>
-          <div class="props-row">
-            <span class="props-k">Modified</span>
-            <span class="props-v">{fileModified || "Unknown"}</span>
-          </div>
-          <div class="props-row">
-            <span class="props-k">Folder</span>
-            <span class="props-v">{parentFolder() || "Unknown"}</span>
-          </div>
-          <div class="props-row">
-            <span class="props-k">Path</span>
-            <span class="props-v">{filePath || "Unknown"}</span>
-          </div>
-        </div>
-        <div class="props-actions">
-          <button class="props-btn" onclick={propsCopyPath}>Copy path</button>
-          <button class="props-btn" onclick={propsOpenFolder}
-            >Open folder</button
-          >
-          <button class="props-btn" onclick={propsCopyAll}
-            >Copy all properties</button
-          >
-        </div>
-        <div class="delete-actions">
-          <button class="delete-cancel" onclick={() => (propertiesOpen = false)}
-            >Close</button
-          >
-        </div>
-      </div>
-    </div>
-  {/if}
-
-  {#if tsEditMenu.visible}
-    {@const editingTimestamp = getActiveEditorTimestamp()}
-    {@const editingSegment = getActiveEditorSegment()}
-    {@const isSegmentMenu = !!editingSegment}
-    {@const currentTitle = getEditorTitle()}
-    {#if editingTimestamp || editingSegment}
-      <div
-        class="ts-edit-menu"
-        class:blue={isSegmentMenu}
-        style="left: {tsEditMenu.x}px; top: {tsEditMenu.y}px;"
-        transition:fade={{ duration: 130 }}
-      >
-        <input
-          class="ts-title-input"
-          type="text"
-          maxlength="100"
-          placeholder="Title"
-          value={currentTitle}
-          style="width: {getTitleEditorWidthCh(currentTitle)}ch;"
-          oninput={(e) =>
-            updateEditorTitle((e.currentTarget as HTMLInputElement).value)}
-          onkeydown={(e) => {
-            if (e.key === "Escape") {
-              e.preventDefault();
-              closeTimestampEditor();
-            }
-            if (e.key === "Enter") {
-              e.preventDefault();
-              closeTimestampEditor();
-            }
-          }}
-        />
-        <div
-          class="ts-scissor-split"
-          class:segment-toggle={isSegmentMenu}
-          role="group"
-          aria-label="segment type"
-        >
-          <button
-            class="ts-split-btn left tooltip-ctrl"
-            class:is-active={isSegmentMenu
-              ? editingSegment?.kind === "start"
-              : false}
-            class:is-inactive={isSegmentMenu
-              ? editingSegment?.kind !== "start"
-              : false}
-            data-tooltip="Start Clip Here"
-            onclick={(e) => {
-              e.stopPropagation();
-              onEditorScissor("start");
-            }}
-            aria-label="Start Clip Here"
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
-              ><circle
-                cx="7"
-                cy="8"
-                r="2.2"
-                stroke="currentColor"
-                stroke-width="1.8"
-              /><circle
-                cx="7"
-                cy="15.8"
-                r="2.2"
-                stroke="currentColor"
-                stroke-width="1.8"
-              /><path
-                d="M9.5 9.6L19 5.2M9.5 14.2L19 19"
-                stroke="currentColor"
-                stroke-width="1.8"
-              /></svg
-            >
-          </button>
-          <button
-            class="ts-split-btn right tooltip-ctrl"
-            class:is-active={isSegmentMenu
-              ? editingSegment?.kind === "end"
-              : false}
-            class:is-inactive={isSegmentMenu
-              ? editingSegment?.kind !== "end"
-              : false}
-            data-tooltip="End Clip Here"
-            onclick={(e) => {
-              e.stopPropagation();
-              onEditorScissor("end");
-            }}
-            aria-label="End Clip Here"
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
-              ><circle
-                cx="17"
-                cy="8"
-                r="2.2"
-                stroke="currentColor"
-                stroke-width="1.8"
-              /><circle
-                cx="17"
-                cy="15.8"
-                r="2.2"
-                stroke="currentColor"
-                stroke-width="1.8"
-              /><path
-                d="M14.5 9.6L5 5.2M14.5 14.2L5 19"
-                stroke="currentColor"
-                stroke-width="1.8"
-              /></svg
-            >
-          </button>
-        </div>
-      </div>
-    {/if}
-  {/if}
 
   <Tooltip
     tsTooltip={tsTooltip}
@@ -2207,5 +1888,13 @@
     {volumeTooltipY}
     {muted}
     {volume}
+    {tsEditMenu}
+    editingTimestamp={getActiveEditorTimestamp()}
+    editingSegment={getActiveEditorSegment()}
+    currentTitle={getEditorTitle()}
+    getTitleEditorWidthCh={getTitleEditorWidthCh}
+    updateEditorTitle={updateEditorTitle}
+    closeTimestampEditor={closeTimestampEditor}
+    onEditorScissor={onEditorScissor}
   />
 </main>

@@ -24,6 +24,39 @@
     ctxDelete,
     ctxClearTimestamps,
     ctxClearSegments,
+    clipDeleteConfirm,
+    deleteConfirm,
+    propertiesOpen,
+    deleteNoAsk,
+    deletePermanently,
+    fileName,
+    filePath,
+    fileExt,
+    fileDimensions,
+    fileSize,
+    fileCreated,
+    fileModified,
+    durationDisplay,
+    ffprobeChecked,
+    ffprobeAvailable,
+    ffmpegInstalling,
+    ffmpegInstallError,
+    mediaPropsLoading,
+    mediaProps,
+    installFfmpegAndWait,
+    refreshFfprobeAvailability,
+    loadMediaProperties,
+    showValue,
+    propsCopyPath,
+    propsOpenFolder,
+    propsCopyAll,
+    performDelete,
+    runClipAction,
+    closeClipDeleteConfirm,
+    closeDeleteConfirm,
+    closeProperties,
+    updateDeleteNoAsk,
+    updateDeletePermanently,
   }: {
     contextMenu: CtxMenu;
     isVideo: boolean;
@@ -51,6 +84,39 @@
     ctxDelete: () => void;
     ctxClearTimestamps: () => void;
     ctxClearSegments: () => void;
+    clipDeleteConfirm: { visible: boolean; mode: "separate" | "merge" | null };
+    deleteConfirm: boolean;
+    propertiesOpen: boolean;
+    deleteNoAsk: boolean;
+    deletePermanently: boolean;
+    fileName: string;
+    filePath: string;
+    fileExt: () => string;
+    fileDimensions: string;
+    fileSize: string;
+    fileCreated: string;
+    fileModified: string;
+    durationDisplay: string;
+    ffprobeChecked: boolean;
+    ffprobeAvailable: boolean;
+    ffmpegInstalling: boolean;
+    ffmpegInstallError: string;
+    mediaPropsLoading: boolean;
+    mediaProps: any;
+    installFfmpegAndWait: () => void;
+    refreshFfprobeAvailability: () => Promise<void>;
+    loadMediaProperties: () => Promise<void>;
+    showValue: (v: string | undefined) => string;
+    propsCopyPath: () => void;
+    propsOpenFolder: () => void;
+    propsCopyAll: () => void;
+    performDelete: () => void;
+    runClipAction: (mode: "separate" | "merge") => void;
+    closeClipDeleteConfirm: () => void;
+    closeDeleteConfirm: () => void;
+    closeProperties: () => void;
+    updateDeleteNoAsk: (v: boolean) => void;
+    updateDeletePermanently: (v: boolean) => void;
   } = $props();
 </script>
 
@@ -349,5 +415,203 @@
         ></button
       >
     {/if}
+  </div>
+{/if}
+
+{#if clipDeleteConfirm.visible}
+  <div
+    class="delete-overlay"
+    role="presentation"
+    onmousedown={(e) => e.stopPropagation()}
+  >
+    <div class="delete-dialog" role="dialog" aria-modal="true">
+      <p class="delete-title">Delete original after export?</p>
+      <p class="delete-subtitle">{fileName}</p>
+      <div class="delete-actions">
+        <button
+          class="delete-cancel"
+          onclick={closeClipDeleteConfirm}
+          >Cancel</button
+        >
+        <button
+          class="delete-confirm-btn"
+          onclick={() => {
+            if (clipDeleteConfirm.mode) runClipAction(clipDeleteConfirm.mode);
+          }}>Continue</button
+        >
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if deleteConfirm}
+  <div
+    class="delete-overlay"
+    role="presentation"
+    onmousedown={(e) => e.stopPropagation()}
+  >
+    <div class="delete-dialog" role="dialog" aria-modal="true">
+      <p class="delete-title">Delete file?</p>
+      <p class="delete-subtitle">{fileName}</p>
+      <div class="delete-toggles">
+        <label class="toggle-row">
+          <span class="toggle-label">Do not ask again</span>
+          <input type="checkbox" checked={deleteNoAsk} onchange={(e) => updateDeleteNoAsk(e.currentTarget.checked)} />
+          <span class="toggle-track" class:on={deleteNoAsk}
+            ><span class="toggle-thumb"></span></span
+          >
+        </label>
+        <label class="toggle-row">
+          <span class="toggle-label">Delete permanently</span>
+          <input type="checkbox" checked={deletePermanently} onchange={(e) => updateDeletePermanently(e.currentTarget.checked)} />
+          <span class="toggle-track" class:on={deletePermanently}
+            ><span class="toggle-thumb"></span></span
+          >
+        </label>
+      </div>
+      <div class="delete-actions">
+        <button class="delete-cancel" onclick={closeDeleteConfirm}
+          >Cancel</button
+        >
+        <button class="delete-confirm-btn" onclick={performDelete}
+          >Delete</button
+        >
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if propertiesOpen}
+  <div
+    class="delete-overlay"
+    role="presentation"
+    onmousedown={(e) => e.stopPropagation()}
+  >
+    <div class="delete-dialog props-dialog" role="dialog" aria-modal="true">
+      <p class="delete-title">Properties</p>
+      <p class="delete-subtitle">{fileName}</p>
+      <div class="props-list">
+        <div class="props-row">
+          <span class="props-k">Type</span>
+          <span class="props-v"
+            >{isVideo ? "Video" : "Image"} ({fileExt() || "unknown"})</span
+          >
+        </div>
+        <div class="props-row">
+          <span class="props-k">Dimensions</span>
+          <span class="props-v">{fileDimensions || "Unknown"}</span>
+        </div>
+        {#if ffprobeChecked && !ffprobeAvailable}
+          <div class="ffprobe-note">
+            <p class="ffprobe-title">Advanced metadata needs FFmpeg</p>
+            <p class="ffprobe-sub">
+              To show Container, Codec, Color, and Frame Rate, install FFmpeg.
+              Your files stay local on your device and are not uploaded
+              anywhere.
+            </p>
+            <div class="ffprobe-actions">
+              <button
+                class="props-btn"
+                onclick={installFfmpegAndWait}
+                disabled={ffmpegInstalling}
+              >
+                {ffmpegInstalling ? "Installing FFmpeg..." : "Install FFmpeg"}
+              </button>
+              <button
+                class="props-btn props-btn-secondary"
+                onclick={async () => {
+                  await refreshFfprobeAvailability();
+                  if (ffprobeAvailable) {
+                    await loadMediaProperties();
+                  }
+                }}
+                disabled={ffmpegInstalling}
+              >
+                Retry detection
+              </button>
+              {#if ffmpegInstalling}
+                <div class="ffprobe-progress"><span></span></div>
+              {/if}
+            </div>
+            {#if ffmpegInstallError}
+              <p class="ffprobe-error">{ffmpegInstallError}</p>
+            {/if}
+          </div>
+        {:else}
+          <div class="props-row">
+            <span class="props-k">Container</span>
+            <span class="props-v"
+              >{mediaPropsLoading
+                ? "Loading..."
+                : showValue(mediaProps?.container)}</span
+            >
+          </div>
+          <div class="props-row">
+            <span class="props-k">Codec</span>
+            <span class="props-v">
+              {mediaPropsLoading
+                ? "Loading..."
+                : `${showValue(mediaProps?.video_codec)}${mediaProps?.audio_codec ? ` / ${mediaProps.audio_codec}` : ""}`}
+            </span>
+          </div>
+          <div class="props-row">
+            <span class="props-k">Color</span>
+            <span class="props-v">
+              {mediaPropsLoading
+                ? "Loading..."
+                : `${showValue(mediaProps?.pixel_format)}${mediaProps?.color_space ? ` · ${mediaProps.color_space}` : ""}${mediaProps?.bit_depth ? ` · ${mediaProps.bit_depth} bit` : ""}`}
+            </span>
+          </div>
+          {#if isVideo}
+            <div class="props-row">
+              <span class="props-k">Duration</span>
+              <span class="props-v">{durationDisplay}</span>
+            </div>
+            <div class="props-row">
+              <span class="props-k">Frame rate</span>
+              <span class="props-v"
+                >{mediaPropsLoading
+                  ? "Loading..."
+                  : showValue(mediaProps?.frame_rate)}</span
+              >
+            </div>
+          {/if}
+        {/if}
+        <div class="props-row">
+          <span class="props-k">Size</span>
+          <span class="props-v">{fileSize || "Unknown"}</span>
+        </div>
+        <div class="props-row">
+          <span class="props-k">Created</span>
+          <span class="props-v">{fileCreated || "Unknown"}</span>
+        </div>
+        <div class="props-row">
+          <span class="props-k">Modified</span>
+          <span class="props-v">{fileModified || "Unknown"}</span>
+        </div>
+        <div class="props-row">
+          <span class="props-k">Folder</span>
+          <span class="props-v">{parentFolder() || "Unknown"}</span>
+        </div>
+        <div class="props-row">
+          <span class="props-k">Path</span>
+          <span class="props-v">{filePath || "Unknown"}</span>
+        </div>
+      </div>
+      <div class="props-actions">
+        <button class="props-btn" onclick={propsCopyPath}>Copy path</button>
+        <button class="props-btn" onclick={propsOpenFolder}
+          >Open folder</button
+        >
+        <button class="props-btn" onclick={propsCopyAll}
+          >Copy all properties</button
+        >
+      </div>
+      <div class="delete-actions">
+        <button class="delete-cancel" onclick={closeProperties}
+          >Close</button
+        >
+      </div>
+    </div>
   </div>
 {/if}
