@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { fade, fly } from "svelte/transition";
+  import { fade } from "svelte/transition";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { open } from "@tauri-apps/plugin-dialog";
   import { createPlaybackActions } from "$lib/core/playback.svelte";
@@ -39,9 +39,6 @@
   } from "$lib/services/storage";
 
   import {
-    invokeGetMediaProperties,
-    invokeCheckFfprobe,
-    invokeInstallFfmpeg,
     invokeProcessVideoClips,
     invokeDeleteFile,
     invokeTrashFile,
@@ -49,6 +46,16 @@
     invokeOpenFolder,
     invokeOpenDirectory,
   } from "$lib/services/mediaTools";
+  import {
+    detectFfprobeAvailability,
+    fetchMediaProperties,
+    installFfmpegWithPolling,
+  } from "$lib/services/mediaSources";
+  import {
+    computeContextMenuPosition,
+    hideFloatingTooltip,
+    showFloatingTooltip,
+  } from "$lib/services/session";
 
   import {
     copyImageToClipboard,
@@ -59,6 +66,13 @@
 
   import { getParentFolder, getFileExt } from "$lib/services/files";
   import { createMedia } from "$lib/core/media.svelte";
+  import { viewer } from "$lib/core/viewer.svelte";
+  import AppMenu from "$lib/ui/appMenu.svelte";
+  import MediaBar from "$lib/ui/mediaBar.svelte";
+  import TimelineMarkers from "$lib/ui/timelineMarkers.svelte";
+  import PlaybackControls from "$lib/ui/playbackControls.svelte";
+  import Dialog from "$lib/ui/dialog.svelte";
+  import Tooltip from "$lib/ui/tooltip.svelte";
 
   let filePath = $state("");
   let fileSrc = $state("");
@@ -74,6 +88,10 @@
   let isLoadingFile = $state(false);
   let loadingFadingOut = $state(false);
   let videoEl = $state<HTMLVideoElement | null>(null);
+
+  $effect(() => {
+    viewer.setVideoEl(videoEl);
+  });
 
   const playback = createPlaybackActions(() => videoEl);
   const timeline = createTimeline();
@@ -144,17 +162,7 @@
   let volumeTooltipX = $state(0);
   let volumeTooltipY = $state(0);
   let volumeTooltipVisible = $state(false);
-
   let hoverZone = $state("none");
-  let isFullscreen = $state(false);
-  let fsControlsVisible = $state(true);
-  let fsHideTimer: ReturnType<typeof setTimeout> | undefined;
-  let lastPinchDist = 0;
-
-  let zoomLevel = $state(100);
-  let translateX = $state(0);
-  let translateY = $state(0);
-  let isDragging = $state(false);
   let dragStart = $state({ x: 0, y: 0, tx: 0, ty: 0 });
   let lastLeftClickTime = 0;
   let pendingPlay: ReturnType<typeof setTimeout> | undefined;
@@ -190,7 +198,7 @@
     outputDir: string;
   }>({ visible: false, tone: "success", message: "", outputDir: "" });
   let clipToastTimer: ReturnType<typeof setTimeout> | undefined;
-  let clipMarkerJustDragged = false;
+  let clipMarkerJustDragged = $state(false);
   let mediaProps = $state<MediaProperties | null>(null);
   let mediaPropsLoading = $state(false);
   let ffprobeAvailable = $state(true);
@@ -233,7 +241,7 @@
   });
   let tsDragHoverTimestampId = $state<string | null>(null);
   let tsDragHoverBoundaryId = $state<string | null>(null);
-  let tsMarkerDragJustEnded = false;
+  let tsMarkerDragJustEnded = $state(false);
   let tsDragFadeTimer: ReturnType<typeof setTimeout> | undefined;
   let frameCopyToast = $state<{
     visible: boolean;
@@ -253,22 +261,30 @@
     const ratio = imageNaturalWidth / imageNaturalHeight;
     return Math.min(ratio, 1 / ratio);
   });
-  const imageScale = $derived((zoomLevel / 100) * rotationFitScale);
+  const imageScale = $derived((viewer.state.zoomLevel / 100) * rotationFitScale);
   const imageStyle = $derived(
-    `transform: scale(${imageScale}) translate(${translateX / imageScale}px, ${translateY / imageScale}px) rotate(${imageRotation}deg) scaleX(${imageFlipped ? -1 : 1}); transform-origin: center center; max-width: 100%; max-height: 100%; object-fit: contain; display: block;`,
+    `transform: scale(${imageScale}) translate(${viewer.state.translateX / imageScale}px, ${viewer.state.translateY / imageScale}px) rotate(${imageRotation}deg) scaleX(${imageFlipped ? -1 : 1}); transform-origin: center center; max-width: 100%; max-height: 100%; object-fit: contain; display: block;`,
   );
-  const videoWrapperTransform = $derived(
-    `transform: scale(${zoomLevel / 100}) translate(${translateX / (zoomLevel / 100)}px, ${translateY / (zoomLevel / 100)}px); transform-origin: center center;`,
-  );
-  const panCursor = $derived(
-    zoomLevel > 100 ? (isDragging ? "grabbing" : "grab") : "default",
-  );
-  const fsCursor = $derived(!fsControlsVisible ? "none" : panCursor);
+  const videoWrapperTransform = $derived(viewer.getVideoWrapperTransform());
+  const panCursor = $derived(viewer.getPanCursor());
+  const fsCursor = $derived(!viewer.state.fsControlsVisible ? "none" : panCursor);
   const isGifVideo = $derived(isVideo && fileExt() === "gif");
   const clipPairs = $derived.by(() => {
     return clips.computePairs(clipBoundaries);
   });
   const clipCount = $derived(clipPairs.length);
+
+  function toggleFullscreen() {
+    viewer.toggleFullscreen();
+  }
+
+  function resetZoom() {
+    viewer.resetZoom();
+  }
+
+  function handleViewerScroll(e: WheelEvent) {
+    viewer.handleViewerScroll(e, fileSrc);
+  }
 
   function currentTimeDisplay(): string {
     if (!timerShowRemaining) return formatTime(rawCurrentSecs);
@@ -415,6 +431,10 @@
     volumeTooltipVisible = true;
   }
 
+  function showVolumeOverlay() {
+    volumeHovered = true;
+  }
+
   function handleVolumeAreaLeave() {
     volumeTooltipVisible = false;
     volumeHovered = false;
@@ -438,40 +458,26 @@
   function clearAllTimestamps() {
     tsTooltip = { ...tsTooltip, visible: false };
     tsEditMenu = { ...tsEditMenu, visible: false };
-    timestamps = [];
+    timeline.clearTimestamps((v) => (timestamps = v));
     eraseTimestamps(filePath);
   }
 
   function updateTimestampTitle(id: string, title: string) {
-    timestamps = timestamps.map((ts) =>
-      ts.id === id
-        ? {
-            ...ts,
-            title,
-          }
-        : ts,
-    );
+    timeline.updateTimestampTitle(id, title, timestamps, (v) => (timestamps = v));
     saveTimestamps();
   }
 
   function updateClipBoundaryTitle(id: string, title: string) {
-    clipBoundaries = clipBoundaries.map((marker) =>
-      marker.id === id
-        ? {
-            ...marker,
-            title,
-          }
-        : marker,
-    );
+    clips.updateBoundaryTitle(id, title, clipBoundaries, (v) => (clipBoundaries = v));
     saveClipBoundaries();
   }
 
   function getTimestampById(id: string): Timestamp | undefined {
-    return timestamps.find((ts) => ts.id === id);
+    return timeline.getTimestampById(id, timestamps);
   }
 
   function getClipBoundaryById(id: string): ClipBoundary | undefined {
-    return clipBoundaries.find((marker) => marker.id === id);
+    return clips.getBoundaryById(id, clipBoundaries);
   }
 
   function getTitleEditorWidthCh(title: string): number {
@@ -615,16 +621,49 @@
   function clearAllSegments() {
     tsTooltip = { ...tsTooltip, visible: false };
     tsEditMenu = { ...tsEditMenu, visible: false };
-    clipBoundaries = [];
+    clips.clearBoundaries((v) => (clipBoundaries = v));
     eraseClipBoundaries(filePath);
+  }
+
+  function showClipBoundaryTooltip(e: MouseEvent, marker: ClipBoundary) {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    tsTooltip = {
+      visible: true,
+      x: rect.left + rect.width / 2,
+      y: rect.top - 8,
+      title: marker.title?.trim() || "",
+      timeLabel: formatTime(marker.time),
+      tone: "blue",
+    };
+  }
+
+  function showResumeTooltip(e: MouseEvent) {
+    if (resumePoint === null) return;
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    tsTooltip = {
+      visible: true,
+      x: rect.left + rect.width / 2,
+      y: rect.top - 8,
+      title: "Resume",
+      timeLabel: formatTime(resumePoint),
+      tone: "green",
+    };
+    resumeTooltipVisible = true;
+  }
+
+  function hideResumeTooltip() {
+    tsTooltip = { ...tsTooltip, visible: false };
+    resumeTooltipVisible = false;
+  }
+
+  function hideTsTooltip() {
+    tsTooltip = { ...tsTooltip, visible: false };
   }
 
   function setClipBoundaryKind(id: string, kind: "start" | "end") {
     const marker = getClipBoundaryById(id);
     if (!marker || marker.kind === kind) return;
-    clipBoundaries = clipBoundaries
-      .map((m) => (m.id === id ? { ...m, kind } : m))
-      .sort((a, b) => a.time - b.time);
+    clips.setBoundaryKind(id, kind, clipBoundaries, (v) => (clipBoundaries = v));
     saveClipBoundaries();
   }
 
@@ -677,33 +716,16 @@
     threshold: number,
     sourceId: string,
   ): string | null {
-    let found: Timestamp | null = null;
-    let best = Number.POSITIVE_INFINITY;
-    for (const ts of timestamps) {
-      if (ts.id === sourceId) continue;
-      const dist = Math.abs(ts.time - currentTime);
-      if (dist <= threshold && dist < best) {
-        best = dist;
-        found = ts;
-      }
-    }
-    return found?.id ?? null;
+    const found = timeline.findTouchTarget(timestamps, currentTime, threshold);
+    if (!found || found.id === sourceId) return null;
+    return found.id;
   }
 
   function getBoundaryTouchTarget(
     currentTime: number,
     threshold: number,
   ): string | null {
-    let found: ClipBoundary | null = null;
-    let best = Number.POSITIVE_INFINITY;
-    for (const marker of clipBoundaries) {
-      const dist = Math.abs(marker.time - currentTime);
-      if (dist <= threshold && dist < best) {
-        best = dist;
-        found = marker;
-      }
-    }
-    return found?.id ?? null;
+    return clips.findTouchTarget(clipBoundaries, currentTime, threshold)?.id ?? null;
   }
 
   function clearTimestampDragRange() {
@@ -832,17 +854,18 @@
   }
 
   function getDragRangeStyle() {
-    const startPct = getTimestampPct(tsDragRange.start);
-    const endPct = getTimestampPct(tsDragRange.end);
+    const startPct = timeline.getTimestampPct(tsDragRange.start, rawDurationSecs);
+    const endPct = timeline.getTimestampPct(tsDragRange.end, rawDurationSecs);
     return `left: ${startPct}%; width: ${Math.max(0, endPct - startPct)}%;`;
   }
 
-  function seekToTimestamp(i: number) {
-    timeline.seekToTimestamp(i, timestamps, videoEl);
+  function seekToTimestamp(time: number) {
+    if (!videoEl) return;
+    videoEl.currentTime = Math.max(0, time);
   }
 
   function getTimestampPct(time: number): number {
-    return rawDurationSecs > 0 ? (time / rawDurationSecs) * 100 : 0;
+    return timeline.getTimestampPct(time, rawDurationSecs);
   }
 
   function removeResumePoint() {
@@ -1132,84 +1155,6 @@
     await getCurrentWindow().close();
   }
 
-  function toggleFullscreen() {
-    isFullscreen = !isFullscreen;
-    if (isFullscreen) resetFsTimer();
-  }
-
-  function resetFsTimer() {
-    fsControlsVisible = true;
-    clearTimeout(fsHideTimer);
-    fsHideTimer = setTimeout(() => {
-      fsControlsVisible = false;
-    }, 1500);
-  }
-
-  function resetZoom() {
-    zoomLevel = 100;
-    translateX = 0;
-    translateY = 0;
-  }
-
-  function handleViewerScroll(e: WheelEvent) {
-    if (!fileSrc) return;
-    e.preventDefault();
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const mouseX = e.clientX - rect.left - rect.width / 2;
-    const mouseY = e.clientY - rect.top - rect.height / 2;
-    const oldScale = zoomLevel / 100;
-    const raw = zoomLevel * (e.deltaY > 0 ? 1 / 1.1 : 1.1);
-    const newZoom = Math.max(
-      100,
-      Math.min(1000, zoomLevel > 100 && raw < 100 ? 100 : raw),
-    );
-    const newScale = newZoom / 100;
-    if (newZoom === 100) {
-      translateX = 0;
-      translateY = 0;
-    } else {
-      translateX = mouseX - (mouseX - translateX) * (newScale / oldScale);
-      translateY = mouseY - (mouseY - translateY) * (newScale / oldScale);
-    }
-    zoomLevel = newZoom;
-  }
-
-  function handleTouchZoom(e: TouchEvent) {
-    if (e.touches.length !== 2) return;
-    e.preventDefault();
-    const dx = e.touches[0].clientX - e.touches[1].clientX;
-    const dy = e.touches[0].clientY - e.touches[1].clientY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (lastPinchDist === 0) {
-      lastPinchDist = dist;
-      return;
-    }
-    const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-    const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const mouseX = midX - rect.left - rect.width / 2;
-    const mouseY = midY - rect.top - rect.height / 2;
-    const oldScale = zoomLevel / 100;
-    const newZoom = Math.max(
-      100,
-      Math.min(1000, zoomLevel * (dist / lastPinchDist)),
-    );
-    const newScale = newZoom / 100;
-    if (newZoom === 100) {
-      translateX = 0;
-      translateY = 0;
-    } else {
-      translateX = mouseX - (mouseX - translateX) * (newScale / oldScale);
-      translateY = mouseY - (mouseY - translateY) * (newScale / oldScale);
-    }
-    zoomLevel = newZoom;
-    lastPinchDist = dist;
-  }
-
-  function handleTouchEnd() {
-    lastPinchDist = 0;
-  }
-
   function startPan(e: MouseEvent) {
     if (e.button !== 0) return;
     if (
@@ -1220,22 +1165,26 @@
       return;
     e.preventDefault();
     let hasMoved = false;
-    isDragging = true;
-    dragStart = { x: e.clientX, y: e.clientY, tx: translateX, ty: translateY };
+    viewer.setDragging(true);
+    dragStart = {
+      x: e.clientX,
+      y: e.clientY,
+      tx: viewer.state.translateX,
+      ty: viewer.state.translateY,
+    };
 
     function onMove(ev: MouseEvent) {
       const dx = ev.clientX - dragStart.x;
       const dy = ev.clientY - dragStart.y;
       if (!hasMoved && Math.sqrt(dx * dx + dy * dy) < 8) return;
       hasMoved = true;
-      if (zoomLevel > 100) {
-        translateX = dragStart.tx + dx;
-        translateY = dragStart.ty + dy;
+      if (viewer.state.zoomLevel > 100) {
+        viewer.setTranslation(dragStart.tx + dx, dragStart.ty + dy);
       }
     }
 
     function onUp() {
-      isDragging = false;
+      viewer.setDragging(false);
       if (!hasMoved) {
         const now = Date.now();
         const timeSinceLast = now - lastLeftClickTime;
@@ -1298,7 +1247,7 @@
       toggleFullscreen();
       return;
     }
-    if (e.key === "Escape" && isFullscreen) {
+    if (e.key === "Escape" && viewer.state.isFullscreen) {
       toggleFullscreen();
       return;
     }
@@ -1313,7 +1262,7 @@
       return;
     }
     if (["ArrowRight", "ArrowLeft", " "].includes(e.key)) e.preventDefault();
-    if (isVideo && videoEl && (hoverZone === "video" || isFullscreen)) {
+    if (isVideo && videoEl && (hoverZone === "video" || viewer.state.isFullscreen)) {
       if (e.key === " ") togglePlay();
       if (e.key === "ArrowRight")
         videoEl.currentTime = Math.min(
@@ -1341,12 +1290,14 @@
     if (!fileSrc) return;
     e.preventDefault();
     e.stopPropagation();
-    let x = e.clientX;
-    let y = e.clientY;
     const menuW = 200;
     const menuH = isVideo ? 300 : 260;
-    if (x + menuW > window.innerWidth) x = window.innerWidth - menuW - 8;
-    if (y + menuH > window.innerHeight) y = window.innerHeight - menuH - 8;
+    const { x, y } = computeContextMenuPosition(
+      e.clientX,
+      e.clientY,
+      menuW,
+      menuH,
+    );
     contextMenu = { x, y, visible: true };
   }
 
@@ -1368,50 +1319,28 @@
 
   async function loadMediaProperties() {
     mediaPropsLoading = true;
-    try {
-      mediaProps = await invokeGetMediaProperties(filePath);
-    } catch {
-      mediaProps = null;
-    } finally {
-      mediaPropsLoading = false;
-    }
+    mediaProps = await fetchMediaProperties(filePath);
+    mediaPropsLoading = false;
   }
 
   async function refreshFfprobeAvailability() {
     ffprobeChecked = false;
-    try {
-      ffprobeAvailable = await invokeCheckFfprobe();
-    } catch {
-      ffprobeAvailable = false;
-    } finally {
-      ffprobeChecked = true;
-    }
+    ffprobeAvailable = await detectFfprobeAvailability();
+    ffprobeChecked = true;
   }
 
   async function installFfmpegAndWait() {
     ffmpegInstallError = "";
     ffmpegInstalling = true;
-    try {
-      await invokeInstallFfmpeg();
-      const attempts = 60;
-      for (let i = 0; i < attempts; i++) {
-        await new Promise((r) => setTimeout(r, 2000));
-        await refreshFfprobeAvailability();
-        if (ffprobeAvailable) {
-          await loadMediaProperties();
-          break;
-        }
-      }
-      if (!ffprobeAvailable) {
-        ffmpegInstallError =
-          "Install still running. Reopen Properties in a moment.";
-      }
-    } catch (e) {
-      ffmpegInstallError =
-        e instanceof Error ? e.message : "Failed to start FFmpeg install.";
-    } finally {
-      ffmpegInstalling = false;
+    const result = await installFfmpegWithPolling();
+    ffprobeAvailable = result.available;
+    ffprobeChecked = true;
+    ffmpegInstallError = result.error;
+    if (result.available) {
+      ffmpegInstallError = "";
+      await loadMediaProperties();
     }
+    ffmpegInstalling = false;
   }
 
   async function ctxCopyImage() {
@@ -1551,18 +1480,11 @@
 
   function showFilenameTooltip(e: MouseEvent) {
     const el = e.currentTarget as HTMLElement;
-    const rect = el.getBoundingClientRect();
-    const tip = document.getElementById("filename-tooltip");
-    if (!tip) return;
-    tip.textContent = "File name";
-    tip.style.left = `${rect.left}px`;
-    tip.style.top = `${rect.bottom + 6}px`;
-    tip.style.opacity = "1";
+    showFloatingTooltip("filename-tooltip", el.getBoundingClientRect(), "File name");
   }
 
   function hideFilenameTooltip() {
-    const tip = document.getElementById("filename-tooltip");
-    if (tip) tip.style.opacity = "0";
+    hideFloatingTooltip("filename-tooltip");
   }
 
   function handleGlobalMouseDown(e: MouseEvent) {
@@ -1621,88 +1543,24 @@
 </script>
 
 <main
-  class:fullscreen={isFullscreen}
-  onmousemove={isFullscreen ? resetFsTimer : undefined}
+  class:fullscreen={viewer.state.isFullscreen}
+  onmousemove={viewer.state.isFullscreen ? viewer.resetFsTimer : undefined}
   ondrop={(e) => e.preventDefault()}
   ondragover={(e) => e.preventDefault()}
   oncontextmenu={openContextMenu}
 >
-  <div class="topbar" onmousedown={startDrag} role="toolbar" tabindex="-1">
-    <span class="app-name">vyu</span>
-    <span class="divider">/</span>
-    <span
-      class="filename"
-      role="presentation"
-      onmouseenter={showFilenameTooltip}
-      onmouseleave={hideFilenameTooltip}>{fileName}</span
-    >
-    {#if fileSrc}
-      <span class="divider">/</span>
-      <button
-        class="folder-btn close-file-btn tooltip-below"
-        data-tooltip="Close file"
-        onclick={closeFile}
-        aria-label="close file"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M8 3h7l5 5v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"
-            stroke="currentColor"
-            stroke-width="2"
-          />
-          <path d="M15 3v5h5" stroke="currentColor" stroke-width="2" />
-          <path
-            d="M11 12H4"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          />
-          <path
-            d="M7 9l-3 3 3 3"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-      </button>
-      <span class="divider">/</span>
-      <button
-        class="folder-btn open-file-btn tooltip-below"
-        data-tooltip="Open file"
-        onclick={openFileDialog}
-        aria-label="open file"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
-            stroke="currentColor"
-            stroke-width="2"
-          />
-        </svg>
-      </button>
-    {/if}
-    <div class="window-controls">
-      <button
-        class="wc-btn tooltip-below"
-        data-tooltip="Minimize"
-        onclick={minimizeWindow}
-        aria-label="minimize">−</button
-      >
-      <button
-        class="wc-btn tooltip-below"
-        data-tooltip="Maximize"
-        onclick={maximizeWindow}
-        aria-label="maximize">▢</button
-      >
-      <button
-        class="wc-btn close tooltip-below"
-        data-tooltip="Close"
-        onclick={closeWindow}
-        aria-label="close">✕</button
-      >
-    </div>
-  </div>
+  <AppMenu
+    {fileName}
+    {fileSrc}
+    startDrag={startDrag}
+    showFilenameTooltip={showFilenameTooltip}
+    hideFilenameTooltip={hideFilenameTooltip}
+    closeFile={closeFile}
+    openFileDialog={openFileDialog}
+    minimizeWindow={minimizeWindow}
+    maximizeWindow={maximizeWindow}
+    closeWindow={closeWindow}
+  />
 
   <div class="content">
     <div
@@ -1727,8 +1585,8 @@
       ontouchstart={(e) => {
         if (e.touches.length === 2) e.preventDefault();
       }}
-      ontouchmove={handleTouchZoom}
-      ontouchend={handleTouchEnd}
+      ontouchmove={viewer.handleTouchZoom}
+      ontouchend={viewer.handleTouchEnd}
       style="cursor: {!isVideo ? panCursor : 'default'}"
       role="presentation"
     >
@@ -1759,398 +1617,62 @@
             <track kind="captions" />
           </video>
           <div class="video-controls" class:gif-only={isGifVideo}>
-            <div
-              class="progress-bar"
-              data-clipbar="normal"
-              class:hide-for-gif={isGifVideo}
-              onmousedown={startScrubbing}
-              oncontextmenu={(e) => e.preventDefault()}
-              role="slider"
-              aria-label="video scrubber"
-              aria-valuenow={progress}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              tabindex="0"
-            >
-              <div class="progress-fill" style="width: {progress}%"></div>
-              <div class="progress-playhead" style="left: {progress}%"></div>
-              {#each clipPairs as pair (`pair-${pair.startId}-${pair.endId}`)}
-                <div
-                  class="clip-range"
-                  style="left: {getTimestampPct(
-                    pair.start,
-                  )}%; width: {getTimestampPct(pair.end) -
-                    getTimestampPct(pair.start)}%;"
-                ></div>
-              {/each}
-              {#if tsDragRange.visible}
-                <div
-                  class="ts-drag-range"
-                  class:converting={tsDragRange.phase === "converting"}
-                  class:fading={tsDragRange.phase === "fading"}
-                  style={getDragRangeStyle()}
-                ></div>
-              {/if}
-              {#each clipBoundaries as marker (marker.id)}
-                <div
-                  class="clip-marker {marker.kind === 'start'
-                    ? 'start-marker'
-                    : 'end-marker'}"
-                  style="left: {getTimestampPct(marker.time)}%"
-                  role="button"
-                  tabindex="0"
-                  onmousedown={(e) => startClipMarkerDrag(e, marker.id)}
-                  oncontextmenu={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    removeClipBoundary(marker.id);
-                  }}
-                  onmouseenter={(e) => {
-                    const rect = (
-                      e.currentTarget as HTMLElement
-                    ).getBoundingClientRect();
-                    tsTooltip = {
-                      visible: true,
-                      x: rect.left + rect.width / 2,
-                      y: rect.top - 8,
-                      title: marker.title?.trim() || "",
-                      timeLabel: formatTime(marker.time),
-                      tone: "blue",
-                    };
-                  }}
-                  onmouseleave={() => {
-                    tsTooltip = { ...tsTooltip, visible: false };
-                  }}
-                  onclick={(e) => {
-                    e.stopPropagation();
-                    if (clipMarkerJustDragged) return;
-                    seekToTimestamp(marker.time);
-                  }}
-                  ondblclick={(e) => openSegmentEditor(e, marker.id)}
-                  onkeydown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      seekToTimestamp(marker.time);
-                    }
-                  }}
-                  aria-label={marker.title
-                    ? `${marker.kind} clip marker ${marker.title} at ${formatTime(marker.time)}`
-                    : `${marker.kind} clip marker at ${formatTime(marker.time)}`}
-                ></div>
-              {/each}
-              {#each timestamps as ts (ts.id)}
-                <div
-                  class="ts-marker"
-                  style="left: {getTimestampPct(ts.time)}%"
-                  role="button"
-                  tabindex="0"
-                  onmousedown={(e) => startTimestampRangeDrag(e, ts.id)}
-                  onclick={(e) => {
-                    e.stopPropagation();
-                    if (tsMarkerDragJustEnded) return;
-                    seekToTimestamp(ts.time);
-                  }}
-                  ondblclick={(e) => openTimestampEditor(e, ts.id)}
-                  onkeydown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      seekToTimestamp(ts.time);
-                    }
-                  }}
-                  oncontextmenu={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    removeTimestamp(ts.id);
-                  }}
-                  onmouseenter={(e) => showTimestampTooltip(e, ts)}
-                  onmouseleave={() => {
-                    if (!tsEditMenu.visible)
-                      tsTooltip = { ...tsTooltip, visible: false };
-                  }}
-                  aria-label="timestamp {ts.title
-                    ? `${ts.title} at ${formatTime(ts.time)}`
-                    : formatTime(ts.time)}"
-                ></div>
-              {/each}
-              {#if resumePoint !== null}
-                <div
-                  class="resume-marker"
-                  style="left: {getTimestampPct(resumePoint)}%"
-                  role="button"
-                  tabindex="0"
-                  onclick={(e) => {
-                    e.stopPropagation();
-                    tsTooltip = { ...tsTooltip, visible: false };
-                    seekToResumePoint();
-                    removeResumePoint();
-                  }}
-                  oncontextmenu={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    tsTooltip = { ...tsTooltip, visible: false };
-                    removeResumePoint();
-                  }}
-                  onmouseenter={(e) => {
-                    const rect = (
-                      e.currentTarget as HTMLElement
-                    ).getBoundingClientRect();
-                    tsTooltip = {
-                      visible: true,
-                      x: rect.left + rect.width / 2,
-                      y: rect.top - 8,
-                      title: "Resume",
-                      timeLabel: formatTime(resumePoint!),
-                      tone: "green",
-                    };
-                    resumeTooltipVisible = true;
-                  }}
-                  onmouseleave={() => {
-                    tsTooltip = { ...tsTooltip, visible: false };
-                    resumeTooltipVisible = false;
-                  }}
-                  onkeydown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      seekToResumePoint();
-                    }
-                  }}
-                  aria-label="Resume at {formatTime(resumePoint)}"
-                ></div>
-              {/if}
-            </div>
-            <div class="controls-row" class:hide-for-gif={isGifVideo}>
-              <button
-                class="ctrl-btn tooltip-ctrl"
-                data-tooltip={playing ? "Pause" : "Play"}
-                onclick={togglePlay}
-                aria-label={playing ? "pause" : "play"}
-              >
-                {#if playing}
-                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none"
-                    ><rect
-                      x="3"
-                      y="2"
-                      width="3.5"
-                      height="12"
-                      rx="1"
-                      fill="currentColor"
-                    /><rect
-                      x="9.5"
-                      y="2"
-                      width="3.5"
-                      height="12"
-                      rx="1"
-                      fill="currentColor"
-                    /></svg
-                  >
-                {:else}
-                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none"
-                    ><path d="M3 2L14 8L3 14V2Z" fill="currentColor" /></svg
-                  >
-                {/if}
-              </button>
-              <button
-                class="ctrl-btn loop-btn tooltip-ctrl"
-                class:active={looping}
-                data-tooltip="Loop video"
-                onclick={toggleLoop}
-                aria-label="toggle loop"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M17 2L21 6L17 10"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                  <path
-                    d="M3 11V9C3 7.9 3.9 7 5 7H21"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                  />
-                  <path
-                    d="M7 22L3 18L7 14"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                  <path
-                    d="M21 13V15C21 16.1 20.1 17 19 17H3"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                  />
-                </svg>
-              </button>
-              <div
-                class="volume-control"
-                class:audio-off={muted || volume === 0}
-                onmouseenter={() => (volumeHovered = true)}
-                onmouseleave={handleVolumeAreaLeave}
-                onwheel={handleVolumeScroll}
-                role="presentation"
-              >
-                <button
-                  class="ctrl-btn volume-btn tooltip-ctrl"
-                  class:active={!(muted || volume === 0)}
-                  data-tooltip={muted || volume === 0 ? "Unmute" : "Mute"}
-                  onclick={toggleMute}
-                  aria-label={muted ? "unmute" : "mute"}
-                >
-                  {#if muted || volume === 0}
-                    <svg width="15" height="15" viewBox="0 0 18 18" fill="none"
-                      ><path
-                        d="M9 4L5 7H2V11H5L9 14V4Z"
-                        fill="currentColor"
-                      /><line
-                        x1="12"
-                        y1="6"
-                        x2="16"
-                        y2="12"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                      /><line
-                        x1="16"
-                        y1="6"
-                        x2="12"
-                        y2="12"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                      /></svg
-                    >
-                  {:else if volume < 0.5}
-                    <svg width="15" height="15" viewBox="0 0 18 18" fill="none"
-                      ><path
-                        d="M9 4L5 7H2V11H5L9 14V4Z"
-                        fill="currentColor"
-                      /><path
-                        d="M11.5 7C12.5 7.8 13 8.4 13 9C13 9.6 12.5 10.2 11.5 11"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                      /></svg
-                    >
-                  {:else}
-                    <svg width="15" height="15" viewBox="0 0 18 18" fill="none"
-                      ><path
-                        d="M9 4L5 7H2V11H5L9 14V4Z"
-                        fill="currentColor"
-                      /><path
-                        d="M11.5 7C12.5 7.8 13 8.4 13 9C13 9.6 12.5 10.2 11.5 11"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                      /><path
-                        d="M13.5 5C15.5 6.5 16.5 7.7 16.5 9C16.5 10.3 15.5 11.5 13.5 13"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                      /></svg
-                    >
-                  {/if}
-                </button>
-                {#if volumeHovered}
-                  <div
-                    class="volume-diamonds"
-                    onmousedown={startVolumeDrag}
-                    onmousemove={handleVolumeDiamondHover}
-                    role="presentation"
-                  >
-                    {#each Array(VOLUME_SEGMENTS) as _, i}
-                      <button
-                        class="volume-diamond"
-                        class:filled={i < Math.round(volume * VOLUME_SEGMENTS)}
-                        class:muted-diamond={muted}
-                        style="--i: {i}"
-                        onclick={() => setVolume((i + 1) / VOLUME_SEGMENTS)}
-                        aria-label="set volume {Math.round(
-                          ((i + 1) / VOLUME_SEGMENTS) * 100,
-                        )}%"
-                      ></button>
-                    {/each}
-                  </div>
-                {/if}
-              </div>
-              <div class="controls-spacer"></div>
-              <button
-                class="ctrl-btn add-ts-btn tooltip-ctrl"
-                data-tooltip="Place timestamp"
-                onclick={addTimestamp}
-                aria-label="add timestamp"
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                  ><circle
-                    cx="12"
-                    cy="12"
-                    r="9"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  /><path
-                    d="M12 7v5l3 3"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                  /><path
-                    d="M18.5 3.5L20 2"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                  /><path
-                    d="M12 3V1"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                  /></svg
-                >
-              </button>
-              <button
-                class="time-display tooltip-ctrl"
-                data-tooltip={timerTooltip}
-                onclick={toggleTimer}
-                aria-label="toggle timer mode"
-              >
-                {currentTimeDisplay()} / {durationDisplay}
-              </button>
-            </div>
-            {#if isGifVideo}
-              <button
-                class="ctrl-btn gif-center-btn tooltip-ctrl"
-                data-tooltip={playing ? "Pause GIF" : "Play GIF"}
-                onclick={togglePlay}
-                aria-label={playing ? "pause gif" : "play gif"}
-              >
-                {#if playing}
-                  <svg width="18" height="18" viewBox="0 0 16 16" fill="none"
-                    ><rect
-                      x="3"
-                      y="2"
-                      width="3.5"
-                      height="12"
-                      rx="1"
-                      fill="currentColor"
-                    /><rect
-                      x="9.5"
-                      y="2"
-                      width="3.5"
-                      height="12"
-                      rx="1"
-                      fill="currentColor"
-                    /></svg
-                  >
-                {:else}
-                  <svg width="18" height="18" viewBox="0 0 16 16" fill="none"
-                    ><path d="M3 2L14 8L3 14V2Z" fill="currentColor" /></svg
-                  >
-                {/if}
-              </button>
-            {/if}
+            <TimelineMarkers
+              fullscreen={false}
+              {progress}
+              {isGifVideo}
+              {clipPairs}
+              {clipBoundaries}
+              {timestamps}
+              {tsDragRange}
+              {resumePoint}
+              {clipMarkerJustDragged}
+              {tsMarkerDragJustEnded}
+              tsEditMenuVisible={tsEditMenu.visible}
+              startScrubbing={startScrubbing}
+              getTimestampPct={getTimestampPct}
+              getDragRangeStyle={getDragRangeStyle}
+              startClipMarkerDrag={startClipMarkerDrag}
+              removeClipBoundary={removeClipBoundary}
+              showClipBoundaryTooltip={showClipBoundaryTooltip}
+              hideTsTooltip={hideTsTooltip}
+              seekToTimestamp={seekToTimestamp}
+              openSegmentEditor={openSegmentEditor}
+              startTimestampRangeDrag={startTimestampRangeDrag}
+              removeTimestamp={removeTimestamp}
+              showTimestampTooltip={showTimestampTooltip}
+              openTimestampEditor={openTimestampEditor}
+              showResumeTooltip={showResumeTooltip}
+              hideResumeTooltip={hideResumeTooltip}
+              seekToResumePoint={seekToResumePoint}
+              removeResumePoint={removeResumePoint}
+              formatTime={formatTime}
+            />
+            <PlaybackControls
+              fullscreen={false}
+              {isGifVideo}
+              {playing}
+              {looping}
+              {muted}
+              {volume}
+              {volumeHovered}
+              volumeSegments={VOLUME_SEGMENTS}
+              togglePlay={togglePlay}
+              toggleLoop={toggleLoop}
+              toggleMute={toggleMute}
+              showVolumeOverlay={showVolumeOverlay}
+              handleVolumeAreaLeave={handleVolumeAreaLeave}
+              handleVolumeScroll={handleVolumeScroll}
+              startVolumeDrag={startVolumeDrag}
+              handleVolumeDiamondHover={handleVolumeDiamondHover}
+              setVolume={setVolume}
+              addTimestamp={addTimestamp}
+              toggleTimer={toggleTimer}
+              currentTimeDisplay={currentTimeDisplay}
+              durationDisplay={durationDisplay}
+              timerTooltip={timerTooltip}
+              toggleFullscreen={toggleFullscreen}
+            />
           </div>
         </div>
       {:else}
@@ -2173,142 +1695,35 @@
     </div>
   </div>
 
-  <div class="bottombar">
-    <span
-      class="file-count tooltip-above-shift-right"
-      data-tooltip="File position"
-      >{fileList.length > 0
-        ? `${currentIndex + 1} / ${fileList.length}`
-        : "—"}</span
-    >
-    <span class="file-info tooltip-above" data-tooltip="Resolution · File size">
-      {#if fileDimensions && fileSize}
-        {fileDimensions} · {fileSize}
-      {:else if !fileInfoLoading && fileName !== "no file open"}
-        {fileName}
-      {:else if !fileSrc}
-        no file open
-      {/if}
-    </span>
-    <div class="bottombar-right">
-      <button
-        class="zoom tooltip-above"
-        data-tooltip="Reset zoom"
-        onclick={resetZoom}>{Math.round(zoomLevel)}%</button
-      >
-      <button
-        class="fs-btn tooltip-above-shift-left"
-        data-tooltip="Fullscreen"
-        onclick={toggleFullscreen}
-        aria-label="toggle fullscreen"
-      >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
-          ><path
-            d="M1 4V1H4M8 1H11V4M11 8V11H8M4 11H1V8"
-            stroke="currentColor"
-            stroke-width="0.6"
-            stroke-linecap="round"
-          /></svg
-        >
-      </button>
-    </div>
-  </div>
+  <MediaBar
+    fileListLength={fileList.length}
+    {currentIndex}
+    {fileDimensions}
+    {fileSize}
+    {fileInfoLoading}
+    {fileName}
+    {fileSrc}
+    zoomLevel={viewer.state.zoomLevel}
+    resetZoom={resetZoom}
+    toggleFullscreen={toggleFullscreen}
+    {isVideo}
+    {clipCount}
+    triggerClipSegments={triggerClipSegments}
+    {clipJobRunning}
+    {clipDeleteOriginal}
+    {clipUseCustomPath}
+    {clipMergeSegments}
+    getClipTargetDir={getClipTargetDir}
+    toggleClipDeleteOriginal={toggleClipDeleteOriginal}
+    toggleClipPathSelection={toggleClipPathSelection}
+    toggleClipMergeSegments={toggleClipMergeSegments}
+    {clipJobLabel}
+  />
 
-  {#if isVideo && clipCount > 0}
-    <div
-      class="clip-actions"
-      transition:fly={{ y: 26, duration: 190, opacity: 0.08 }}
-    >
-      <button
-        class="clip-main-btn"
-        onclick={triggerClipSegments}
-        disabled={clipJobRunning}
-      >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-          ><circle
-            cx="6.5"
-            cy="8"
-            r="2.5"
-            stroke="currentColor"
-            stroke-width="2"
-          /><circle
-            cx="6.5"
-            cy="16"
-            r="2.5"
-            stroke="currentColor"
-            stroke-width="2"
-          /><path
-            d="M9 9.5L20 4M9 14.5L20 20"
-            stroke="currentColor"
-            stroke-width="2"
-          /></svg
-        >
-        <span>Clip Segments</span>
-      </button>
-      <div class="clip-options-grid">
-        <button
-          class="clip-toggle-btn red"
-          class:is-on={clipDeleteOriginal}
-          onclick={toggleClipDeleteOriginal}
-          disabled={clipJobRunning}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-            ><path
-              d="M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2M3 6h18"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            /></svg
-          >
-          <span>Delete Original</span>
-        </button>
-        <button
-          class="clip-toggle-btn yellow tooltip-above"
-          class:is-on={clipUseCustomPath}
-          data-tooltip={getClipTargetDir() || "No output path"}
-          title={getClipTargetDir() || "No output path"}
-          onclick={toggleClipPathSelection}
-          disabled={clipJobRunning}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-            ><path
-              d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
-              stroke="currentColor"
-              stroke-width="2"
-            /></svg
-          >
-          <span>Select Path</span>
-        </button>
-        <button
-          class="clip-toggle-btn green"
-          class:is-on={clipMergeSegments}
-          onclick={toggleClipMergeSegments}
-          disabled={clipJobRunning}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-            ><path
-              d="M5 7h14M5 12h14M5 17h14M8 7v10M16 7v10"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            /></svg
-          >
-          <span>Merge Segments</span>
-        </button>
-      </div>
-      {#if clipJobRunning}
-        <div class="clip-job-progress">
-          <span>{clipJobLabel}</span>
-          <div class="clip-job-bar"><span></span></div>
-        </div>
-      {/if}
-    </div>
-  {/if}
-
-  {#if isFullscreen}
+  {#if viewer.state.isFullscreen}
     <div
       class="fs-overlay"
-      class:visible={fsControlsVisible}
+      class:visible={viewer.state.fsControlsVisible}
       role="button"
       tabindex="0"
       onwheel={handleViewerScroll}
@@ -2316,8 +1731,8 @@
       ontouchstart={(e) => {
         if (e.touches.length === 2) e.preventDefault();
       }}
-      ontouchmove={handleTouchZoom}
-      ontouchend={handleTouchEnd}
+      ontouchmove={viewer.handleTouchZoom}
+      ontouchend={viewer.handleTouchEnd}
       style="cursor: {fsCursor}"
     >
       <div class="fs-topbar">
@@ -2357,414 +1772,62 @@
 
       {#if isVideo && videoEl}
         <div class="fs-controls" class:gif-only={isGifVideo}>
-          <div
-            class="fs-progress"
-            data-clipbar="fullscreen"
-            class:hide-for-gif={isGifVideo}
-            onmousedown={startScrubbing}
-            oncontextmenu={(e) => e.preventDefault()}
-            role="slider"
-            aria-label="video scrubber"
-            aria-valuenow={progress}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            tabindex="0"
-          >
-            <div class="fs-progress-fill" style="width: {progress}%"></div>
-            <div class="fs-progress-playhead" style="left: {progress}%"></div>
-            {#each clipPairs as pair (`fspair-${pair.startId}-${pair.endId}`)}
-              <div
-                class="fs-clip-range"
-                style="left: {getTimestampPct(
-                  pair.start,
-                )}%; width: {getTimestampPct(pair.end) -
-                  getTimestampPct(pair.start)}%;"
-              ></div>
-            {/each}
-            {#if resumePoint !== null}
-              <div
-                class="resume-marker"
-                style="left: {getTimestampPct(resumePoint)}%"
-                role="button"
-                tabindex="0"
-                onclick={(e) => {
-                  e.stopPropagation();
-                  tsTooltip = { ...tsTooltip, visible: false };
-                  seekToResumePoint();
-                  removeResumePoint();
-                }}
-                oncontextmenu={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  tsTooltip = { ...tsTooltip, visible: false };
-                  removeResumePoint();
-                }}
-                onmouseenter={(e) => {
-                  const rect = (
-                    e.currentTarget as HTMLElement
-                  ).getBoundingClientRect();
-                  tsTooltip = {
-                    visible: true,
-                    x: rect.left + rect.width / 2,
-                    y: rect.top - 8,
-                    title: "Resume",
-                    timeLabel: formatTime(resumePoint!),
-                    tone: "green",
-                  };
-                  resumeTooltipVisible = true;
-                }}
-                onmouseleave={() => {
-                  tsTooltip = { ...tsTooltip, visible: false };
-                  resumeTooltipVisible = false;
-                }}
-                onkeydown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    seekToResumePoint();
-                  }
-                }}
-                aria-label="Resume at {formatTime(resumePoint)}"
-              ></div>
-            {/if}
-            {#if tsDragRange.visible}
-              <div
-                class="ts-drag-range"
-                class:converting={tsDragRange.phase === "converting"}
-                class:fading={tsDragRange.phase === "fading"}
-                style={getDragRangeStyle()}
-              ></div>
-            {/if}
-            {#each clipBoundaries as marker (marker.id)}
-              <div
-                class="fs-clip-marker {marker.kind === 'start'
-                  ? 'start-marker'
-                  : 'end-marker'}"
-                style="left: {getTimestampPct(marker.time)}%"
-                role="button"
-                tabindex="0"
-                onmousedown={(e) => startClipMarkerDrag(e, marker.id)}
-                oncontextmenu={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  removeClipBoundary(marker.id);
-                }}
-                onmouseenter={(e) => {
-                  const rect = (
-                    e.currentTarget as HTMLElement
-                  ).getBoundingClientRect();
-                  tsTooltip = {
-                    visible: true,
-                    x: rect.left + rect.width / 2,
-                    y: rect.top - 8,
-                    title: marker.title?.trim() || "",
-                    timeLabel: formatTime(marker.time),
-                    tone: "blue",
-                  };
-                }}
-                onmouseleave={() => {
-                  tsTooltip = { ...tsTooltip, visible: false };
-                }}
-                onclick={(e) => {
-                  e.stopPropagation();
-                  if (clipMarkerJustDragged) return;
-                  seekToTimestamp(marker.time);
-                }}
-                ondblclick={(e) => openSegmentEditor(e, marker.id)}
-                onkeydown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    seekToTimestamp(marker.time);
-                  }
-                }}
-                aria-label={marker.title
-                  ? `${marker.kind} clip marker ${marker.title} at ${formatTime(marker.time)}`
-                  : `${marker.kind} clip marker at ${formatTime(marker.time)}`}
-              ></div>
-            {/each}
-            {#each timestamps as ts (ts.id)}
-              <div
-                class="ts-marker"
-                style="left: {getTimestampPct(ts.time)}%"
-                role="button"
-                tabindex="0"
-                onmousedown={(e) => startTimestampRangeDrag(e, ts.id)}
-                onclick={(e) => {
-                  e.stopPropagation();
-                  if (tsMarkerDragJustEnded) return;
-                  seekToTimestamp(ts.time);
-                }}
-                ondblclick={(e) => openTimestampEditor(e, ts.id)}
-                onkeydown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    seekToTimestamp(ts.time);
-                  }
-                }}
-                oncontextmenu={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  removeTimestamp(ts.id);
-                }}
-                onmouseenter={(e) => showTimestampTooltip(e, ts)}
-                onmouseleave={() => {
-                  if (!tsEditMenu.visible)
-                    tsTooltip = { ...tsTooltip, visible: false };
-                }}
-                aria-label="timestamp {ts.title
-                  ? `${ts.title} at ${formatTime(ts.time)}`
-                  : formatTime(ts.time)}"
-              ></div>
-            {/each}
-          </div>
-          <div class="fs-controls-row" class:hide-for-gif={isGifVideo}>
-            <button
-              class="fs-ctrl-btn tooltip-ctrl"
-              data-tooltip={playing ? "Pause" : "Play"}
-              onclick={togglePlay}
-              aria-label={playing ? "pause" : "play"}
-            >
-              {#if playing}
-                <svg width="18" height="18" viewBox="0 0 16 16" fill="none"
-                  ><rect
-                    x="3"
-                    y="2"
-                    width="3.5"
-                    height="12"
-                    rx="1"
-                    fill="currentColor"
-                  /><rect
-                    x="9.5"
-                    y="2"
-                    width="3.5"
-                    height="12"
-                    rx="1"
-                    fill="currentColor"
-                  /></svg
-                >
-              {:else}
-                <svg width="18" height="18" viewBox="0 0 16 16" fill="none"
-                  ><path d="M3 2L14 8L3 14V2Z" fill="currentColor" /></svg
-                >
-              {/if}
-            </button>
-            <button
-              class="fs-ctrl-btn loop-btn tooltip-ctrl"
-              class:active={looping}
-              data-tooltip="Loop video"
-              onclick={toggleLoop}
-              aria-label="toggle loop"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M17 2L21 6L17 10"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-                <path
-                  d="M3 11V9C3 7.9 3.9 7 5 7H21"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                />
-                <path
-                  d="M7 22L3 18L7 14"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-                <path
-                  d="M21 13V15C21 16.1 20.1 17 19 17H3"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                />
-              </svg>
-            </button>
-            <div
-              class="volume-control"
-              class:audio-off={muted || volume === 0}
-              onmouseenter={() => (volumeHovered = true)}
-              onmouseleave={handleVolumeAreaLeave}
-              onwheel={handleVolumeScroll}
-              role="presentation"
-            >
-              <button
-                class="fs-ctrl-btn volume-btn tooltip-ctrl"
-                class:active={!(muted || volume === 0)}
-                data-tooltip={muted || volume === 0 ? "Unmute" : "Mute"}
-                onclick={toggleMute}
-                aria-label={muted ? "unmute" : "mute"}
-              >
-                {#if muted || volume === 0}
-                  <svg width="19" height="19" viewBox="0 0 18 18" fill="none"
-                    ><path
-                      d="M9 4L5 7H2V11H5L9 14V4Z"
-                      fill="currentColor"
-                    /><line
-                      x1="12"
-                      y1="6"
-                      x2="16"
-                      y2="12"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      stroke-linecap="round"
-                    /><line
-                      x1="16"
-                      y1="6"
-                      x2="12"
-                      y2="12"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      stroke-linecap="round"
-                    /></svg
-                  >
-                {:else if volume < 0.5}
-                  <svg width="19" height="19" viewBox="0 0 18 18" fill="none"
-                    ><path
-                      d="M9 4L5 7H2V11H5L9 14V4Z"
-                      fill="currentColor"
-                    /><path
-                      d="M11.5 7C12.5 7.8 13 8.4 13 9C13 9.6 12.5 10.2 11.5 11"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      stroke-linecap="round"
-                    /></svg
-                  >
-                {:else}
-                  <svg width="19" height="19" viewBox="0 0 18 18" fill="none"
-                    ><path
-                      d="M9 4L5 7H2V11H5L9 14V4Z"
-                      fill="currentColor"
-                    /><path
-                      d="M11.5 7C12.5 7.8 13 8.4 13 9C13 9.6 12.5 10.2 11.5 11"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      stroke-linecap="round"
-                    /><path
-                      d="M13.5 5C15.5 6.5 16.5 7.7 16.5 9C16.5 10.3 15.5 11.5 13.5 13"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      stroke-linecap="round"
-                    /></svg
-                  >
-                {/if}
-              </button>
-              {#if volumeHovered}
-                <div
-                  class="volume-diamonds"
-                  onmousedown={startVolumeDrag}
-                  onmousemove={handleVolumeDiamondHover}
-                  role="presentation"
-                >
-                  {#each Array(VOLUME_SEGMENTS) as _, i}
-                    <button
-                      class="volume-diamond"
-                      class:filled={i < Math.round(volume * VOLUME_SEGMENTS)}
-                      class:muted-diamond={muted}
-                      style="--i: {i}"
-                      onclick={() => setVolume((i + 1) / VOLUME_SEGMENTS)}
-                      aria-label="set volume {Math.round(
-                        ((i + 1) / VOLUME_SEGMENTS) * 100,
-                      )}%"
-                    ></button>
-                  {/each}
-                </div>
-              {/if}
-            </div>
-            <div class="controls-spacer"></div>
-            <button
-              class="fs-ctrl-btn add-ts-btn tooltip-ctrl"
-              data-tooltip="Place timestamp"
-              onclick={addTimestamp}
-              aria-label="add timestamp"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                ><circle
-                  cx="12"
-                  cy="12"
-                  r="9"
-                  stroke="currentColor"
-                  stroke-width="2"
-                /><path
-                  d="M12 7v5l3 3"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                /><path
-                  d="M18.5 3.5L20 2"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                /><path
-                  d="M12 3V1"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                /></svg
-              >
-            </button>
-            <button
-              class="fs-time tooltip-ctrl"
-              data-tooltip={timerTooltip}
-              onclick={toggleTimer}
-              aria-label="toggle timer mode"
-            >
-              {currentTimeDisplay()} / {durationDisplay}
-            </button>
-            <div class="fs-right">
-              <button
-                class="fs-ctrl-btn"
-                onclick={toggleFullscreen}
-                aria-label="exit fullscreen"
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
-                  ><path
-                    d="M4 1H1V4M8 1H11V4M11 8V11H8M4 11H1V8"
-                    stroke="currentColor"
-                    stroke-width="1.2"
-                    stroke-linecap="round"
-                  /></svg
-                >
-              </button>
-            </div>
-          </div>
-          {#if isGifVideo}
-            <button
-              class="fs-ctrl-btn fs-gif-center-btn tooltip-ctrl"
-              data-tooltip={playing ? "Pause GIF" : "Play GIF"}
-              onclick={togglePlay}
-              aria-label={playing ? "pause gif" : "play gif"}
-            >
-              {#if playing}
-                <svg width="20" height="20" viewBox="0 0 16 16" fill="none"
-                  ><rect
-                    x="3"
-                    y="2"
-                    width="3.5"
-                    height="12"
-                    rx="1"
-                    fill="currentColor"
-                  /><rect
-                    x="9.5"
-                    y="2"
-                    width="3.5"
-                    height="12"
-                    rx="1"
-                    fill="currentColor"
-                  /></svg
-                >
-              {:else}
-                <svg width="20" height="20" viewBox="0 0 16 16" fill="none"
-                  ><path d="M3 2L14 8L3 14V2Z" fill="currentColor" /></svg
-                >
-              {/if}
-            </button>
-          {/if}
+          <TimelineMarkers
+            fullscreen={true}
+            {progress}
+            {isGifVideo}
+            {clipPairs}
+            {clipBoundaries}
+            {timestamps}
+            {tsDragRange}
+            {resumePoint}
+            {clipMarkerJustDragged}
+            {tsMarkerDragJustEnded}
+            tsEditMenuVisible={tsEditMenu.visible}
+            startScrubbing={startScrubbing}
+            getTimestampPct={getTimestampPct}
+            getDragRangeStyle={getDragRangeStyle}
+            startClipMarkerDrag={startClipMarkerDrag}
+            removeClipBoundary={removeClipBoundary}
+            showClipBoundaryTooltip={showClipBoundaryTooltip}
+            hideTsTooltip={hideTsTooltip}
+            seekToTimestamp={seekToTimestamp}
+            openSegmentEditor={openSegmentEditor}
+            startTimestampRangeDrag={startTimestampRangeDrag}
+            removeTimestamp={removeTimestamp}
+            showTimestampTooltip={showTimestampTooltip}
+            openTimestampEditor={openTimestampEditor}
+            showResumeTooltip={showResumeTooltip}
+            hideResumeTooltip={hideResumeTooltip}
+            seekToResumePoint={seekToResumePoint}
+            removeResumePoint={removeResumePoint}
+            formatTime={formatTime}
+          />
+          <PlaybackControls
+            fullscreen={true}
+            {isGifVideo}
+            {playing}
+            {looping}
+            {muted}
+            {volume}
+            {volumeHovered}
+            volumeSegments={VOLUME_SEGMENTS}
+            togglePlay={togglePlay}
+            toggleLoop={toggleLoop}
+            toggleMute={toggleMute}
+            showVolumeOverlay={showVolumeOverlay}
+            handleVolumeAreaLeave={handleVolumeAreaLeave}
+            handleVolumeScroll={handleVolumeScroll}
+            startVolumeDrag={startVolumeDrag}
+            handleVolumeDiamondHover={handleVolumeDiamondHover}
+            setVolume={setVolume}
+            addTimestamp={addTimestamp}
+            toggleTimer={toggleTimer}
+            currentTimeDisplay={currentTimeDisplay}
+            durationDisplay={durationDisplay}
+            timerTooltip={timerTooltip}
+            toggleFullscreen={toggleFullscreen}
+          />
         </div>
       {:else}
         <div class="fs-controls image-only">
@@ -2777,7 +1840,7 @@
             <div class="fs-right">
               <button
                 class="fs-ctrl-btn"
-                onclick={toggleFullscreen}
+                onclick={viewer.toggleFullscreen}
                 aria-label="exit fullscreen"
               >
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
@@ -2800,378 +1863,29 @@
     <div class="border-sweep" class:fading={loadingFadingOut}></div>
   {/if}
 
-  {#if contextMenu.visible}
-    <div
-      class="context-menu"
-      style="left: {contextMenu.x}px; top: {contextMenu.y}px;"
-      role="menu"
-    >
-      {#if !isVideo}
-        <button class="ctx-item green" onclick={ctxCopyImage} role="menuitem">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-            ><rect
-              x="8"
-              y="8"
-              width="13"
-              height="13"
-              rx="2"
-              stroke="currentColor"
-              stroke-width="2"
-            /><path
-              d="M4 16V5a1 1 0 011-1h11"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            /></svg
-          >
-          Copy image
-        </button>
-        <button class="ctx-item green" onclick={ctxCopyPath} role="menuitem">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-            ><path
-              d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            /><path
-              d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            /></svg
-          >
-          Copy file path
-        </button>
-        <div class="ctx-sep"></div>
-        <button class="ctx-item blue" onclick={ctxRotate} role="menuitem">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-            ><path
-              d="M21 2v6h-6"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            /><path
-              d="M21 13a9 9 0 11-3-7.7L21 8"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            /></svg
-          >
-          Rotate 90°
-        </button>
-        <button class="ctx-item blue" onclick={ctxFlip} role="menuitem">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-            ><path
-              d="M12 3v18"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            /><path
-              d="M5 8l-3 4 3 4M19 8l3 4-3 4"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            /></svg
-          >
-          Flip horizontal
-        </button>
-        <div class="ctx-sep"></div>
-        <button
-          class="ctx-item yellow"
-          onclick={ctxShowInExplorer}
-          role="menuitem"
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-            ><path
-              d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
-              stroke="currentColor"
-              stroke-width="2"
-            /></svg
-          >
-          Show in explorer
-        </button>
-        <button class="ctx-item yellow" onclick={ctxProperties} role="menuitem">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-            ><circle
-              cx="12"
-              cy="12"
-              r="9"
-              stroke="currentColor"
-              stroke-width="2"
-            /><path
-              d="M12 10.5V16"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            /><circle cx="12" cy="7.5" r="1" fill="currentColor" /></svg
-          >
-          Properties
-        </button>
-        <div class="ctx-sep"></div>
-        <button class="ctx-item red" onclick={ctxDelete} role="menuitem">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-            ><polyline
-              points="3 6 5 6 21 6"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            /><path
-              d="M19 6l-1 14H6L5 6"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            /><path
-              d="M10 11v6M14 11v6"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            /><path
-              d="M9 6V4h6v2"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            /></svg
-          >
-          Delete
-        </button>
-      {:else}
-        <button class="ctx-item green" onclick={ctxCopyFrame} role="menuitem">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-            ><rect
-              x="2"
-              y="4"
-              width="20"
-              height="16"
-              rx="2"
-              stroke="currentColor"
-              stroke-width="2"
-            /><circle cx="8.5" cy="10.5" r="1.5" fill="currentColor" /><path
-              d="M2 17l5-5 4 4 3-3 5 5"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            /></svg
-          >
-          Copy current frame
-        </button>
-        <button class="ctx-item green" onclick={ctxCopyPath} role="menuitem">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-            ><path
-              d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            /><path
-              d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            /></svg
-          >
-          Copy file path
-        </button>
-        <div class="ctx-sep"></div>
-        <button
-          class="ctx-item blue"
-          onclick={ctxStartClipHere}
-          role="menuitem"
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-            ><circle
-              cx="7"
-              cy="8"
-              r="2.2"
-              stroke="currentColor"
-              stroke-width="1.8"
-            /><circle
-              cx="7"
-              cy="15.8"
-              r="2.2"
-              stroke="currentColor"
-              stroke-width="1.8"
-            /><path
-              d="M9.5 9.6L19 5.2M9.5 14.2L19 19"
-              stroke="currentColor"
-              stroke-width="1.8"
-            /></svg
-          >
-          Start Clip Here
-        </button>
-        <button class="ctx-item blue" onclick={ctxEndClipHere} role="menuitem">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-            ><circle
-              cx="17"
-              cy="8"
-              r="2.2"
-              stroke="currentColor"
-              stroke-width="1.8"
-            /><circle
-              cx="17"
-              cy="15.8"
-              r="2.2"
-              stroke="currentColor"
-              stroke-width="1.8"
-            /><path
-              d="M14.5 9.6L5 5.2M14.5 14.2L5 19"
-              stroke="currentColor"
-              stroke-width="1.8"
-            /></svg
-          >
-          End Clip Here
-        </button>
-        <div class="ctx-sep"></div>
-        <button
-          class="ctx-item yellow"
-          onclick={ctxShowInExplorer}
-          role="menuitem"
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-            ><path
-              d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
-              stroke="currentColor"
-              stroke-width="2"
-            /></svg
-          >
-          Show in explorer
-        </button>
-        <button class="ctx-item yellow" onclick={ctxProperties} role="menuitem">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-            ><circle
-              cx="12"
-              cy="12"
-              r="9"
-              stroke="currentColor"
-              stroke-width="2"
-            /><path
-              d="M12 10.5V16"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            /><circle cx="12" cy="7.5" r="1" fill="currentColor" /></svg
-          >
-          Properties
-        </button>
-        <div class="ctx-sep"></div>
-        {#if timestamps.length > 0}
-          <button
-            class="ctx-item red"
-            onclick={ctxClearTimestamps}
-            role="menuitem"
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-              ><circle
-                cx="12"
-                cy="12"
-                r="9"
-                stroke="currentColor"
-                stroke-width="2"
-              /><path
-                d="M9 9l6 6M15 9l-6 6"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-              /></svg
-            >
-            Delete Timestamps
-          </button>
-        {/if}
-        {#if clipBoundaries.length > 0}
-          <button
-            class="ctx-item red"
-            onclick={ctxClearSegments}
-            role="menuitem"
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-              ><circle
-                cx="12"
-                cy="12"
-                r="9"
-                stroke="currentColor"
-                stroke-width="2"
-              /><path
-                d="M8 8l8 8M16 8l-8 8"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-              /></svg
-            >
-            Delete Segments
-          </button>
-        {/if}
-        <button class="ctx-item red" onclick={ctxDelete} role="menuitem">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-            ><polyline
-              points="3 6 5 6 21 6"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            /><path
-              d="M19 6l-1 14H6L5 6"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            /><path
-              d="M10 11v6M14 11v6"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            /><path
-              d="M9 6V4h6v2"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            /></svg
-          >
-          Delete
-        </button>
-      {/if}
-    </div>
-  {/if}
-
-  {#if frameCopyToast.visible}
-    <div
-      class="copy-toast"
-      class:error={frameCopyToast.tone === "error"}
-      role="status"
-      aria-live="polite"
-    >
-      {frameCopyToast.message}
-    </div>
-  {/if}
-  {#if clipToast.visible}
-    <div
-      class="clip-toast"
-      class:error={clipToast.tone === "error"}
-      role="status"
-      aria-live="polite"
-      transition:fade={{ duration: 220 }}
-    >
-      <span>{clipToast.message}</span>
-      {#if clipToast.tone === "success"}
-        <button
-          class="clip-toast-folder"
-          onclick={async () => {
-            try {
-              await invokeOpenDirectory(
-                clipToast.outputDir || clipOutputDir || parentFolder(),
-              );
-            } catch {}
-          }}
-          aria-label="open output folder"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-            ><path
-              d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
-              stroke="currentColor"
-              stroke-width="2"
-            /></svg
-          ></button
-        >
-      {/if}
-    </div>
-  {/if}
+  <Dialog
+    {contextMenu}
+    {isVideo}
+    {timestamps}
+    {clipBoundaries}
+    {frameCopyToast}
+    {clipToast}
+    {clipOutputDir}
+    parentFolder={parentFolder}
+    invokeOpenDirectory={invokeOpenDirectory}
+    ctxCopyImage={ctxCopyImage}
+    ctxCopyFrame={ctxCopyFrame}
+    ctxCopyPath={ctxCopyPath}
+    ctxRotate={ctxRotate}
+    ctxFlip={ctxFlip}
+    ctxStartClipHere={ctxStartClipHere}
+    ctxEndClipHere={ctxEndClipHere}
+    ctxShowInExplorer={ctxShowInExplorer}
+    ctxProperties={ctxProperties}
+    ctxDelete={ctxDelete}
+    ctxClearTimestamps={ctxClearTimestamps}
+    ctxClearSegments={ctxClearSegments}
+  />
 
   {#if clipDeleteConfirm.visible}
     <div
@@ -3372,20 +2086,6 @@
     </div>
   {/if}
 
-  {#if tsTooltip.visible && !tsEditMenu.visible}
-    <div
-      class="ts-tooltip"
-      class:blue={tsTooltip.tone === "blue"}
-      class:green={tsTooltip.tone === "green"}
-      style="left: {tsTooltip.x}px; top: {tsTooltip.y}px;"
-    >
-      {#if tsTooltip.title}
-        <span class="ts-tooltip-title">{tsTooltip.title}</span>
-      {/if}
-      <span>{tsTooltip.timeLabel}</span>
-    </div>
-  {/if}
-
   {#if tsEditMenu.visible}
     {@const editingTimestamp = getActiveEditorTimestamp()}
     {@const editingSegment = getActiveEditorSegment()}
@@ -3499,17 +2199,13 @@
     {/if}
   {/if}
 
-  {#if volumeTooltipVisible}
-    <div
-      class="vol-tooltip"
-      style="left: {volumeTooltipX}px; top: {volumeTooltipY - 32}px;"
-    >
-      {muted ? "0" : Math.round(volume * 100)}%
-    </div>
-  {/if}
-
-  <div
-    id="filename-tooltip"
-    style="position:fixed;opacity:0;transition:opacity 0.15s ease 0.4s;background:#1a1a1a;color:#aaaaaa;font-size:11px;font-family:Inter,sans-serif;white-space:nowrap;padding:4px 8px;border-radius:4px;border:0.5px solid #2a2a2a;pointer-events:none;z-index:9999;"
-  ></div>
+  <Tooltip
+    tsTooltip={tsTooltip}
+    tsEditMenuVisible={tsEditMenu.visible}
+    {volumeTooltipVisible}
+    {volumeTooltipX}
+    {volumeTooltipY}
+    {muted}
+    {volume}
+  />
 </main>

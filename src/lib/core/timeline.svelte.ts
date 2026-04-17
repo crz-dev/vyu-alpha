@@ -26,6 +26,51 @@ export function createTimeline() {
     set(next);
   }
 
+  function clearTimestamps(set: (v: Timestamp[]) => void) {
+    set([]);
+  }
+
+  function updateTimestampTitle(
+    id: string,
+    title: string,
+    timestamps: Timestamp[],
+    set: (v: Timestamp[]) => void,
+  ) {
+    const next = timestamps.map((ts) =>
+      ts.id === id ? { ...ts, title: title.trim() } : ts,
+    );
+    set(next);
+  }
+
+  function getTimestampById(
+    id: string,
+    timestamps: Timestamp[],
+  ): Timestamp | undefined {
+    return timestamps.find((ts) => ts.id === id);
+  }
+
+  function getTimestampPct(time: number, duration: number): number {
+    if (!duration || duration <= 0) return 0;
+    return (time / duration) * 100;
+  }
+
+  function findTouchTarget(
+    timestamps: Timestamp[],
+    time: number,
+    tolerance = 0.6,
+  ): Timestamp | null {
+    let found: Timestamp | null = null;
+    let best = Number.POSITIVE_INFINITY;
+    for (const ts of timestamps) {
+      const d = Math.abs(ts.time - time);
+      if (d <= tolerance && d < best) {
+        found = ts;
+        best = d;
+      }
+    }
+    return found;
+  }
+
   function seekToTimestamp(
     index: number,
     timestamps: Timestamp[],
@@ -42,6 +87,11 @@ export function createTimeline() {
   return {
     addTimestamp,
     removeTimestamp,
+    clearTimestamps,
+    updateTimestampTitle,
+    getTimestampById,
+    getTimestampPct,
+    findTouchTarget,
     seekToTimestamp,
   };
 }

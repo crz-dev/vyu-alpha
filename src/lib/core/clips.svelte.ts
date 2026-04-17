@@ -34,6 +34,58 @@ export function createClips() {
     set(next);
   }
 
+  function clearBoundaries(set: (v: ClipBoundary[]) => void) {
+    set([]);
+  }
+
+  function updateBoundaryTitle(
+    id: string,
+    title: string,
+    boundaries: ClipBoundary[],
+    set: (v: ClipBoundary[]) => void,
+  ) {
+    const next = boundaries.map((marker) =>
+      marker.id === id ? { ...marker, title: title.trim() } : marker,
+    );
+    set(next);
+  }
+
+  function getBoundaryById(
+    id: string,
+    boundaries: ClipBoundary[],
+  ): ClipBoundary | undefined {
+    return boundaries.find((marker) => marker.id === id);
+  }
+
+  function setBoundaryKind(
+    id: string,
+    kind: "start" | "end",
+    boundaries: ClipBoundary[],
+    set: (v: ClipBoundary[]) => void,
+  ) {
+    const next = boundaries
+      .map((m) => (m.id === id ? { ...m, kind } : m))
+      .sort((a, b) => a.time - b.time);
+    set(next);
+  }
+
+  function findTouchTarget(
+    boundaries: ClipBoundary[],
+    time: number,
+    tolerance = 0.6,
+  ): ClipBoundary | null {
+    let found: ClipBoundary | null = null;
+    let best = Number.POSITIVE_INFINITY;
+    for (const marker of boundaries) {
+      const d = Math.abs(marker.time - time);
+      if (d <= tolerance && d < best) {
+        found = marker;
+        best = d;
+      }
+    }
+    return found;
+  }
+
   function computePairs(boundaries: ClipBoundary[]): ClipPair[] {
     const sorted = [...boundaries].sort((a, b) => a.time - b.time);
     const pendingStarts: ClipBoundary[] = [];
@@ -61,6 +113,11 @@ export function createClips() {
   return {
     addClipBoundary,
     removeClipBoundary,
+    clearBoundaries,
+    updateBoundaryTitle,
+    getBoundaryById,
+    setBoundaryKind,
+    findTouchTarget,
     computePairs,
   };
 }
