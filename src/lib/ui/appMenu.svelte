@@ -46,6 +46,7 @@
 
   async function commitRename() {
     editing = false;
+    hideFilenameTooltip();
     const newName = editValue.trim();
     if (!newName || newName === fileName || !filePath) return;
     const sep = filePath.includes("\\") ? "\\" : "/";
