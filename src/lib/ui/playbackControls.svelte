@@ -17,6 +17,12 @@
     startVolumeDrag,
     handleVolumeDiamondHover,
     setVolume,
+    playbackSpeed,
+    speedHovered,
+    setPlaybackSpeed,
+    showSpeedOverlay,
+    handleSpeedAreaLeave,
+    handleSpeedScroll,
     addTimestamp,
     toggleTimer,
     currentTimeDisplay,
@@ -41,6 +47,12 @@
     startVolumeDrag: (e: MouseEvent) => void;
     handleVolumeDiamondHover: (e: MouseEvent) => void;
     setVolume: (v: number) => void;
+    playbackSpeed: number;
+    speedHovered: boolean;
+    setPlaybackSpeed: (v: number) => void;
+    showSpeedOverlay: () => void;
+    handleSpeedAreaLeave: () => void;
+    handleSpeedScroll: (e: WheelEvent) => void;
     addTimestamp: () => void;
     toggleTimer: () => void;
     currentTimeDisplay: () => string;
@@ -60,7 +72,14 @@
     >
       {#if playing}
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none"
-          ><rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor" /><rect
+          ><rect
+            x="3"
+            y="2"
+            width="3.5"
+            height="12"
+            rx="1"
+            fill="currentColor"
+          /><rect
             x="9.5"
             y="2"
             width="3.5"
@@ -185,13 +204,45 @@
               class:muted-diamond={muted}
               style="--i: {i}"
               onclick={() => setVolume((i + 1) / volumeSegments)}
-              aria-label="set volume {Math.round(((i + 1) / volumeSegments) * 100)}%"
+              aria-label="set volume {Math.round(
+                ((i + 1) / volumeSegments) * 100,
+              )}%"
             ></button>
           {/each}
         </div>
       {/if}
     </div>
     <div class="controls-spacer"></div>
+    <div
+      class="speed-control"
+      onmouseenter={showSpeedOverlay}
+      onmouseleave={handleSpeedAreaLeave}
+      onwheel={handleSpeedScroll}
+      role="presentation"
+    >
+      {#if speedHovered}
+        <div class="speed-diamonds" role="presentation">
+          {#each [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2] as step, i}
+            <button
+              class="speed-diamond"
+              class:filled={playbackSpeed === step}
+              class:active={playbackSpeed >= step}
+              style="--i: {i}"
+              onclick={() => setPlaybackSpeed(step)}
+              aria-label="set speed {step}x"
+            ></button>
+          {/each}
+        </div>
+      {/if}
+      <button
+        class="ctrl-btn speed-btn tooltip-ctrl"
+        class:active={playbackSpeed !== 1}
+        data-tooltip="Playback speed"
+        aria-label="playback speed"
+      >
+        {playbackSpeed}×
+      </button>
+    </div>
     <button
       class="ctrl-btn add-ts-btn tooltip-ctrl"
       data-tooltip="Place timestamp"
@@ -199,7 +250,13 @@
       aria-label="add timestamp"
     >
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-        ><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" /><path
+        ><circle
+          cx="12"
+          cy="12"
+          r="9"
+          stroke="currentColor"
+          stroke-width="2"
+        /><path
           d="M12 7v5l3 3"
           stroke="currentColor"
           stroke-width="2"
@@ -235,7 +292,14 @@
     >
       {#if playing}
         <svg width="18" height="18" viewBox="0 0 16 16" fill="none"
-          ><rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor" /><rect
+          ><rect
+            x="3"
+            y="2"
+            width="3.5"
+            height="12"
+            rx="1"
+            fill="currentColor"
+          /><rect
             x="9.5"
             y="2"
             width="3.5"
@@ -261,7 +325,14 @@
     >
       {#if playing}
         <svg width="18" height="18" viewBox="0 0 16 16" fill="none"
-          ><rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor" /><rect
+          ><rect
+            x="3"
+            y="2"
+            width="3.5"
+            height="12"
+            rx="1"
+            fill="currentColor"
+          /><rect
             x="9.5"
             y="2"
             width="3.5"
@@ -386,13 +457,45 @@
               class:muted-diamond={muted}
               style="--i: {i}"
               onclick={() => setVolume((i + 1) / volumeSegments)}
-              aria-label="set volume {Math.round(((i + 1) / volumeSegments) * 100)}%"
+              aria-label="set volume {Math.round(
+                ((i + 1) / volumeSegments) * 100,
+              )}%"
             ></button>
           {/each}
         </div>
       {/if}
     </div>
     <div class="controls-spacer"></div>
+    <div
+      class="speed-control"
+      onmouseenter={showSpeedOverlay}
+      onmouseleave={handleSpeedAreaLeave}
+      onwheel={handleSpeedScroll}
+      role="presentation"
+    >
+      {#if speedHovered}
+        <div class="speed-diamonds" role="presentation">
+          {#each [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2] as step, i}
+            <button
+              class="speed-diamond"
+              class:filled={playbackSpeed === step}
+              class:active={playbackSpeed >= step}
+              style="--i: {i}"
+              onclick={() => setPlaybackSpeed(step)}
+              aria-label="set speed {step}x"
+            ></button>
+          {/each}
+        </div>
+      {/if}
+      <button
+        class="fs-ctrl-btn speed-btn tooltip-ctrl"
+        class:active={playbackSpeed !== 1}
+        data-tooltip="Playback speed"
+        aria-label="playback speed"
+      >
+        {playbackSpeed}×
+      </button>
+    </div>
     <button
       class="fs-ctrl-btn add-ts-btn tooltip-ctrl"
       data-tooltip="Place timestamp"
@@ -400,7 +503,13 @@
       aria-label="add timestamp"
     >
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-        ><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" /><path
+        ><circle
+          cx="12"
+          cy="12"
+          r="9"
+          stroke="currentColor"
+          stroke-width="2"
+        /><path
           d="M12 7v5l3 3"
           stroke="currentColor"
           stroke-width="2"
@@ -427,7 +536,11 @@
       {currentTimeDisplay()} / {durationDisplay}
     </button>
     <div class="fs-right">
-      <button class="fs-ctrl-btn" onclick={toggleFullscreen} aria-label="exit fullscreen">
+      <button
+        class="fs-ctrl-btn"
+        onclick={toggleFullscreen}
+        aria-label="exit fullscreen"
+      >
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
           ><path
             d="M4 1H1V4M8 1H11V4M11 8V11H8M4 11H1V8"
@@ -448,7 +561,14 @@
     >
       {#if playing}
         <svg width="20" height="20" viewBox="0 0 16 16" fill="none"
-          ><rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor" /><rect
+          ><rect
+            x="3"
+            y="2"
+            width="3.5"
+            height="12"
+            rx="1"
+            fill="currentColor"
+          /><rect
             x="9.5"
             y="2"
             width="3.5"

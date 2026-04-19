@@ -160,6 +160,8 @@
 
   let volume = $state(1);
   let volumeHovered = $state(false);
+  let speedHovered = $state(false);
+  let playbackSpeed = $state(1);
   let volumeTooltipX = $state(0);
   let volumeTooltipY = $state(0);
   let volumeTooltipVisible = $state(false);
@@ -443,6 +445,28 @@
   function handleVolumeAreaLeave() {
     volumeTooltipVisible = false;
     volumeHovered = false;
+  }
+
+  function setPlaybackSpeed(val: number) {
+    playbackSpeed = val;
+    if (videoEl) videoEl.playbackRate = val;
+  }
+
+  function showSpeedOverlay() {
+    speedHovered = true;
+  }
+
+  function handleSpeedAreaLeave() {
+    speedHovered = false;
+  }
+
+  function handleSpeedScroll(e: WheelEvent) {
+    e.preventDefault();
+    const steps = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
+    const idx = steps.indexOf(playbackSpeed);
+    const next =
+      e.deltaY > 0 ? Math.max(0, idx - 1) : Math.min(steps.length - 1, idx + 1);
+    setPlaybackSpeed(steps[next]);
   }
 
   function saveTimestamps() {
@@ -1659,6 +1683,12 @@
               {startVolumeDrag}
               {handleVolumeDiamondHover}
               {setVolume}
+              {playbackSpeed}
+              {speedHovered}
+              {setPlaybackSpeed}
+              {showSpeedOverlay}
+              {handleSpeedAreaLeave}
+              {handleSpeedScroll}
               {addTimestamp}
               {toggleTimer}
               {currentTimeDisplay}
@@ -1814,6 +1844,12 @@
             {startVolumeDrag}
             {handleVolumeDiamondHover}
             {setVolume}
+            {playbackSpeed}
+            {speedHovered}
+            {setPlaybackSpeed}
+            {showSpeedOverlay}
+            {handleSpeedAreaLeave}
+            {handleSpeedScroll}
             {addTimestamp}
             {toggleTimer}
             {currentTimeDisplay}

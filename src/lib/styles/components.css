@@ -688,3 +688,63 @@
   background: linear-gradient(90deg, rgba(59, 130, 246, 0.35), #60a5fa);
   animation: clipJobAnim 1s ease-in-out infinite;
 }
+.speed-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-direction: row-reverse;
+  gap: 4px;
+  height: 34px;
+}
+.speed-btn {
+  font-size: 11px;
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  color: #555555;
+  width: auto;
+  padding: 0 6px;
+  min-width: 34px;
+}
+.speed-btn.active {
+  color: #ffffff;
+}
+.speed-btn:hover {
+  color: #aaaaaa;
+}
+.speed-btn.active:hover {
+  color: #ffffff;
+}
+.speed-diamonds {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 5px;
+  animation: volumeBarIn 0.2s ease forwards;
+  cursor: pointer;
+}
+.speed-diamond {
+  width: 13px;
+  height: 13px;
+  background: none;
+  border: 1px solid #555555;
+  transform: rotate(45deg);
+  cursor: pointer;
+  padding: 0;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+  flex-shrink: 0;
+  animation: diamondSpin 0.25s ease forwards;
+  animation-delay: calc(var(--i) * 0.03s);
+  opacity: 0;
+}
+.speed-diamond.active {
+  border-color: #888888;
+}
+.speed-diamond.filled {
+  background: #ffffff;
+  border-color: #ffffff;
+}
+.speed-diamond:hover {
+  border-color: #aaaaaa;
+}
