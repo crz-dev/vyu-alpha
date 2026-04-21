@@ -56,19 +56,22 @@ fn persist_window_state(window: &tauri::WebviewWindow) {
         return;
     };
 
-    let Ok(position) = window.outer_position() else {
-        return;
-    };
-    let Ok(size) = window.outer_size() else {
-        return;
+    let maximized = window.is_maximized().unwrap_or(false);
+    let Ok(size) = window.outer_size() else { return };
+
+    let (x, y) = if maximized {
+        (0, 0)
+    } else {
+        let Ok(pos) = window.outer_position() else { return };
+        (pos.x, pos.y)
     };
 
     let state = SavedWindowState {
-        x: position.x,
-        y: position.y,
+        x,
+        y,
         width: size.width,
         height: size.height,
-        maximized: window.is_maximized().unwrap_or(false),
+        maximized,
     };
 
     if let Some(parent) = path.parent() {
@@ -89,7 +92,16 @@ fn restore_window_state(window: &tauri::WebviewWindow) {
         let _ = window.set_size(Size::Physical(PhysicalSize::new(state.width, state.height)));
     }
 
-    let _ = window.set_position(Position::Physical(PhysicalPosition::new(state.x, state.y)));
+    if !state.maximized {
+        let plausible = state.x > -3840 && state.x < 7680
+            && state.y > -2160 && state.y < 4320;
+
+        if plausible {
+            let _ = window.set_position(Position::Physical(
+                PhysicalPosition::new(state.x, state.y),
+            ));
+        }
+    }
 
     if state.maximized {
         let _ = window.maximize();

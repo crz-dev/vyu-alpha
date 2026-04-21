@@ -13,6 +13,8 @@
     VIDEO_EXTS,
     ALL_EXTS,
     VOLUME_SEGMENTS,
+    LOOP_MODES,
+    type LoopMode,
   } from "$lib/constants";
   import type {
     CtxMenu,
@@ -37,6 +39,8 @@
     eraseClipBoundaries,
     saveResumePoint,
     eraseResumePoint,
+    loadLoopMode,
+    saveLoopMode,
   } from "$lib/services/storage";
 
   import {
@@ -136,7 +140,7 @@
     () => videoEl,
     () => volume,
     () => muted,
-    () => looping,
+    () => loopMode === "loop",
     () => {
       clearTimeout(tsDragFadeTimer);
       clearTimestampDragRange();
@@ -148,7 +152,7 @@
 
   let playing = $state(false);
   let muted = $state(false);
-  let looping = $state(true);
+  let loopMode = $state<LoopMode>("loop");
   let progress = $state(0);
   let rawCurrentSecs = $state(0);
   let rawDurationSecs = $state(0);
@@ -337,8 +341,11 @@
     playback.toggleMute((v) => (muted = v), muted);
   }
 
-  function toggleLoop() {
-    playback.toggleLoop((v) => (looping = v), looping);
+  function cycleLoopMode() {
+    const idx = LOOP_MODES.indexOf(loopMode);
+    loopMode = LOOP_MODES[(idx + 1) % LOOP_MODES.length];
+    saveLoopMode(loopMode);
+    if (videoEl) videoEl.loop = loopMode === "loop";
   }
 
   function toggleTimer() {
@@ -1441,7 +1448,7 @@
   }
   function ctxToggleLoop() {
     closeContextMenu();
-    toggleLoop();
+    cycleLoopMode();
   }
   function ctxAddTimestamp() {
     closeContextMenu();
@@ -1570,6 +1577,7 @@
     if (initial) loadFile(initial);
 
     volume = loadVolume();
+    loopMode = (loadLoopMode() as LoopMode) ?? "loop";
     const prefs = loadClipPrefs();
     clipOutputDir = prefs.outputDir;
     clipDeleteOriginal = prefs.deleteOriginal;
@@ -1680,6 +1688,26 @@
             autoplay
             ontimeupdate={updateProgress}
             onloadedmetadata={onVideoLoad}
+            onended={() => {
+              if (loopMode === "stop") {
+                playing = false;
+              } else if (loopMode === "next") {
+                navigate(1);
+              } else if (loopMode === "shuffle") {
+                if (fileList.length > 1) {
+                  let idx;
+                  do {
+                    idx = Math.floor(Math.random() * fileList.length);
+                  } while (idx === currentIndex);
+                  currentIndex = media.navigate(
+                    idx - currentIndex,
+                    fileList,
+                    currentIndex,
+                    setMediaState,
+                  );
+                }
+              }
+            }}
           >
             <track kind="captions" />
           </video>
@@ -1719,13 +1747,13 @@
               fullscreen={false}
               {isGifVideo}
               {playing}
-              {looping}
+              looping={loopMode}
               {muted}
               {volume}
               {volumeHovered}
               volumeSegments={VOLUME_SEGMENTS}
               {togglePlay}
-              {toggleLoop}
+              toggleLoop={cycleLoopMode}
               {toggleMute}
               {showVolumeOverlay}
               {handleVolumeAreaLeave}
@@ -1885,13 +1913,13 @@
             fullscreen={true}
             {isGifVideo}
             {playing}
-            {looping}
+            looping={loopMode}
             {muted}
             {volume}
             {volumeHovered}
             volumeSegments={VOLUME_SEGMENTS}
             {togglePlay}
-            {toggleLoop}
+            toggleLoop={cycleLoopMode}
             {toggleMute}
             {showVolumeOverlay}
             {handleVolumeAreaLeave}

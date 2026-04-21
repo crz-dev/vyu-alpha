@@ -38,7 +38,7 @@
     fullscreen?: boolean;
     isGifVideo: boolean;
     playing: boolean;
-    looping: boolean;
+    looping: "loop" | "stop" | "next" | "shuffle";
     muted: boolean;
     volume: number;
     volumeHovered: boolean;
@@ -106,39 +106,81 @@
     </button>
     <button
       class="ctrl-btn loop-btn tooltip-ctrl"
-      class:active={looping}
-      data-tooltip="Loop video"
+      class:active={looping !== "stop"}
+      data-tooltip={looping === "loop"
+        ? "Loop"
+        : looping === "stop"
+          ? "Stop at end"
+          : looping === "next"
+            ? "Play next"
+            : "Shuffle"}
       onclick={toggleLoop}
-      aria-label="toggle loop"
+      aria-label="loop mode"
     >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-        <path
-          d="M17 2L21 6L17 10"
+      {#if looping === "loop"}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M17 2L21 6L17 10"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M3 11V9C3 7.9 3.9 7 5 7H21"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+          <path
+            d="M7 22L3 18L7 14"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M21 13V15C21 16.1 20.1 17 19 17H3"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+      {:else if looping === "stop"}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <rect
+            x="4"
+            y="4"
+            width="16"
+            height="16"
+            rx="2"
+            stroke="currentColor"
+            stroke-width="2"
+          />
+        </svg>
+      {:else if looping === "next"}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <path d="M5 4l10 8-10 8V4z" fill="currentColor" />
+          <rect x="19" y="4" width="2" height="16" rx="1" fill="currentColor" />
+        </svg>
+      {:else}
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
           stroke="currentColor"
           stroke-width="2"
           stroke-linecap="round"
           stroke-linejoin="round"
-        />
-        <path
-          d="M3 11V9C3 7.9 3.9 7 5 7H21"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-        />
-        <path
-          d="M7 22L3 18L7 14"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-        <path
-          d="M21 13V15C21 16.1 20.1 17 19 17H3"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-        />
-      </svg>
+        >
+          <path d="M2 6h4l10 12h4" />
+          <path d="M2 18h4l4-5" />
+          <path d="M17 6l3 3-3 3" />
+          <path d="M17 18l3-3" />
+          <path d="M20 15l3 3-3 3" />
+        </svg>
+      {/if}
     </button>
     <div
       class="volume-control"
@@ -405,40 +447,82 @@
       {/if}
     </button>
     <button
-      class="fs-ctrl-btn loop-btn tooltip-ctrl"
-      class:active={looping}
-      data-tooltip="Loop video"
+      class="ctrl-btn loop-btn tooltip-ctrl"
+      class:active={looping !== "stop"}
+      data-tooltip={looping === "loop"
+        ? "Loop"
+        : looping === "stop"
+          ? "Stop at end"
+          : looping === "next"
+            ? "Play next"
+            : "Shuffle"}
       onclick={toggleLoop}
-      aria-label="toggle loop"
+      aria-label="loop mode"
     >
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-        <path
-          d="M17 2L21 6L17 10"
+      {#if looping === "loop"}
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M17 2L21 6L17 10"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M3 11V9C3 7.9 3.9 7 5 7H21"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+          <path
+            d="M7 22L3 18L7 14"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M21 13V15C21 16.1 20.1 17 19 17H3"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+      {:else if looping === "stop"}
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+          <rect
+            x="4"
+            y="4"
+            width="16"
+            height="16"
+            rx="2"
+            stroke="currentColor"
+            stroke-width="2"
+          />
+        </svg>
+      {:else if looping === "next"}
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+          <path d="M5 4l10 8-10 8V4z" fill="currentColor" />
+          <rect x="19" y="4" width="2" height="16" rx="1" fill="currentColor" />
+        </svg>
+      {:else}
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
           stroke="currentColor"
           stroke-width="2"
           stroke-linecap="round"
           stroke-linejoin="round"
-        />
-        <path
-          d="M3 11V9C3 7.9 3.9 7 5 7H21"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-        />
-        <path
-          d="M7 22L3 18L7 14"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-        <path
-          d="M21 13V15C21 16.1 20.1 17 19 17H3"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-        />
-      </svg>
+        >
+          <path d="M2 6h4l10 12h4" />
+          <path d="M2 18h4l4-5" />
+          <path d="M17 6l3 3-3 3" />
+          <path d="M17 18l3-3" />
+          <path d="M20 15l3 3-3 3" />
+        </svg>
+      {/if}
     </button>
     <div
       class="volume-control"

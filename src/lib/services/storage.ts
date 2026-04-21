@@ -136,3 +136,11 @@ export function eraseResumePoint(filePath: string): void {
   if (!filePath) return;
   localStorage.removeItem(`vyu-resume-${filePath}`);
 }
+
+export function loadLoopMode(): string {
+  return localStorage.getItem("vyu-loop-mode") ?? "loop";
+}
+
+export function saveLoopMode(mode: string): void {
+  localStorage.setItem("vyu-loop-mode", mode);
+}

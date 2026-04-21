@@ -249,15 +249,9 @@
   background: rgba(255, 255, 255, 0.08);
 }
 .loop-btn {
-  color: #555555;
-}
-.loop-btn.active {
   color: #ffffff;
 }
 .loop-btn:hover {
-  color: #aaaaaa;
-}
-.loop-btn.active:hover {
   color: #ffffff;
 }
 .add-ts-btn {
@@ -510,15 +504,9 @@
   flex-shrink: 0;
 }
 .fs-ctrl-btn.loop-btn {
-  color: #555555;
-}
-.fs-ctrl-btn.loop-btn.active {
   color: #ffffff;
 }
 .fs-ctrl-btn.loop-btn:hover {
-  color: #aaaaaa;
-}
-.fs-ctrl-btn.loop-btn.active:hover {
   color: #ffffff;
 }
 .fs-ctrl-btn.add-ts-btn {
