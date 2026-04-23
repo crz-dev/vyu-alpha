@@ -198,6 +198,9 @@
 .toggle-track.on {
   background: #3b82f6;
 }
+.delete-dialog .toggle-track.on {
+  background: #ef4444;
+}
 .toggle-thumb {
   position: absolute;
   top: 3px;
@@ -566,6 +569,16 @@
   height: 12px;
 }
 .ts-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.28);
+  border-color: rgba(248, 113, 113, 0.8);
+  color: #fca5a5;
+}
+.ts-edit-menu.blue .ts-delete-btn {
+  border-color: rgba(248, 113, 113, 0.6);
+  background: rgba(239, 68, 68, 0.16);
+  color: #f87171;
+}
+.ts-edit-menu.blue .ts-delete-btn:hover {
   background: rgba(239, 68, 68, 0.28);
   border-color: rgba(248, 113, 113, 0.8);
   color: #fca5a5;

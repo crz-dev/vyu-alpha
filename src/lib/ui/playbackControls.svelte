@@ -361,38 +361,12 @@
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            stroke-width="1.5"
+            stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <ellipse cx="10.5" cy="13.8" rx="6.2" ry="4.1" />
-            <circle cx="16.9" cy="12.8" r="1.5" />
-            <circle cx="17.2" cy="9.3" r="1.35" />
-            <circle
-              cx="7.8"
-              cy="18.2"
-              r="0.9"
-              fill="currentColor"
-              stroke="none"
-            />
-            <circle
-              cx="12.6"
-              cy="18.2"
-              r="0.9"
-              fill="currentColor"
-              stroke="none"
-            />
-            <path
-              d="M4.4 12.6q-2.1-1.6-1.8-4.3q0.3-2.5 3.1-2.7q2.2-0.2 3.9 1.3"
-            />
-            <path d="M9.7 6.8q2-1.7 4.1-0.5q1.4 0.8 2.3 2.2" />
-            <circle
-              cx="18.2"
-              cy="12.5"
-              r="0.25"
-              fill="currentColor"
-              stroke="none"
-            />
+            <path d="M2 12c1.5-2 3.5-3 5.5-3s3.5 1 5 3c1.5 2 3 3 5 3s3.5-1 4.5-3" />
+            <path d="M2 17c1.5-2 3.5-3 5.5-3s3.5 1 5 3c1.5 2 3 3 5 3s3.5-1 4.5-3" />
           </svg>
         {:else if playbackSpeed > 1}
           <svg
@@ -402,48 +376,21 @@
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            stroke-width="1.5"
+            stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <ellipse cx="10.2" cy="14.2" rx="6.4" ry="3.8" />
-            <circle cx="17.8" cy="11.2" r="1.7" />
-            <circle cx="20.2" cy="8.5" r="1.2" />
-            <circle
-              cx="7.2"
-              cy="18.2"
-              r="0.9"
-              fill="currentColor"
-              stroke="none"
-            />
-            <circle
-              cx="12.9"
-              cy="18.2"
-              r="0.9"
-              fill="currentColor"
-              stroke="none"
-            />
-            <path
-              d="M4 14q-2.1-3.4 1-6.4q2.7-2.5 6.6-1.4q2.2-1.3 4.5-0.4q2.3 0.9 3.5 3.2"
-            />
-            <path d="M18.9 9.8q1.3 1.9 1 4.2" />
-            <circle
-              cx="18.3"
-              cy="11.2"
-              r="0.25"
-              fill="currentColor"
-              stroke="none"
-            />
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
           </svg>
         {:else}
           <svg
             class="speed-mode-icon"
-            width="19"
-            height="19"
+            width="21"
+            height="21"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            stroke-width="1.6"
+            stroke-width="1.8"
             stroke-linecap="round"
             stroke-linejoin="round"
           >
@@ -600,12 +547,23 @@
               }}
               role="menuitem"
             >
-              <span style="font-size:10px; letter-spacing:0.5px; opacity:0.7;"
-                >‹</span
-              >Clip<span
-                style="font-size:10px; letter-spacing:0.5px; opacity:0.7;"
-                >›</span
-              >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                ><path
+                  d="M15 6L9 12L15 18"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+              /></svg>
+              Clip
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                ><path
+                  d="M9 6L15 12L9 18"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+              /></svg>
             </button>
             <button
               class="ts-drop-half ts-drop-blue"
@@ -964,38 +922,12 @@
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            stroke-width="1.5"
+            stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <ellipse cx="10.5" cy="13.8" rx="6.2" ry="4.1" />
-            <circle cx="16.9" cy="12.8" r="1.5" />
-            <circle cx="17.2" cy="9.3" r="1.35" />
-            <circle
-              cx="7.8"
-              cy="18.2"
-              r="0.9"
-              fill="currentColor"
-              stroke="none"
-            />
-            <circle
-              cx="12.6"
-              cy="18.2"
-              r="0.9"
-              fill="currentColor"
-              stroke="none"
-            />
-            <path
-              d="M4.4 12.6q-2.1-1.6-1.8-4.3q0.3-2.5 3.1-2.7q2.2-0.2 3.9 1.3"
-            />
-            <path d="M9.7 6.8q2-1.7 4.1-0.5q1.4 0.8 2.3 2.2" />
-            <circle
-              cx="18.2"
-              cy="12.5"
-              r="0.25"
-              fill="currentColor"
-              stroke="none"
-            />
+            <path d="M2 12c1.5-2 3.5-3 5.5-3s3.5 1 5 3c1.5 2 3 3 5 3s3.5-1 4.5-3" />
+            <path d="M2 17c1.5-2 3.5-3 5.5-3s3.5 1 5 3c1.5 2 3 3 5 3s3.5-1 4.5-3" />
           </svg>
         {:else if playbackSpeed > 1}
           <svg
@@ -1005,48 +937,21 @@
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            stroke-width="1.5"
+            stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <ellipse cx="10.2" cy="14.2" rx="6.4" ry="3.8" />
-            <circle cx="17.8" cy="11.2" r="1.7" />
-            <circle cx="20.2" cy="8.5" r="1.2" />
-            <circle
-              cx="7.2"
-              cy="18.2"
-              r="0.9"
-              fill="currentColor"
-              stroke="none"
-            />
-            <circle
-              cx="12.9"
-              cy="18.2"
-              r="0.9"
-              fill="currentColor"
-              stroke="none"
-            />
-            <path
-              d="M4 14q-2.1-3.4 1-6.4q2.7-2.5 6.6-1.4q2.2-1.3 4.5-0.4q2.3 0.9 3.5 3.2"
-            />
-            <path d="M18.9 9.8q1.3 1.9 1 4.2" />
-            <circle
-              cx="18.3"
-              cy="11.2"
-              r="0.25"
-              fill="currentColor"
-              stroke="none"
-            />
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
           </svg>
         {:else}
           <svg
             class="speed-mode-icon"
-            width="22"
-            height="22"
+            width="25"
+            height="25"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            stroke-width="1.6"
+            stroke-width="1.8"
             stroke-linecap="round"
             stroke-linejoin="round"
           >
@@ -1203,12 +1108,23 @@
               }}
               role="menuitem"
             >
-              <span style="font-size:10px; letter-spacing:0.5px; opacity:0.7;"
-                >‹</span
-              >Clip<span
-                style="font-size:10px; letter-spacing:0.5px; opacity:0.7;"
-                >›</span
-              >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                ><path
+                  d="M15 6L9 12L15 18"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+              /></svg>
+              Clip
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                ><path
+                  d="M9 6L15 12L9 18"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+              /></svg>
             </button>
             <button
               class="ts-drop-half ts-drop-blue"

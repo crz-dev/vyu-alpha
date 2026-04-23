@@ -20,6 +20,7 @@
     closeTimestampEditor,
     onEditorScissor,
     onEditorDeleteTimestamp,
+    onEditorDeleteSegment,
   }: {
     tsTooltip: {
       visible: boolean;
@@ -54,6 +55,7 @@
     closeTimestampEditor: () => void;
     onEditorScissor: (kind: "start" | "end") => void;
     onEditorDeleteTimestamp: () => void;
+    onEditorDeleteSegment: () => void;
   } = $props();
 </script>
 
@@ -130,6 +132,24 @@
               onEditorDeleteTimestamp();
             }}
             aria-label="Delete timestamp"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+              ><path
+                d="M6 6L18 18M18 6L6 18"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              /></svg
+            >
+          </button>
+        {:else}
+          <button
+            class="ts-delete-btn"
+            onclick={(e) => {
+              e.stopPropagation();
+              onEditorDeleteSegment();
+            }}
+            aria-label="Delete clip marker"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
               ><path

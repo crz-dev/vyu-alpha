@@ -824,6 +824,12 @@
     removeTimestamp(ts.id);
   }
 
+  function onEditorDeleteSegment() {
+    const seg = getActiveEditorSegment();
+    if (!seg) return;
+    removeClipBoundary(seg.id);
+  }
+
   function getTimestampTouchTarget(
     currentTime: number,
     threshold: number,
@@ -2178,5 +2184,6 @@
     {closeTimestampEditor}
     {onEditorScissor}
     {onEditorDeleteTimestamp}
+    {onEditorDeleteSegment}
   />
 </main>
