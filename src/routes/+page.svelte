@@ -81,6 +81,7 @@
   import PlaybackControls from "$lib/ui/playbackControls.svelte";
   import Dialog from "$lib/ui/dialog.svelte";
   import Tooltip from "$lib/ui/tooltip.svelte";
+  import EditMenu from "$lib/ui/editMenu.svelte";
 
   let filePath = $state("");
   let fileSrc = $state("");
@@ -185,6 +186,7 @@
   let deletePermanently = $state(false);
   let deleteNoAsk = $state(false);
   let propertiesOpen = $state(false);
+  let editMenuVisible = $state(false);
 
   let resumePoint = $state<number | null>(null);
   let resumeTooltipVisible = $state(false);
@@ -1349,11 +1351,12 @@
 
   const configuredKeydown = setupKeybinds({
     areDialogsOpen: () =>
-      contextMenu.visible || deleteConfirm || propertiesOpen,
+      contextMenu.visible || deleteConfirm || propertiesOpen || editMenuVisible,
     closeDialogs: () => {
       contextMenu.visible = false;
       deleteConfirm = false;
       propertiesOpen = false;
+      editMenuVisible = false;
     },
     navigateToEdge,
     navigate,
@@ -1396,6 +1399,15 @@
 
   function closeContextMenu() {
     contextMenu = { ...contextMenu, visible: false };
+  }
+
+  function openEditMenu() {
+    closeContextMenu();
+    editMenuVisible = true;
+  }
+
+  function closeEditMenu() {
+    editMenuVisible = false;
   }
 
   function fileExt(): string {
@@ -1510,6 +1522,10 @@
     } catch {}
   }
 
+  function ctxEdit() {
+    openEditMenu();
+  }
+
   function ctxProperties() {
     closeContextMenu();
     propertiesOpen = true;
@@ -1607,6 +1623,8 @@
     const target = e.target as HTMLElement;
     if (contextMenu.visible && !target.closest(".context-menu"))
       closeContextMenu();
+    if (editMenuVisible && !target.closest(".edit-menu"))
+      closeEditMenu();
     if (
       tsEditMenu.visible &&
       !target.closest(".ts-edit-menu") &&
@@ -2124,6 +2142,7 @@
     {ctxEndClipHere}
     {ctxShowInExplorer}
     {ctxProperties}
+    {ctxEdit}
     {ctxDelete}
     {ctxClearTimestamps}
     {ctxClearSegments}
@@ -2162,6 +2181,8 @@
     updateDeleteNoAsk={(v) => (deleteNoAsk = v)}
     updateDeletePermanently={(v) => (deletePermanently = v)}
   />
+
+  <EditMenu visible={editMenuVisible} />
 
   <Tooltip
     {tsTooltip}

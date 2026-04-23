@@ -926,3 +926,87 @@
 .ts-menu-open .ts-drop-arrow-icon {
   transform: rotate(180deg);
 }
+
+.edit-menu {
+  position: fixed;
+  left: 50%;
+  top: 38px;
+  transform: translateX(-50%);
+  z-index: 1100;
+  width: min(398px, calc(100vw - 30px));
+  background: #111111;
+  border: 0.5px solid #2a2a2a;
+  border-radius: 9px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.5);
+  align-items: center;
+}
+.edit-menu-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.edit-menu-btn {
+  min-width: 0;
+  border-radius: 7px;
+  border: 0.5px solid #323232;
+  background: rgba(255, 255, 255, 0.055);
+  color: #888888;
+  font-family: Inter, sans-serif;
+  font-size: 11px;
+  padding: 7px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition:
+    background 0.16s,
+    color 0.16s,
+    border-color 0.16s,
+    opacity 0.16s;
+  opacity: 0.58;
+}
+.edit-menu-btn:hover {
+  opacity: 0.74;
+}
+.edit-menu-btn.red {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #fca5a5;
+  opacity: 1;
+}
+.edit-menu-btn.red:hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+.edit-menu-btn.blue {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(96, 165, 250, 0.45);
+  color: #bfdbfe;
+  opacity: 1;
+}
+.edit-menu-btn.blue:hover {
+  background: rgba(59, 130, 246, 0.3);
+}
+.edit-menu-btn.yellow {
+  background: rgba(245, 197, 24, 0.2);
+  border-color: rgba(245, 197, 24, 0.45);
+  color: #facc15;
+  opacity: 1;
+}
+.edit-menu-btn.yellow:hover {
+  background: rgba(245, 197, 24, 0.3);
+}
+.edit-menu-btn.green {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(74, 222, 128, 0.45);
+  color: #86efac;
+  opacity: 1;
+}
+.edit-menu-btn.green:hover {
+  background: rgba(34, 197, 94, 0.3);
+}

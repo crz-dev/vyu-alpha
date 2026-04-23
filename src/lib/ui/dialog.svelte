@@ -20,6 +20,7 @@
     ctxEndClipHere,
     ctxShowInExplorer,
     ctxProperties,
+    ctxEdit,
     ctxDelete,
     ctxClearTimestamps,
     ctxClearSegments,
@@ -84,6 +85,7 @@
     ctxEndClipHere: () => void;
     ctxShowInExplorer: () => void;
     ctxProperties: () => void;
+    ctxEdit: () => void;
     ctxDelete: () => void;
     ctxClearTimestamps: () => void;
     ctxClearSegments: () => void;
@@ -164,6 +166,19 @@
           /></svg
         >
         Copy file path
+      </button>
+      <div class="ctx-sep"></div>
+      <button class="ctx-item blue" onclick={ctxEdit} role="menuitem">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+          ><path
+            d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          /></svg
+        >
+        Edit
       </button>
       <div class="ctx-sep"></div>
       <button class="ctx-item blue" onclick={ctxRotate} role="menuitem">
@@ -279,6 +294,19 @@
           /></svg
         >
         Copy file path
+      </button>
+      <div class="ctx-sep"></div>
+      <button class="ctx-item blue" onclick={ctxEdit} role="menuitem">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+          ><path
+            d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          /></svg
+        >
+        Edit
       </button>
       <div class="ctx-sep"></div>
       <button class="ctx-item blue" onclick={ctxStartClipHere} role="menuitem">
