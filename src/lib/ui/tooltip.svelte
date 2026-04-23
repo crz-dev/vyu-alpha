@@ -102,26 +102,40 @@
       class:blue={isSegmentMenu}
       style="left: {tsEditMenu.x}px; top: {tsEditMenu.y}px;"
     >
-      <input
-        class="ts-title-input"
-        type="text"
-        maxlength="100"
-        placeholder="Title"
-        value={currentTitle}
-        style="width: {getTitleEditorWidthCh(currentTitle)}ch;"
-        oninput={(e) =>
-          updateEditorTitle((e.currentTarget as HTMLInputElement).value)}
-        onkeydown={(e) => {
-          if (e.key === "Escape") {
-            e.preventDefault();
-            closeTimestampEditor();
-          }
-          if (e.key === "Enter") {
-            e.preventDefault();
-            closeTimestampEditor();
-          }
-        }}
-      />
+      <div class="ts-edit-menu-top">
+        <input
+          class="ts-title-input"
+          type="text"
+          maxlength="100"
+          placeholder="Title"
+          value={currentTitle}
+          style="width: {getTitleEditorWidthCh(currentTitle)}ch;"
+          oninput={(e) =>
+            updateEditorTitle((e.currentTarget as HTMLInputElement).value)}
+          onkeydown={(e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              closeTimestampEditor();
+            }
+            if (e.key === "Enter") {
+              e.preventDefault();
+              closeTimestampEditor();
+            }
+          }}
+        />
+        {#if !isSegmentMenu}
+          <button
+            class="ts-delete-btn"
+            onclick={(e) => {
+              e.stopPropagation();
+              onEditorDeleteTimestamp();
+            }}
+            aria-label="Delete timestamp"
+          >
+            Delete
+          </button>
+        {/if}
+      </div>
       <div
         class="ts-scissor-split"
         class:segment-toggle={isSegmentMenu}
@@ -199,18 +213,6 @@
           >
         </button>
       </div>
-      {#if !isSegmentMenu}
-        <button
-          class="ts-delete-btn"
-          onclick={(e) => {
-            e.stopPropagation();
-            onEditorDeleteTimestamp();
-          }}
-          aria-label="Delete timestamp"
-        >
-          Delete
-        </button>
-      {/if}
     </div>
   {/if}
 {/if}
