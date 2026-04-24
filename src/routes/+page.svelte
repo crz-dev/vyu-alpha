@@ -1498,21 +1498,10 @@
     closeContextMenu();
     addTimestamp();
   }
-  function ctxClearTimestamps() {
+  function ctxClearMarkers() {
     closeContextMenu();
     clearAllTimestamps();
-  }
-  function ctxClearSegments() {
-    closeContextMenu();
     clearAllSegments();
-  }
-  function ctxStartClipHere() {
-    closeContextMenu();
-    addClipBoundary("start");
-  }
-  function ctxEndClipHere() {
-    closeContextMenu();
-    addClipBoundary("end");
   }
 
   async function ctxShowInExplorer() {
@@ -1524,6 +1513,10 @@
 
   function ctxEdit() {
     openEditMenu();
+  }
+
+  function ctxConvert() {
+    closeContextMenu();
   }
 
   function ctxProperties() {
@@ -2138,14 +2131,12 @@
     {ctxCopyPath}
     {ctxRotate}
     {ctxFlip}
-    {ctxStartClipHere}
-    {ctxEndClipHere}
+    {ctxEdit}
+    {ctxConvert}
     {ctxShowInExplorer}
     {ctxProperties}
-    {ctxEdit}
     {ctxDelete}
-    {ctxClearTimestamps}
-    {ctxClearSegments}
+    {ctxClearMarkers}
     {clipDeleteConfirm}
     {deleteConfirm}
     {propertiesOpen}

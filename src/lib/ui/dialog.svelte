@@ -16,14 +16,12 @@
     ctxCopyPath,
     ctxRotate,
     ctxFlip,
-    ctxStartClipHere,
-    ctxEndClipHere,
     ctxShowInExplorer,
     ctxProperties,
     ctxEdit,
+    ctxConvert,
     ctxDelete,
-    ctxClearTimestamps,
-    ctxClearSegments,
+    ctxClearMarkers,
     clipDeleteConfirm,
     deleteConfirm,
     propertiesOpen,
@@ -81,14 +79,12 @@
     ctxCopyPath: () => void;
     ctxRotate: () => void;
     ctxFlip: () => void;
-    ctxStartClipHere: () => void;
-    ctxEndClipHere: () => void;
     ctxShowInExplorer: () => void;
     ctxProperties: () => void;
     ctxEdit: () => void;
+    ctxConvert: () => void;
+    ctxClearMarkers: () => void;
     ctxDelete: () => void;
-    ctxClearTimestamps: () => void;
-    ctxClearSegments: () => void;
     clipDeleteConfirm: { visible: boolean; mode: "separate" | "merge" | null };
     deleteConfirm: boolean;
     propertiesOpen: boolean;
@@ -179,6 +175,35 @@
           /></svg
         >
         Edit
+      </button>
+      <button class="ctx-item blue" onclick={ctxConvert} role="menuitem">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+          ><path
+            d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          /><path
+            d="M14 2v6h6"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          /><path
+            d="M12 18v-6"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          /><path
+            d="M9 15l3 3 3-3"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          /></svg
+        >
+        Convert
       </button>
       <div class="ctx-sep"></div>
       <button class="ctx-item blue" onclick={ctxRotate} role="menuitem">
@@ -308,30 +333,34 @@
         >
         Edit
       </button>
-      <div class="ctx-sep"></div>
-      <button class="ctx-item blue" onclick={ctxStartClipHere} role="menuitem">
+      <button class="ctx-item blue" onclick={ctxConvert} role="menuitem">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-          ><circle cx="7" cy="8" r="2.2" stroke="currentColor" stroke-width="1.8" /><circle
-            cx="7"
-            cy="15.8"
-            r="2.2"
+          ><path
+            d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
             stroke="currentColor"
-            stroke-width="1.8"
-          /><path d="M9.5 9.6L19 5.2M9.5 14.2L19 19" stroke="currentColor" stroke-width="1.8" /></svg
-        >
-        Start Clip Here
-      </button>
-      <button class="ctx-item blue" onclick={ctxEndClipHere} role="menuitem">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-          ><circle cx="17" cy="8" r="2.2" stroke="currentColor" stroke-width="1.8" /><circle
-            cx="17"
-            cy="15.8"
-            r="2.2"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          /><path
+            d="M14 2v6h6"
             stroke="currentColor"
-            stroke-width="1.8"
-          /><path d="M14.5 9.6L5 5.2M14.5 14.2L5 19" stroke="currentColor" stroke-width="1.8" /></svg
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          /><path
+            d="M12 18v-6"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          /><path
+            d="M9 15l3 3 3-3"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          /></svg
         >
-        End Clip Here
+        Convert
       </button>
       <div class="ctx-sep"></div>
       <button class="ctx-item yellow" onclick={ctxShowInExplorer} role="menuitem">
@@ -357,7 +386,7 @@
       </button>
       <div class="ctx-sep"></div>
       {#if timestamps.length > 0}
-        <button class="ctx-item red" onclick={ctxClearTimestamps} role="menuitem">
+        <button class="ctx-item red" onclick={() => ctxClearMarkers()} role="menuitem">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
             ><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" /><path
               d="M9 9l6 6M15 9l-6 6"
@@ -366,20 +395,19 @@
               stroke-linecap="round"
             /></svg
           >
-          Delete Timestamps
+          Delete Markers
         </button>
-      {/if}
-      {#if clipBoundaries.length > 0}
-        <button class="ctx-item red" onclick={ctxClearSegments} role="menuitem">
+      {:else if clipBoundaries.length > 0}
+        <button class="ctx-item red" onclick={() => ctxClearMarkers()} role="menuitem">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
             ><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" /><path
-              d="M8 8l8 8M16 8l-8 8"
+              d="M9 9l6 6M15 9l-6 6"
               stroke="currentColor"
               stroke-width="2"
               stroke-linecap="round"
             /></svg
           >
-          Delete Segments
+          Delete Markers
         </button>
       {/if}
       <button class="ctx-item red" onclick={ctxDelete} role="menuitem">
