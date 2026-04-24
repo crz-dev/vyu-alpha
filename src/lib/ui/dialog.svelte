@@ -206,41 +206,6 @@
         Convert
       </button>
       <div class="ctx-sep"></div>
-      <button class="ctx-item blue" onclick={ctxRotate} role="menuitem">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-          ><path
-            d="M21 2v6h-6"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          /><path
-            d="M21 13a9 9 0 11-3-7.7L21 8"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          /></svg
-        >
-        Rotate 90°
-      </button>
-      <button class="ctx-item blue" onclick={ctxFlip} role="menuitem">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-          ><path
-            d="M12 3v18"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          /><path
-            d="M5 8l-3 4 3 4M19 8l3 4-3 4"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          /></svg
-        >
-        Flip horizontal
-      </button>
-      <div class="ctx-sep"></div>
       <button class="ctx-item yellow" onclick={ctxShowInExplorer} role="menuitem">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
           ><path

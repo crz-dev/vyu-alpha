@@ -1,3 +1,10 @@
+type CropBounds = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+};
+
 type ViewerState = {
   videoEl: HTMLVideoElement | null;
   isFullscreen: boolean;
@@ -8,6 +15,9 @@ type ViewerState = {
   isDragging: boolean;
   rotation: number;
   flipped: boolean;
+  cropMode: boolean;
+  cropBounds: CropBounds;
+  cropApplied: CropBounds | null;
 };
 
 function clampZoom(value: number): number {
@@ -25,6 +35,9 @@ function createViewer() {
     isDragging: false,
     rotation: 0,
     flipped: false,
+    cropMode: false,
+    cropBounds: { left: 0, top: 0, right: 0, bottom: 0 },
+    cropApplied: null,
   });
 
   let fsHideTimer: ReturnType<typeof setTimeout> | undefined;
@@ -144,6 +157,51 @@ function createViewer() {
     lastPinchDist = 0;
   }
 
+  function startCropMode() {
+    state.cropMode = true;
+    if (state.cropApplied) {
+      state.cropBounds = { ...state.cropApplied };
+    } else {
+      state.cropBounds = { left: 0, top: 0, right: 0, bottom: 0 };
+    }
+  }
+
+  function cancelCrop() {
+    state.cropMode = false;
+  }
+
+  function resetCrop() {
+    state.cropBounds = { left: 0, top: 0, right: 0, bottom: 0 };
+  }
+
+  function applyCrop() {
+    state.cropApplied = { ...state.cropBounds };
+    state.cropMode = false;
+  }
+
+  function setCropBounds(bounds: Partial<CropBounds>) {
+    if (bounds.left !== undefined) state.cropBounds.left = bounds.left;
+    if (bounds.top !== undefined) state.cropBounds.top = bounds.top;
+    if (bounds.right !== undefined) state.cropBounds.right = bounds.right;
+    if (bounds.bottom !== undefined) state.cropBounds.bottom = bounds.bottom;
+    state.cropBounds.left = Math.max(0, Math.min(1 - state.cropBounds.right - 0.01, state.cropBounds.left));
+    state.cropBounds.top = Math.max(0, Math.min(1 - state.cropBounds.bottom - 0.01, state.cropBounds.top));
+    state.cropBounds.right = Math.max(0, Math.min(1 - state.cropBounds.left - 0.01, state.cropBounds.right));
+    state.cropBounds.bottom = Math.max(0, Math.min(1 - state.cropBounds.top - 0.01, state.cropBounds.bottom));
+  }
+
+  function getCropClipPath(): string {
+    if (state.cropApplied && !state.cropMode) {
+      const { left, top, right, bottom } = state.cropApplied;
+      return `inset(${(top * 100).toFixed(2)}% ${(right * 100).toFixed(2)}% ${(bottom * 100).toFixed(2)}% ${(left * 100).toFixed(2)}%)`;
+    }
+    if (state.cropMode) {
+      const { left, top, right, bottom } = state.cropBounds;
+      return `inset(${(top * 100).toFixed(2)}% ${(right * 100).toFixed(2)}% ${(bottom * 100).toFixed(2)}% ${(left * 100).toFixed(2)}%)`;
+    }
+    return "";
+  }
+
   return {
     state,
     setVideoEl,
@@ -160,6 +218,12 @@ function createViewer() {
     handleViewerScroll,
     handleTouchZoom,
     handleTouchEnd,
+    startCropMode,
+    cancelCrop,
+    resetCrop,
+    applyCrop,
+    setCropBounds,
+    getCropClipPath,
   };
 }
 

@@ -82,6 +82,7 @@
   import Dialog from "$lib/ui/dialog.svelte";
   import Tooltip from "$lib/ui/tooltip.svelte";
   import EditMenu from "$lib/ui/editMenu.svelte";
+  import CropOverlay from "$lib/ui/cropOverlay.svelte";
 
   let filePath = $state("");
   let fileSrc = $state("");
@@ -97,6 +98,7 @@
   let isLoadingFile = $state(false);
   let loadingFadingOut = $state(false);
   let videoEl = $state<HTMLVideoElement | null>(null);
+  let cropContainerEl = $state<HTMLElement | null>(null);
 
   $effect(() => {
     viewer.setVideoEl(videoEl);
@@ -278,10 +280,11 @@
     (viewer.state.zoomLevel / 100) * rotationFitScale,
   );
   const imageStyle = $derived(
-    `transform: scale(${imageScale}) translate(${viewer.state.translateX / imageScale}px, ${viewer.state.translateY / imageScale}px) rotate(${viewer.state.rotation}deg) scaleX(${viewer.state.flipped ? -1 : 1}); transform-origin: center center; max-width: 100%; max-height: 100%; object-fit: contain; display: block;`,
+    `transform: scale(${imageScale}) translate(${viewer.state.translateX / imageScale}px, ${viewer.state.translateY / imageScale}px) rotate(${viewer.state.rotation}deg) scaleX(${viewer.state.flipped ? -1 : 1}); transform-origin: center center; max-width: 100%; max-height: 100%; object-fit: contain; display: block;${viewer.getCropClipPath() ? ` clip-path: ${viewer.getCropClipPath()};` : ""}`,
   );
   const videoWrapperTransform = $derived(viewer.getVideoWrapperTransform());
   const videoInnerTransform = $derived(viewer.getVideoInnerTransform());
+  const videoInnerStyle = $derived(`${videoInnerTransform}${viewer.getCropClipPath() ? `; clip-path: ${viewer.getCropClipPath()}` : ""}`);
   const panCursor = $derived(viewer.getPanCursor());
   const fsCursor = $derived(
     !viewer.state.fsControlsVisible && !tsEditMenu.visible ? "none" : panCursor,
@@ -1781,22 +1784,26 @@
       role="presentation"
     >
       {#if fileSrc && !isVideo}
-        <img
-          src={fileSrc}
-          alt={fileName}
-          onload={onImageLoad}
-          style={imageStyle}
-        />
+        <div class="media-container" bind:this={cropContainerEl} style="position: relative; display: inline-flex; align-items: center; justify-content: center; max-width: 100%; max-height: 100%;">
+          <img
+            src={fileSrc}
+            alt={fileName}
+            onload={onImageLoad}
+            style={imageStyle}
+          />
+          <CropOverlay containerEl={cropContainerEl} />
+        </div>
       {:else if fileSrc && isVideo}
         <div
           class="video-wrapper"
+          bind:this={cropContainerEl}
           role="presentation"
           onmouseenter={() => (hoverZone = "video")}
           onmouseleave={() => (hoverZone = "none")}
           onmousedown={startPan}
           style="{videoWrapperTransform} cursor: {panCursor}"
         >
-          <div class="video-inner" style={videoInnerTransform}>
+          <div class="video-inner" style={videoInnerStyle}>
             <video
               bind:this={videoEl}
               src={fileSrc}
@@ -1828,6 +1835,7 @@
               <track kind="captions" />
             </video>
           </div>
+          <CropOverlay containerEl={cropContainerEl} />
           <div
             class="video-controls"
             class:gif-only={isGifVideo}
@@ -2176,7 +2184,7 @@
     updateDeletePermanently={(v) => (deletePermanently = v)}
   />
 
-  <EditMenu visible={editMenuVisible} onRotate={() => viewer.rotate()} onFlip={() => viewer.flip()} />
+  <EditMenu visible={editMenuVisible} onRotate={() => viewer.rotate()} onFlip={() => viewer.flip()} onCrop={() => viewer.startCropMode()} cropMode={viewer.state.cropMode} />
 
   <Tooltip
     {tsTooltip}

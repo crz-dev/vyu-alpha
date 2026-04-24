@@ -1,20 +1,27 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
+  import { viewer } from "$lib/core/viewer.svelte";
 
   let {
     visible,
     onRotate,
     onFlip,
+    onCrop,
+    cropMode,
   }: {
     visible: boolean;
     onRotate: () => void;
     onFlip: () => void;
+    onCrop: () => void;
+    cropMode: boolean;
   } = $props();
 
   let colorRowOpen = $state(false);
 
   $effect(() => {
-    if (!visible) colorRowOpen = false;
+    if (!visible) {
+      colorRowOpen = false;
+    }
   });
 </script>
 
@@ -24,7 +31,7 @@
     transition:fly={{ y: -26, duration: 190, opacity: 0.08 }}
   >
     <div class="edit-menu-row">
-      <button class="edit-menu-btn red">
+      <button class="edit-menu-btn red" class:active={cropMode} onclick={onCrop}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M6 2h12v20H6z" opacity="0.3"/>
           <path d="M2 6h20M2 18h20M6 2v20M18 2v20"/>
@@ -87,6 +94,32 @@
             <path d="M12 12l1 5"/>
           </svg>
           <span>Hue</span>
+        </button>
+      </div>
+    {/if}
+
+    {#if cropMode}
+      <div class="edit-menu-row crop-actions" transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}>
+        <button class="edit-menu-btn crop-btn cancel" onclick={() => viewer.cancelCrop()}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+          <span>Cancel</span>
+        </button>
+        <button class="edit-menu-btn crop-btn reset" onclick={() => viewer.resetCrop()}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+            <path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+            <path d="M3 21v-5h5"/>
+          </svg>
+          <span>Reset</span>
+        </button>
+        <button class="edit-menu-btn crop-btn apply" onclick={() => viewer.applyCrop()}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+          <span>Apply</span>
         </button>
       </div>
     {/if}
