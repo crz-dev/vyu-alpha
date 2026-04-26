@@ -41,17 +41,6 @@ export function createPlaybackActions(
     set(next);
   }
 
-  function toggleLoop(
-    set: (looping: boolean) => void,
-    currentLooping: boolean,
-  ) {
-    const videoEl = videoElRef();
-    const next = !currentLooping;
-
-    if (videoEl) videoEl.loop = next;
-    set(next);
-  }
-
   function setVolume(
     val: number,
     set: (data: { volume: number; muted: boolean }) => void,
@@ -74,7 +63,6 @@ export function createPlaybackActions(
     updateProgress,
     togglePlay,
     toggleMute,
-    toggleLoop,
     setVolume,
   };
 }

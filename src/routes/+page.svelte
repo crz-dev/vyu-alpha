@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { fade } from "svelte/transition";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { open, save } from "@tauri-apps/plugin-dialog";
   import { createPlaybackActions } from "$lib/core/playback.svelte";
@@ -11,7 +10,6 @@
   import {
     IMAGE_EXTS,
     VIDEO_EXTS,
-    ALL_EXTS,
     VOLUME_SEGMENTS,
     LOOP_MODES,
     type LoopMode,
@@ -21,7 +19,6 @@
     Timestamp,
     ClipBoundary,
     ClipPair,
-    ClipJobResult,
     MediaProperties,
     TimestampDragRange,
   } from "$lib/types";
