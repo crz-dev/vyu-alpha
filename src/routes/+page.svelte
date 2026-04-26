@@ -105,7 +105,11 @@
   });
 
   const playback = createPlaybackActions(() => videoEl);
-  const playbackUI = createPlaybackUI(() => videoEl, () => volume, setVolume);
+  const playbackUI = createPlaybackUI(
+    () => videoEl,
+    () => volume,
+    setVolume,
+  );
   const timeline = createTimeline();
   const clips = createClips(() => filePath);
 
@@ -141,7 +145,8 @@
     if (data.progress !== undefined) progress = data.progress;
     if (data.playing !== undefined) playing = data.playing;
     if (data.timestamps !== undefined) timestamps = data.timestamps;
-    if (data.clipBoundaries !== undefined) clips.setBoundaries(data.clipBoundaries);
+    if (data.clipBoundaries !== undefined)
+      clips.setBoundaries(data.clipBoundaries);
     if (data.resumePoint !== undefined) resumePoint = data.resumePoint;
   }
 
@@ -756,7 +761,8 @@
         touchThreshold,
         sourceTs.id,
       );
-      tsDragHoverBoundaryId = clips.findTouchTarget(time, touchThreshold)?.id ?? null;
+      tsDragHoverBoundaryId =
+        clips.findTouchTarget(time, touchThreshold)?.id ?? null;
     }
 
     function onMove(ev: MouseEvent) {
@@ -1816,7 +1822,8 @@
               addClipStart={() => addClipBoundary("start")}
               addClipEnd={() => addClipBoundary("end")}
               addClipEnd5s={() => addClipBoundaryAt("end", rawCurrentSecs + 5)}
-              hasMarkers={timestamps.length > 0 || clips.clipBoundaries.length > 0}
+              hasMarkers={timestamps.length > 0 ||
+                clips.clipBoundaries.length > 0}
               deleteAllMarkers={() => {
                 clearAllTimestamps();
                 clearAllSegments();
@@ -1991,7 +1998,8 @@
             addClipStart={() => addClipBoundary("start")}
             addClipEnd={() => addClipBoundary("end")}
             addClipEnd5s={() => addClipBoundaryAt("end", rawCurrentSecs + 5)}
-            hasMarkers={timestamps.length > 0 || clips.clipBoundaries.length > 0}
+            hasMarkers={timestamps.length > 0 ||
+              clips.clipBoundaries.length > 0}
             deleteAllMarkers={() => {
               clearAllTimestamps();
               clearAllSegments();
