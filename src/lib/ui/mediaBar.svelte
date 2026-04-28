@@ -1,5 +1,6 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
+  import SlideshowMenu from "./slideshowMenu.svelte";
 
   let dismissed = $state(false);
 
@@ -26,6 +27,9 @@
     toggleClipPathSelection,
     toggleClipMergeSegments,
     clipJobLabel,
+    toggleSlideshowMenu,
+    slideshowMenuVisible,
+    closeSlideshowMenu,
   }: {
     fileListLength: number;
     currentIndex: number;
@@ -49,6 +53,9 @@
     toggleClipPathSelection: () => void;
     toggleClipMergeSegments: () => void;
     clipJobLabel: string;
+    toggleSlideshowMenu: () => void;
+    slideshowMenuVisible: boolean;
+    closeSlideshowMenu: () => void;
   } = $props();
 
   $effect(() => {
@@ -57,9 +64,42 @@
 </script>
 
 <div class="bottombar">
-  <span class="file-count tooltip-above-shift-right" data-tooltip="File position"
-    >{fileListLength > 0 ? `${currentIndex + 1} / ${fileListLength}` : "—"}</span
-  >
+  <div class="bottombar-left">
+    <div class="slideshow-anchor">
+      <button
+        class="slideshow-btn tooltip-above-shift-right"
+        data-tooltip="Slideshow"
+        onclick={toggleSlideshowMenu}
+        aria-label="toggle slideshow menu"
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+          <line x1="8" y1="21" x2="16" y2="21" />
+          <line x1="12" y1="17" x2="12" y2="21" />
+        </svg>
+      </button>
+      <SlideshowMenu
+        visible={slideshowMenuVisible}
+        onClose={closeSlideshowMenu}
+      />
+    </div>
+    <span
+      class="file-count tooltip-above-shift-right"
+      data-tooltip="File position"
+      >{fileListLength > 0
+        ? `${currentIndex + 1} / ${fileListLength}`
+        : "—"}</span
+    >
+  </div>
   <span class="file-info tooltip-above" data-tooltip="Resolution · File size">
     {#if fileDimensions && fileSize}
       {fileDimensions} · {fileSize}
@@ -70,8 +110,10 @@
     {/if}
   </span>
   <div class="bottombar-right">
-    <button class="zoom tooltip-above" data-tooltip="Reset zoom" onclick={resetZoom}
-      >{Math.round(zoomLevel)}%</button
+    <button
+      class="zoom tooltip-above"
+      data-tooltip="Reset zoom"
+      onclick={resetZoom}>{Math.round(zoomLevel)}%</button
     >
     <button
       class="fs-btn tooltip-above-shift-left"
@@ -92,12 +134,20 @@
 </div>
 
 {#if isVideo && clipCount > 0 && !dismissed}
-  <div class="clip-actions" transition:fly={{ y: 26, duration: 190, opacity: 0.08 }}>
+  <div
+    class="clip-actions"
+    transition:fly={{ y: 26, duration: 190, opacity: 0.08 }}
+  >
     <div
       class="ctx-drag"
+      role="button"
+      tabindex="0"
+      aria-label="Drag to move"
       onmousedown={(e) => {
         e.preventDefault();
-        const menu = (e.currentTarget as HTMLElement).closest(".clip-actions") as HTMLElement;
+        const menu = (e.currentTarget as HTMLElement).closest(
+          ".clip-actions",
+        ) as HTMLElement;
         if (!menu) return;
         const startX = e.clientX;
         const startY = e.clientY;
@@ -122,7 +172,9 @@
         window.addEventListener("mouseup", onMouseUp);
       }}
     >
-      <span class="ctx-dot" /><span class="ctx-dot" /><span class="ctx-dot" />
+      <span class="ctx-dot"></span><span class="ctx-dot"></span><span
+        class="ctx-dot"
+      ></span>
       <button
         class="ctx-close"
         onclick={(e) => {
@@ -132,12 +184,24 @@
         onmousedown={(e) => e.stopPropagation()}
         aria-label="Close"
       >
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+        >
           <path d="M18 6L6 18M6 6l12 12" />
         </svg>
       </button>
     </div>
-    <button class="clip-main-btn" onclick={triggerClipSegments} disabled={clipJobRunning}>
+    <button
+      class="clip-main-btn"
+      onclick={triggerClipSegments}
+      disabled={clipJobRunning}
+    >
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
         ><circle
           cx="6.5"

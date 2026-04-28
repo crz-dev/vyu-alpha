@@ -1,5 +1,10 @@
 <script lang="ts">
-  import type { ClipBoundary, ClipPair, Timestamp, TimestampDragRange } from "$lib/types";
+  import type {
+    ClipBoundary,
+    ClipPair,
+    Timestamp,
+    TimestampDragRange,
+  } from "$lib/types";
 
   let {
     fullscreen = false,
@@ -117,7 +122,6 @@
   function handleBarMouseLeave() {
     hidePlayheadTimeTooltip();
   }
-
 </script>
 
 <div
@@ -154,8 +158,9 @@
   {#each clipPairs as pair (`${clipPairPrefix}-${pair.startId}-${pair.endId}`)}
     <div
       class={clipRangeClass}
-      style="left: {getTimestampPct(pair.start)}%; width: {getTimestampPct(pair.end) -
-        getTimestampPct(pair.start)}%;"
+      style="left: {getTimestampPct(pair.start)}%; width: {getTimestampPct(
+        pair.end,
+      ) - getTimestampPct(pair.start)}%;"
     ></div>
   {/each}
   {#if tsDragRange.visible}
@@ -195,7 +200,9 @@
   {/if}
   {#each clipBoundaries as marker (marker.id)}
     <div
-      class="{clipMarkerClass} {marker.kind === 'start' ? 'start-marker' : 'end-marker'}"
+      class="{clipMarkerClass} {marker.kind === 'start'
+        ? 'start-marker'
+        : 'end-marker'}"
       style="left: {getTimestampPct(marker.time)}%"
       role="button"
       tabindex="0"

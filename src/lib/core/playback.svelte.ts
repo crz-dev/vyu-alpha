@@ -212,15 +212,33 @@ export function createPlaybackUI(
   }
 
   return {
-    get volumeHovered() { return volumeHovered; },
-    get speedHovered() { return speedHovered; },
-    get playbackSpeed() { return playbackSpeed; },
-    get volumeTooltipX() { return volumeTooltipX; },
-    get volumeTooltipY() { return volumeTooltipY; },
-    get volumeTooltipVisible() { return volumeTooltipVisible; },
-    get speedTooltipX() { return speedTooltipX; },
-    get speedTooltipY() { return speedTooltipY; },
-    get speedTooltipVisible() { return speedTooltipVisible; },
+    get volumeHovered() {
+      return volumeHovered;
+    },
+    get speedHovered() {
+      return speedHovered;
+    },
+    get playbackSpeed() {
+      return playbackSpeed;
+    },
+    get volumeTooltipX() {
+      return volumeTooltipX;
+    },
+    get volumeTooltipY() {
+      return volumeTooltipY;
+    },
+    get volumeTooltipVisible() {
+      return volumeTooltipVisible;
+    },
+    get speedTooltipX() {
+      return speedTooltipX;
+    },
+    get speedTooltipY() {
+      return speedTooltipY;
+    },
+    get speedTooltipVisible() {
+      return speedTooltipVisible;
+    },
     showVolumeOverlay,
     handleVolumeAreaLeave,
     handleVolumeDiamondHover,

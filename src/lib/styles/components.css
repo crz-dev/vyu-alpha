@@ -783,7 +783,9 @@
   cursor: pointer;
   padding: 0;
   border: 0.5px solid;
-  transition: background 0.15s, opacity 0.15s;
+  transition:
+    background 0.15s,
+    opacity 0.15s;
   flex-shrink: 0;
 }
 .convert-success-btn.yellow {
@@ -801,6 +803,128 @@
 }
 .convert-success-btn.green:hover {
   background: rgba(34, 197, 94, 0.24);
+}
+
+.slideshow-anchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.slideshow-btn {
+  background: none;
+  border: none;
+  color: #444444;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 3px;
+  transition: color 0.2s;
+  line-height: 0;
+}
+.slideshow-btn:hover {
+  color: #888888;
+}
+
+.slideshow-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: -4px;
+  z-index: 1100;
+  width: min(260px, calc(100vw - 24px));
+  background: #111111;
+  border: 0.5px solid #2a2a2a;
+  border-radius: 9px;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.5);
+  align-items: center;
+}
+.slideshow-menu .ctx-drag {
+  width: 100%;
+}
+
+.slideshow-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0 3px;
+  box-sizing: border-box;
+}
+.slideshow-section.interval-section {
+  padding-bottom: 2px;
+}
+
+.slideshow-label {
+  font-size: 10px;
+  font-family: Inter, sans-serif;
+  color: #888888;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding-left: 2px;
+}
+
+.slideshow-toggle-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+}
+.slideshow-toggle-row.three {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.slideshow-toggle-btn {
+  min-width: 0;
+  border-radius: 6px;
+  border: 0.5px solid #323232;
+  background: rgba(255, 255, 255, 0.055);
+  color: #888888;
+  font-family: Inter, sans-serif;
+  font-size: 11px;
+  padding: 5px 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition:
+    background 0.16s,
+    color 0.16s,
+    border-color 0.16s,
+    opacity 0.16s;
+  opacity: 0.58;
+}
+.slideshow-toggle-btn:hover {
+  opacity: 0.74;
+}
+.slideshow-toggle-btn.active {
+  opacity: 1;
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(96, 165, 250, 0.45);
+  color: #bfdbfe;
+}
+
+.slideshow-scrubber-tooltip {
+  position: absolute;
+  top: -22px;
+  transform: translateX(-50%);
+  background: #1a1a1a;
+  color: #ffffff;
+  font-size: 11px;
+  font-family: Inter, sans-serif;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 0.5px solid #2a2a2a;
+  pointer-events: none;
+  z-index: 10;
+  white-space: nowrap;
+  animation: tsTooltipPopIn 180ms cubic-bezier(0.22, 0.9, 0.3, 1) both;
 }
 .speed-control {
   position: relative;

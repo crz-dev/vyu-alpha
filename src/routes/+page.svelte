@@ -188,6 +188,7 @@
   let propertiesOpen = $state(false);
   let editMenuVisible = $state(false);
   let processMenuVisible = $state(false);
+  let slideshowMenuVisible = $state(false);
   let brightness = $state(1);
   let contrast = $state(1);
   let saturation = $state(1);
@@ -1236,13 +1237,15 @@
       deleteConfirm ||
       propertiesOpen ||
       editMenuVisible ||
-      processMenuVisible,
+      processMenuVisible ||
+      slideshowMenuVisible,
     closeDialogs: () => {
       contextMenu.visible = false;
       deleteConfirm = false;
       propertiesOpen = false;
       editMenuVisible = false;
       processMenuVisible = false;
+      slideshowMenuVisible = false;
     },
     navigateToEdge,
     navigate,
@@ -1306,6 +1309,14 @@
 
   function closeProcessMenu() {
     processMenuVisible = false;
+  }
+
+  function toggleSlideshowMenu() {
+    slideshowMenuVisible = !slideshowMenuVisible;
+  }
+
+  function closeSlideshowMenu() {
+    slideshowMenuVisible = false;
   }
 
   function fileExt(): string {
@@ -1601,6 +1612,12 @@
       !target.closest(".process-menu")
     )
       closeProcessMenu();
+    if (
+      slideshowMenuVisible &&
+      e.button === 2 &&
+      !target.closest(".slideshow-menu")
+    )
+      closeSlideshowMenu();
     if (
       tsEditMenu.visible &&
       !target.closest(".ts-edit-menu") &&
@@ -1946,6 +1963,9 @@
     {toggleClipPathSelection}
     {toggleClipMergeSegments}
     {clipJobLabel}
+    {toggleSlideshowMenu}
+    {slideshowMenuVisible}
+    {closeSlideshowMenu}
   />
 
   {#if viewer.state.isFullscreen}

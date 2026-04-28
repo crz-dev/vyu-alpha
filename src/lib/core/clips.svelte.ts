@@ -1,5 +1,8 @@
 import type { ClipBoundary, ClipPair } from "$lib/types";
-import { writeClipBoundaries, eraseClipBoundaries } from "$lib/services/storage";
+import {
+  writeClipBoundaries,
+  eraseClipBoundaries,
+} from "$lib/services/storage";
 
 export function createClips(getFilePath: () => string) {
   let clipBoundaries = $state<ClipBoundary[]>([]);
@@ -64,10 +67,7 @@ export function createClips(getFilePath: () => string) {
     _save();
   }
 
-  function findTouchTarget(
-    time: number,
-    tolerance = 0.6,
-  ): ClipBoundary | null {
+  function findTouchTarget(time: number, tolerance = 0.6): ClipBoundary | null {
     let found: ClipBoundary | null = null;
     let best = Number.POSITIVE_INFINITY;
     for (const marker of clipBoundaries) {
@@ -81,11 +81,21 @@ export function createClips(getFilePath: () => string) {
   }
 
   return {
-    get clipBoundaries() { return clipBoundaries; },
-    get clipPairs() { return clipPairs; },
-    get clipCount() { return clipCount; },
-    get clipMarkerJustDragged() { return clipMarkerJustDragged; },
-    set clipMarkerJustDragged(v: boolean) { clipMarkerJustDragged = v; },
+    get clipBoundaries() {
+      return clipBoundaries;
+    },
+    get clipPairs() {
+      return clipPairs;
+    },
+    get clipCount() {
+      return clipCount;
+    },
+    get clipMarkerJustDragged() {
+      return clipMarkerJustDragged;
+    },
+    set clipMarkerJustDragged(v: boolean) {
+      clipMarkerJustDragged = v;
+    },
     setBoundaries,
     addClipBoundary,
     removeClipBoundary,

@@ -177,7 +177,15 @@
         onmousedown={(e) => e.stopPropagation()}
         aria-label="Close"
       >
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+        >
           <path d="M18 6L6 18M6 6l12 12" />
         </svg>
       </button>
@@ -261,7 +269,11 @@
         Process
       </button>
       <div class="ctx-sep"></div>
-      <button class="ctx-item yellow" onclick={ctxShowInExplorer} role="menuitem">
+      <button
+        class="ctx-item yellow"
+        onclick={ctxShowInExplorer}
+        role="menuitem"
+      >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
           ><path
             d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
@@ -273,7 +285,13 @@
       </button>
       <button class="ctx-item yellow" onclick={ctxProperties} role="menuitem">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-          ><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" /><path
+          ><circle
+            cx="12"
+            cy="12"
+            r="9"
+            stroke="currentColor"
+            stroke-width="2"
+          /><path
             d="M12 10.5V16"
             stroke="currentColor"
             stroke-width="2"
@@ -300,7 +318,12 @@
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
-          /><path d="M9 6V4h6v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg
+          /><path
+            d="M9 6V4h6v2"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          /></svg
         >
         Delete
       </button>
@@ -383,7 +406,11 @@
         Process
       </button>
       <div class="ctx-sep"></div>
-      <button class="ctx-item yellow" onclick={ctxShowInExplorer} role="menuitem">
+      <button
+        class="ctx-item yellow"
+        onclick={ctxShowInExplorer}
+        role="menuitem"
+      >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
           ><path
             d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
@@ -395,7 +422,13 @@
       </button>
       <button class="ctx-item yellow" onclick={ctxProperties} role="menuitem">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-          ><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" /><path
+          ><circle
+            cx="12"
+            cy="12"
+            r="9"
+            stroke="currentColor"
+            stroke-width="2"
+          /><path
             d="M12 10.5V16"
             stroke="currentColor"
             stroke-width="2"
@@ -406,9 +439,19 @@
       </button>
       <div class="ctx-sep"></div>
       {#if timestamps.length > 0 || clipBoundaries.length > 0}
-        <button class="ctx-item red" onclick={() => ctxClearMarkers()} role="menuitem">
+        <button
+          class="ctx-item red"
+          onclick={() => ctxClearMarkers()}
+          role="menuitem"
+        >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-            ><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" /><path
+            ><circle
+              cx="12"
+              cy="12"
+              r="9"
+              stroke="currentColor"
+              stroke-width="2"
+            /><path
               d="M9 9l6 6M15 9l-6 6"
               stroke="currentColor"
               stroke-width="2"
@@ -435,7 +478,12 @@
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
-          /><path d="M9 6V4h6v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg
+          /><path
+            d="M9 6V4h6v2"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          /></svg
         >
         Delete
       </button>
@@ -480,7 +528,9 @@
         class="clip-toast-folder"
         onclick={async () => {
           try {
-            await invokeOpenDirectory(clipToast.outputDir || clipOutputDir || parentFolder());
+            await invokeOpenDirectory(
+              clipToast.outputDir || clipOutputDir || parentFolder(),
+            );
           } catch {}
         }}
         aria-label="open output folder"
@@ -515,8 +565,17 @@
           title="Open in Vyu"
           aria-label="Open in Vyu"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M5 12h14M12 5l7 7-7 7" />
           </svg>
         </button>
       {/if}
@@ -539,9 +598,7 @@
       <p class="delete-title">Delete original after export?</p>
       <p class="delete-subtitle">{fileName}</p>
       <div class="delete-actions">
-        <button
-          class="delete-cancel"
-          onclick={closeClipDeleteConfirm}
+        <button class="delete-cancel" onclick={closeClipDeleteConfirm}
           >Cancel</button
         >
         <button
@@ -567,14 +624,22 @@
       <div class="delete-toggles">
         <label class="toggle-row">
           <span class="toggle-label">Do not ask again</span>
-          <input type="checkbox" checked={deleteNoAsk} onchange={(e) => updateDeleteNoAsk(e.currentTarget.checked)} />
+          <input
+            type="checkbox"
+            checked={deleteNoAsk}
+            onchange={(e) => updateDeleteNoAsk(e.currentTarget.checked)}
+          />
           <span class="toggle-track" class:on={deleteNoAsk}
             ><span class="toggle-thumb"></span></span
           >
         </label>
         <label class="toggle-row">
           <span class="toggle-label">Delete permanently</span>
-          <input type="checkbox" checked={deletePermanently} onchange={(e) => updateDeletePermanently(e.currentTarget.checked)} />
+          <input
+            type="checkbox"
+            checked={deletePermanently}
+            onchange={(e) => updateDeletePermanently(e.currentTarget.checked)}
+          />
           <span class="toggle-track" class:on={deletePermanently}
             ><span class="toggle-thumb"></span></span
           >
@@ -711,17 +776,13 @@
       </div>
       <div class="props-actions">
         <button class="props-btn" onclick={propsCopyPath}>Copy path</button>
-        <button class="props-btn" onclick={propsOpenFolder}
-          >Open folder</button
-        >
+        <button class="props-btn" onclick={propsOpenFolder}>Open folder</button>
         <button class="props-btn" onclick={propsCopyAll}
           >Copy all properties</button
         >
       </div>
       <div class="delete-actions">
-        <button class="delete-cancel" onclick={closeProperties}
-          >Close</button
-        >
+        <button class="delete-cancel" onclick={closeProperties}>Close</button>
       </div>
     </div>
   </div>

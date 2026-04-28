@@ -37,7 +37,8 @@
   } = $props();
 
   let colorRowOpen = $state(false);
-  let activeColorTool: "brightness" | "contrast" | "saturation" | "hue" | null = $state(null);
+  let activeColorTool: "brightness" | "contrast" | "saturation" | "hue" | null =
+    $state(null);
   let sliderHovered = $state(false);
   let trackEl: HTMLDivElement | null = $state(null);
   let isDragging = $state(false);
@@ -69,7 +70,9 @@
     localHue = hue;
   });
 
-  function toggleColorTool(tool: "brightness" | "contrast" | "saturation" | "hue") {
+  function toggleColorTool(
+    tool: "brightness" | "contrast" | "saturation" | "hue",
+  ) {
     if (activeColorTool === tool) {
       activeColorTool = null;
     } else {
@@ -233,12 +236,17 @@
 </script>
 
 {#if visible}
-  <div class="edit-menu" transition:fly={{ y: -26, duration: 190, opacity: 0.08 }}>
+  <div
+    class="edit-menu"
+    transition:fly={{ y: -26, duration: 190, opacity: 0.08 }}
+  >
     <div
       class="ctx-drag"
       onmousedown={(e) => {
         e.preventDefault();
-        const menu = (e.currentTarget as HTMLElement).closest(".edit-menu") as HTMLElement;
+        const menu = (e.currentTarget as HTMLElement).closest(
+          ".edit-menu",
+        ) as HTMLElement;
         if (!menu) return;
         const startX = e.clientX;
         const startY = e.clientY;
@@ -271,7 +279,15 @@
         onmousedown={(e) => e.stopPropagation()}
         aria-label="Close"
       >
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+        >
           <path d="M18 6L6 18M6 6l12 12" />
         </svg>
       </button>
@@ -283,12 +299,32 @@
         onclick={() => (cropMode ? viewer.cancelCrop() : onCrop())}
       >
         {#if cropMode}
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="speed-mode-icon">
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="speed-mode-icon"
+          >
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
           <span>Close</span>
         {:else}
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="speed-mode-icon">
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="speed-mode-icon"
+          >
             <path d="M6 2h12v20H6z" opacity="0.3" />
             <path d="M2 6h20M2 18h20M6 2v20M18 2v20" />
           </svg>
@@ -296,7 +332,16 @@
         {/if}
       </button>
       <button class="edit-menu-btn yellow" onclick={onRotate}>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
           <path d="M21 2v6h-6" />
           <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
           <path d="M3 22v-6h6" />
@@ -305,7 +350,16 @@
         <span>Rotate</span>
       </button>
       <button class="edit-menu-btn green" onclick={onFlip}>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
           <path d="M12 3v18" />
           <path d="M16 7l4 5-4 5" />
           <path d="M8 7l-4 5 4 5" />
@@ -313,19 +367,48 @@
         <span>Flip</span>
       </button>
       {#if colorRowOpen}
-        <button class="edit-menu-btn red brightness-close-btn" onclick={closeColorTools}>
+        <button
+          class="edit-menu-btn red brightness-close-btn"
+          onclick={closeColorTools}
+        >
           {#key colorRowOpen}
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="speed-mode-icon">
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="speed-mode-icon"
+            >
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
             <span>Close</span>
           {/key}
         </button>
       {:else}
-        <button class="edit-menu-btn blue" onclick={() => (colorRowOpen = !colorRowOpen)}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button
+          class="edit-menu-btn blue"
+          onclick={() => (colorRowOpen = !colorRowOpen)}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <circle cx="12" cy="12" r="10" />
-            <path d="M12 2a10 10 0 0 1 0 20 10 10 0 0 1 0-20" fill="currentColor" opacity="0.25" />
+            <path
+              d="M12 2a10 10 0 0 1 0 20 10 10 0 0 1 0-20"
+              fill="currentColor"
+              opacity="0.25"
+            />
           </svg>
           <span>Color</span>
         </button>
@@ -333,29 +416,94 @@
     </div>
 
     {#if colorRowOpen}
-      <div class="edit-menu-row" transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}>
-        <button class="edit-menu-btn white" class:active={activeColorTool === "brightness"} onclick={() => toggleColorTool("brightness")}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <div
+        class="edit-menu-row"
+        transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+      >
+        <button
+          class="edit-menu-btn white"
+          class:active={activeColorTool === "brightness"}
+          onclick={() => toggleColorTool("brightness")}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <circle cx="12" cy="12" r="5" />
-            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+            <path
+              d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+            />
           </svg>
           <span>Brightness</span>
         </button>
-        <button class="edit-menu-btn white" class:active={activeColorTool === "contrast"} onclick={() => toggleColorTool("contrast")}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button
+          class="edit-menu-btn white"
+          class:active={activeColorTool === "contrast"}
+          onclick={() => toggleColorTool("contrast")}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <circle cx="12" cy="12" r="10" />
-            <path d="M12 2a10 10 0 0 1 0 20z" fill="currentColor" opacity="0.3" />
+            <path
+              d="M12 2a10 10 0 0 1 0 20z"
+              fill="currentColor"
+              opacity="0.3"
+            />
           </svg>
           <span>Contrast</span>
         </button>
-        <button class="edit-menu-btn white" class:active={activeColorTool === "saturation"} onclick={() => toggleColorTool("saturation")}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" fill="currentColor" opacity="0.3" />
+        <button
+          class="edit-menu-btn white"
+          class:active={activeColorTool === "saturation"}
+          onclick={() => toggleColorTool("saturation")}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"
+              fill="currentColor"
+              opacity="0.3"
+            />
           </svg>
           <span>Saturation</span>
         </button>
-        <button class="edit-menu-btn white" class:active={activeColorTool === "hue"} onclick={() => toggleColorTool("hue")}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button
+          class="edit-menu-btn white"
+          class:active={activeColorTool === "hue"}
+          onclick={() => toggleColorTool("hue")}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <circle cx="12" cy="12" r="10" />
             <path d="M12 2a10 10 0 0 1 0 20" />
             <path d="M12 12l5-2" />
@@ -367,7 +515,10 @@
     {/if}
 
     {#if activeColorTool}
-      <div class="color-slider-panel" transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}>
+      <div
+        class="color-slider-panel"
+        transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+      >
         <div
           class="color-slider-track"
           bind:this={trackEl}
@@ -382,7 +533,9 @@
               : activeColorTool === "saturation"
                 ? localSaturation
                 : localBrightness}
-          aria-label={activeColorTool ? activeColorTool.charAt(0).toUpperCase() + activeColorTool.slice(1) : "Color"}
+          aria-label={activeColorTool
+            ? activeColorTool.charAt(0).toUpperCase() + activeColorTool.slice(1)
+            : "Color"}
           onpointerdown={handleTrackPointerDown}
           onpointermove={handleTrackPointerMove}
           onpointerup={handleTrackPointerUp}
@@ -394,7 +547,8 @@
           {#each activeMarkers as marker}
             <div
               class="color-slider-marker"
-              class:center-marker={marker.val === (activeColorTool === "hue" ? 0 : 1)}
+              class:center-marker={marker.val ===
+                (activeColorTool === "hue" ? 0 : 1)}
               style="left: {marker.pct}%"
               onpointerdown={(e) => e.stopPropagation()}
               onclick={() => jumpToValue(marker.val)}
@@ -429,16 +583,42 @@
     {/if}
 
     {#if cropMode}
-      <div class="edit-menu-row crop-actions" transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}>
-        <button class="edit-menu-btn crop-btn reset" onclick={() => viewer.resetCrop()}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="speed-mode-icon">
+      <div
+        class="edit-menu-row crop-actions"
+        transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+      >
+        <button
+          class="edit-menu-btn crop-btn reset"
+          onclick={() => viewer.resetCrop()}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="speed-mode-icon"
+          >
             <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
             <path d="M3 3v5h5" />
           </svg>
           <span>Reset</span>
         </button>
         <button class="edit-menu-btn crop-btn apply" onclick={onApply}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="speed-mode-icon">
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="speed-mode-icon"
+          >
             <path d="M20 6L9 17l-5-5" />
           </svg>
           <span>Apply</span>

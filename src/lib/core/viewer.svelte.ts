@@ -198,7 +198,12 @@ function createViewer() {
   }
 
   function applyCrop() {
-    if (state.cropBounds.left === 0 && state.cropBounds.top === 0 && state.cropBounds.right === 0 && state.cropBounds.bottom === 0) {
+    if (
+      state.cropBounds.left === 0 &&
+      state.cropBounds.top === 0 &&
+      state.cropBounds.right === 0 &&
+      state.cropBounds.bottom === 0
+    ) {
       cropMap.delete(currentFilePath);
     } else {
       cropMap.set(currentFilePath, { ...state.cropBounds });
@@ -211,10 +216,22 @@ function createViewer() {
     if (bounds.top !== undefined) state.cropBounds.top = bounds.top;
     if (bounds.right !== undefined) state.cropBounds.right = bounds.right;
     if (bounds.bottom !== undefined) state.cropBounds.bottom = bounds.bottom;
-    state.cropBounds.left = Math.max(0, Math.min(1 - state.cropBounds.right - 0.01, state.cropBounds.left));
-    state.cropBounds.top = Math.max(0, Math.min(1 - state.cropBounds.bottom - 0.01, state.cropBounds.top));
-    state.cropBounds.right = Math.max(0, Math.min(1 - state.cropBounds.left - 0.01, state.cropBounds.right));
-    state.cropBounds.bottom = Math.max(0, Math.min(1 - state.cropBounds.top - 0.01, state.cropBounds.bottom));
+    state.cropBounds.left = Math.max(
+      0,
+      Math.min(1 - state.cropBounds.right - 0.01, state.cropBounds.left),
+    );
+    state.cropBounds.top = Math.max(
+      0,
+      Math.min(1 - state.cropBounds.bottom - 0.01, state.cropBounds.top),
+    );
+    state.cropBounds.right = Math.max(
+      0,
+      Math.min(1 - state.cropBounds.left - 0.01, state.cropBounds.right),
+    );
+    state.cropBounds.bottom = Math.max(
+      0,
+      Math.min(1 - state.cropBounds.top - 0.01, state.cropBounds.bottom),
+    );
   }
 
   function getCropBounds(): CropBounds | null {

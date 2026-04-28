@@ -223,6 +223,11 @@ main {
   color: #444444;
   font-family: Inter, sans-serif;
 }
+.bottombar-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .bottombar-right {
   display: flex;
   align-items: center;

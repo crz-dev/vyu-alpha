@@ -365,8 +365,12 @@
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <path d="M2 12c1.5-2 3.5-3 5.5-3s3.5 1 5 3c1.5 2 3 3 5 3s3.5-1 4.5-3" />
-            <path d="M2 17c1.5-2 3.5-3 5.5-3s3.5 1 5 3c1.5 2 3 3 5 3s3.5-1 4.5-3" />
+            <path
+              d="M2 12c1.5-2 3.5-3 5.5-3s3.5 1 5 3c1.5 2 3 3 5 3s3.5-1 4.5-3"
+            />
+            <path
+              d="M2 17c1.5-2 3.5-3 5.5-3s3.5 1 5 3c1.5 2 3 3 5 3s3.5-1 4.5-3"
+            />
           </svg>
         {:else if playbackSpeed > 1}
           <svg
@@ -554,7 +558,8 @@
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-              /></svg>
+                /></svg
+              >
               Clip
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
                 ><path
@@ -563,7 +568,8 @@
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-              /></svg>
+                /></svg
+              >
             </button>
             <button
               class="ts-drop-half ts-drop-blue"
@@ -926,8 +932,12 @@
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <path d="M2 12c1.5-2 3.5-3 5.5-3s3.5 1 5 3c1.5 2 3 3 5 3s3.5-1 4.5-3" />
-            <path d="M2 17c1.5-2 3.5-3 5.5-3s3.5 1 5 3c1.5 2 3 3 5 3s3.5-1 4.5-3" />
+            <path
+              d="M2 12c1.5-2 3.5-3 5.5-3s3.5 1 5 3c1.5 2 3 3 5 3s3.5-1 4.5-3"
+            />
+            <path
+              d="M2 17c1.5-2 3.5-3 5.5-3s3.5 1 5 3c1.5 2 3 3 5 3s3.5-1 4.5-3"
+            />
           </svg>
         {:else if playbackSpeed > 1}
           <svg
@@ -1115,7 +1125,8 @@
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-              /></svg>
+                /></svg
+              >
               Clip
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
                 ><path
@@ -1124,7 +1135,8 @@
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-              /></svg>
+                /></svg
+              >
             </button>
             <button
               class="ts-drop-half ts-drop-blue"
