@@ -11,6 +11,7 @@ export type KeybindActions = {
   getHoverZone: () => string;
   isFullscreen: () => boolean;
   togglePlay: () => void;
+  frameStep: (direction: -1 | 1) => void;
 };
 
 export function setupKeybinds(actions: KeybindActions) {
@@ -86,10 +87,26 @@ export function setupKeybinds(actions: KeybindActions) {
         );
       if (e.key === "ArrowLeft")
         videoEl.currentTime = Math.max(videoEl.currentTime - 5, 0);
+      if (e.key === "," || e.key === "<") {
+        e.preventDefault();
+        actions.frameStep(-1);
+      }
+      if (e.key === "." || e.key === ">") {
+        e.preventDefault();
+        actions.frameStep(1);
+      }
     } else {
       if (e.key === " " && isVid && videoEl) actions.togglePlay();
       if (e.key === "ArrowRight") actions.navigate(1);
       if (e.key === "ArrowLeft") actions.navigate(-1);
+      if (e.key === "," || e.key === "<") {
+        e.preventDefault();
+        actions.frameStep(-1);
+      }
+      if (e.key === "." || e.key === ">") {
+        e.preventDefault();
+        actions.frameStep(1);
+      }
     }
   };
 }

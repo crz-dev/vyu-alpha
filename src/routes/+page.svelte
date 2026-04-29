@@ -1257,6 +1257,18 @@
     getHoverZone: () => hoverZone,
     isFullscreen: () => viewer.state.isFullscreen,
     togglePlay,
+    frameStep: (direction) => {
+      if (!videoEl) return;
+      const fps = 30;
+      const frameDuration = 1 / fps;
+      videoEl.currentTime = Math.max(
+        0,
+        Math.min(
+          videoEl.currentTime + direction * frameDuration,
+          videoEl.duration,
+        ),
+      );
+    },
   });
 
   function handleKeydown(e: KeyboardEvent) {
