@@ -146,6 +146,9 @@
   >
     <div
       class="ctx-drag"
+      role="button"
+      tabindex="0"
+      aria-label="Drag to move"
       onmousedown={(e) => {
         e.preventDefault();
         const startX = e.clientX;
@@ -167,7 +170,9 @@
         window.addEventListener("mouseup", onMouseUp);
       }}
     >
-      <span class="ctx-dot" /><span class="ctx-dot" /><span class="ctx-dot" />
+      <span class="ctx-dot"></span><span class="ctx-dot"></span><span
+        class="ctx-dot"
+      ></span>
       <button
         class="ctx-close"
         onclick={(e) => {

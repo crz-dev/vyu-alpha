@@ -242,6 +242,9 @@
   >
     <div
       class="ctx-drag"
+      role="button"
+      tabindex="0"
+      aria-label="Drag to move"
       onmousedown={(e) => {
         e.preventDefault();
         const menu = (e.currentTarget as HTMLElement).closest(
@@ -269,7 +272,9 @@
         window.addEventListener("mouseup", onMouseUp);
       }}
     >
-      <span class="ctx-dot" /><span class="ctx-dot" /><span class="ctx-dot" />
+      <span class="ctx-dot"></span><span class="ctx-dot"></span><span
+        class="ctx-dot"
+      ></span>
       <button
         class="ctx-close"
         onclick={(e) => {
@@ -566,6 +571,9 @@
           <div
             class="color-slider-scrubber"
             style="left: {scrubberPct}%"
+            role="button"
+            tabindex="0"
+            aria-label="Scrubber"
             onpointerdown={(e) => {
               e.stopPropagation();
               if (!trackEl) return;

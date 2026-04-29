@@ -214,6 +214,7 @@
         100}%; bottom: {viewer.state.cropBounds.bottom * 100}%;"
       onmousedown={(e) => handleMouseDown(e, "move")}
       role="button"
+      tabindex="0"
       aria-label="Crop area"
     >
       <div class="crop-grid">
@@ -226,6 +227,7 @@
         class="crop-handle tl"
         onmousedown={(e) => handleMouseDown(e, "tl")}
         role="button"
+        tabindex="0"
         aria-label="Top-left corner"
       >
         <div class="crop-handle-diamond"></div>
@@ -234,6 +236,7 @@
         class="crop-handle tr"
         onmousedown={(e) => handleMouseDown(e, "tr")}
         role="button"
+        tabindex="0"
         aria-label="Top-right corner"
       >
         <div class="crop-handle-diamond"></div>
@@ -242,6 +245,7 @@
         class="crop-handle bl"
         onmousedown={(e) => handleMouseDown(e, "bl")}
         role="button"
+        tabindex="0"
         aria-label="Bottom-left corner"
       >
         <div class="crop-handle-diamond"></div>
@@ -250,6 +254,7 @@
         class="crop-handle br"
         onmousedown={(e) => handleMouseDown(e, "br")}
         role="button"
+        tabindex="0"
         aria-label="Bottom-right corner"
       >
         <div class="crop-handle-diamond"></div>
@@ -258,6 +263,7 @@
         class="crop-handle tm"
         onmousedown={(e) => handleMouseDown(e, "tm")}
         role="button"
+        tabindex="0"
         aria-label="Top edge"
       >
         <div class="crop-handle-diamond"></div>
@@ -266,6 +272,7 @@
         class="crop-handle bm"
         onmousedown={(e) => handleMouseDown(e, "bm")}
         role="button"
+        tabindex="0"
         aria-label="Bottom edge"
       >
         <div class="crop-handle-diamond"></div>
@@ -274,6 +281,7 @@
         class="crop-handle ml"
         onmousedown={(e) => handleMouseDown(e, "ml")}
         role="button"
+        tabindex="0"
         aria-label="Left edge"
       >
         <div class="crop-handle-diamond"></div>
@@ -282,6 +290,7 @@
         class="crop-handle mr"
         onmousedown={(e) => handleMouseDown(e, "mr")}
         role="button"
+        tabindex="0"
         aria-label="Right edge"
       >
         <div class="crop-handle-diamond"></div>
