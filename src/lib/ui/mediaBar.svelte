@@ -65,40 +65,40 @@
 
 <div class="bottombar">
   <div class="bottombar-left">
+    <button
+      class="slideshow-btn tooltip-above-shift-right"
+      data-tooltip="Miniplayer"
+      onclick={() => { /* TODO: miniplayer toggle */ }}
+      aria-label="toggle miniplayer"
+    >
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 12 12"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="0.6"
+        stroke-linecap="round"
+      >
+        <path d="M1 4H4V1M8 1V4H11M11 8H8V11M4 11V8H1" />
+      </svg>
+    </button>
     <div class="slideshow-anchor">
       <button
-        class="slideshow-btn tooltip-above-shift-right"
+        class="file-count tooltip-above-shift-right"
         data-tooltip="Slideshow"
         onclick={toggleSlideshowMenu}
         aria-label="toggle slideshow menu"
       >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-          <line x1="8" y1="21" x2="16" y2="21" />
-          <line x1="12" y1="17" x2="12" y2="21" />
-        </svg>
+        {fileListLength > 0
+          ? `${currentIndex + 1} / ${fileListLength}`
+          : "—"}
       </button>
       <SlideshowMenu
         visible={slideshowMenuVisible}
         onClose={closeSlideshowMenu}
       />
     </div>
-    <span
-      class="file-count tooltip-above-shift-right"
-      data-tooltip="File position"
-      >{fileListLength > 0
-        ? `${currentIndex + 1} / ${fileListLength}`
-        : "—"}</span
-    >
   </div>
   <span class="file-info tooltip-above" data-tooltip="Resolution · File size">
     {#if fileDimensions && fileSize}
