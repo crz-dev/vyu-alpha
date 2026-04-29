@@ -115,7 +115,12 @@
   const timeline = createTimeline();
   const clips = createClips(() => filePath);
 
-  slideshow.bind(() => fileList, () => currentIndex, advanceSlide, () => videoEl);
+  slideshow.bind(
+    () => fileList,
+    () => currentIndex,
+    advanceSlide,
+    () => videoEl,
+  );
 
   function setMediaState(
     data: Partial<import("$lib/core/media.svelte").MediaState>,
@@ -1825,7 +1830,9 @@
               alt={fileName}
               onload={onImageLoad}
               style={imageStyle}
-              class={slideshow.active && slideshow.transition !== "none" ? `transition-${slideshow.transition}` : ""}
+              class={slideshow.active && slideshow.transition !== "none"
+                ? `transition-${slideshow.transition}`
+                : ""}
             />
           {/key}
           <CropOverlay containerEl={cropContainerEl} />
@@ -1870,7 +1877,9 @@
                     }
                   }
                 }}
-                class={slideshow.active && slideshow.transition !== "none" ? `transition-${slideshow.transition}` : ""}
+                class={slideshow.active && slideshow.transition !== "none"
+                  ? `transition-${slideshow.transition}`
+                  : ""}
               >
                 <track kind="captions" />
               </video>

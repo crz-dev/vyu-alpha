@@ -51,7 +51,10 @@ export function createSlideshow() {
     shuffledIndices = Array.from({ length: fileList.length }, (_, i) => i);
     for (let i = shuffledIndices.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [shuffledIndices[i], shuffledIndices[j]] = [shuffledIndices[j], shuffledIndices[i]];
+      [shuffledIndices[i], shuffledIndices[j]] = [
+        shuffledIndices[j],
+        shuffledIndices[i],
+      ];
     }
     shufflePos = shuffledIndices.indexOf(currentIndex);
     if (shufflePos === -1) shufflePos = 0;

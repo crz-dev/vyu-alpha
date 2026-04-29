@@ -856,7 +856,11 @@
   justify-content: center;
   gap: 6px;
   cursor: pointer;
-  transition: background 0.16s, color 0.16s, border-color 0.16s, opacity 0.16s;
+  transition:
+    background 0.16s,
+    color 0.16s,
+    border-color 0.16s,
+    opacity 0.16s;
 }
 
 .slideshow-action-btn.start,

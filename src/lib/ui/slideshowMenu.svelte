@@ -37,7 +37,9 @@
     const x = clientX - rect.left;
     const pct = Math.max(0, Math.min(100, (x / rect.width) * 100));
     const val = pctToValue(pct);
-    slideshow.intervalSec = Math.round(Math.max(minInterval, Math.min(maxInterval, val)));
+    slideshow.intervalSec = Math.round(
+      Math.max(minInterval, Math.min(maxInterval, val)),
+    );
   }
 
   function handleTrackPointerDown(e: PointerEvent) {
