@@ -2,13 +2,17 @@
   let {
     visible,
     onClose,
+    onOpenSettings,
   }: {
     visible: boolean;
     onClose: () => void;
+    onOpenSettings: () => void;
   } = $props();
 
   function handleItemClick(action: string) {
-    console.log(`App menu action: ${action}`);
+    if (action === "settings") {
+      onOpenSettings();
+    }
     onClose();
   }
 </script>

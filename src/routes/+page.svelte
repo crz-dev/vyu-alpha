@@ -85,6 +85,7 @@
   import EditMenu from "$lib/ui/editMenu.svelte";
   import ProcessMenu from "$lib/ui/processMenu.svelte";
   import CropOverlay from "$lib/ui/cropOverlay.svelte";
+  import SettingsDialog from "$lib/ui/settingsDialog.svelte";
 
   let filePath = $state("");
   let fileSrc = $state("");
@@ -198,6 +199,7 @@
   let processMenuVisible = $state(false);
   let slideshowMenuVisible = $state(false);
   let appDropdownVisible = $state(false);
+  let settingsOpen = $state(false);
   let brightness = $state(1);
   let contrast = $state(1);
   let saturation = $state(1);
@@ -1259,7 +1261,8 @@
       editMenuVisible ||
       processMenuVisible ||
       slideshowMenuVisible ||
-      appDropdownVisible,
+      appDropdownVisible ||
+      settingsOpen,
     closeDialogs: () => {
       contextMenu.visible = false;
       deleteConfirm = false;
@@ -1268,6 +1271,7 @@
       processMenuVisible = false;
       slideshowMenuVisible = false;
       appDropdownVisible = false;
+      settingsOpen = false;
     },
     navigateToEdge,
     navigate,
@@ -1801,6 +1805,7 @@
     dropdownVisible={appDropdownVisible}
     onToggleDropdown={() => (appDropdownVisible = !appDropdownVisible)}
     onCloseDropdown={() => (appDropdownVisible = false)}
+    onOpenSettings={() => (settingsOpen = true)}
   />
 
   <div class="content">
@@ -2289,6 +2294,8 @@
     {openConvertedFile}
     showInExplorer={invokeShowInExplorer}
   />
+
+  <SettingsDialog {settingsOpen} closeSettings={() => (settingsOpen = false)} />
 
   <Tooltip
     {tsTooltip}

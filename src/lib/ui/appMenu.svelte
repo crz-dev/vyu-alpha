@@ -18,6 +18,7 @@
     dropdownVisible,
     onToggleDropdown,
     onCloseDropdown,
+    onOpenSettings,
   }: {
     fileName: string;
     fileSrc: string;
@@ -34,6 +35,7 @@
     dropdownVisible: boolean;
     onToggleDropdown: () => void;
     onCloseDropdown: () => void;
+    onOpenSettings: () => void;
   } = $props();
 
   let editing = $state(false);
@@ -82,7 +84,7 @@
     >
       vyu
     </button>
-    <AppDropdownMenu visible={dropdownVisible} onClose={onCloseDropdown} />
+    <AppDropdownMenu visible={dropdownVisible} onClose={onCloseDropdown} {onOpenSettings} />
   </div>
   <span class="divider">/</span>
   {#if editing}

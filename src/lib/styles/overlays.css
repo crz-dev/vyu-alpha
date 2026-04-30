@@ -815,3 +815,140 @@
     transform: translateX(250%);
   }
 }
+
+.settings-dialog {
+  width: 460px;
+  max-width: calc(100vw - 32px);
+  gap: 14px;
+  padding: 22px 24px 24px;
+}
+.settings-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-right: -4px;
+}
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.settings-section + .settings-section {
+  border-top: 0.5px solid #1f1f1f;
+  padding-top: 18px;
+}
+.settings-header {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #666666;
+  font-family: Inter, sans-serif;
+  user-select: none;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 28px;
+}
+.settings-label-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.settings-label {
+  font-size: 12px;
+  color: #cccccc;
+  font-family: Inter, sans-serif;
+}
+.settings-hint {
+  font-size: 11px;
+  color: #555555;
+  font-family: Inter, sans-serif;
+}
+.settings-control {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.pill-group {
+  display: inline-flex;
+  border: 0.5px solid #2a2a2a;
+  border-radius: 7px;
+  overflow: hidden;
+  background: #0d0d0d;
+}
+.pill-btn {
+  border: none;
+  background: transparent;
+  color: #666666;
+  font-size: 11px;
+  font-family: Inter, sans-serif;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.pill-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #999999;
+}
+.pill-btn.active {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+}
+.pill-btn + .pill-btn {
+  border-left: 0.5px solid #2a2a2a;
+}
+
+.settings-action-btn {
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #aaaaaa;
+  font-size: 11px;
+  font-family: Inter, sans-serif;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+.settings-action-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #cccccc;
+}
+.settings-action-btn.red {
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+}
+.settings-action-btn.red:hover {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(248, 113, 113, 0.5);
+  color: #fca5a5;
+}
+.settings-action-btn.blue {
+  border-color: rgba(96, 165, 250, 0.35);
+  background: rgba(59, 130, 246, 0.12);
+  color: #93c5fd;
+}
+.settings-action-btn.blue:hover {
+  background: rgba(59, 130, 246, 0.22);
+  border-color: rgba(96, 165, 250, 0.5);
+  color: #bfdbfe;
+}
+
+.settings-dialog .toggle-track.on {
+  background: #3b82f6;
+}
