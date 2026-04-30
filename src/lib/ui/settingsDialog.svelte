@@ -24,6 +24,17 @@
     { id: "danger-zone", label: "Danger Zone" },
   ];
 
+  const sectionDescriptions: Record<string, string> = {
+    appearance: "Customize how vyu looks and feels.",
+    playback: "Control how media plays and behaves.",
+    editor: "Configure editing and export preferences.",
+    process: "Set processing and encoding options.",
+    library: "Manage your media library and history.",
+    system: "System-level app behavior and updates.",
+    debug: "Diagnostic tools and developer options.",
+    "danger-zone": "Destructive actions that cannot be undone.",
+  };
+
   function scrollToSection(id: string) {
     activeSection = id;
     if (scrollTimeout) clearTimeout(scrollTimeout);
@@ -164,6 +175,7 @@
             <button
               class="settings-nav-item"
               class:active={activeSection === sec.id}
+              data-section={sec.id}
               onclick={() => scrollToSection(sec.id)}
             >
               {#if sec.id === "appearance"}
@@ -186,6 +198,14 @@
               {sec.label}
             </button>
           {/each}
+          <div class="settings-nav-spacer"></div>
+          <div class="settings-nav-description">
+            {#key activeSection}
+              <p class="settings-nav-description-text">
+                {sectionDescriptions[activeSection] ?? ""}
+              </p>
+            {/key}
+          </div>
         </nav>
 
         <div class="settings-content" bind:this={contentEl} onscroll={handleScroll}>
@@ -849,36 +869,6 @@
                 </button>
               </div>
             </div>
-            <div class="settings-row">
-              <div class="settings-label-col">
-                <svg class="settings-row-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                <div class="settings-label-text">
-                  <span class="settings-label">Delete FFmpeg</span>
-                  <span class="settings-hint">Remove bundled binary</span>
-                </div>
-              </div>
-              <div class="settings-control">
-                <button class="settings-action-btn red">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                  Delete
-                </button>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div class="settings-label-col">
-                <svg class="settings-row-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                <div class="settings-label-text">
-                  <span class="settings-label">Uninstall</span>
-                  <span class="settings-hint">Remove vyu from your system</span>
-                </div>
-              </div>
-              <div class="settings-control">
-                <button class="settings-action-btn red">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  Run Uninstaller
-                </button>
-              </div>
-            </div>
           </div>
 
           <!-- Danger Zone -->
@@ -962,15 +952,51 @@
                 </button>
               </div>
             </div>
+            <div class="settings-row">
+              <div class="settings-label-col">
+                <svg class="settings-row-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                <div class="settings-label-text">
+                  <span class="settings-label">Delete FFmpeg</span>
+                  <span class="settings-hint">Remove bundled binary</span>
+                </div>
+              </div>
+              <div class="settings-control">
+                <button class="settings-action-btn red">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                  Delete
+                </button>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-label-col">
+                <svg class="settings-row-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <div class="settings-label-text">
+                  <span class="settings-label">Uninstall</span>
+                  <span class="settings-hint">Remove vyu from your system</span>
+                </div>
+              </div>
+              <div class="settings-control">
+                <button class="settings-action-btn red">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Run Uninstaller
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       <div class="delete-actions">
-        <button class="settings-action-btn" onclick={exportSettings}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Export Settings
-        </button>
+        <div class="settings-footer-left">
+          <button class="settings-action-btn">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Import Settings
+          </button>
+          <button class="settings-action-btn" onclick={exportSettings}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export Settings
+          </button>
+        </div>
         <button class="delete-cancel" onclick={closeSettings}>Close</button>
       </div>
     </div>

@@ -871,7 +871,7 @@
   font-family: Inter, sans-serif;
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.25s ease, color 0.25s ease;
   position: relative;
 }
 
@@ -880,12 +880,10 @@
   color: #888888;
 }
 
+/* Nav active colors per section */
 .settings-nav-item.active {
-  background: rgba(59, 130, 246, 0.12);
-  color: #bfdbfe;
   font-weight: 500;
 }
-
 .settings-nav-item.active::before {
   content: "";
   position: absolute;
@@ -894,11 +892,90 @@
   bottom: 5px;
   width: 2px;
   border-radius: 1px;
+  transition: background 0.25s ease;
+}
+
+.settings-nav-item[data-section="appearance"].active,
+.settings-nav-item[data-section="playback"].active {
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+}
+.settings-nav-item[data-section="appearance"].active::before,
+.settings-nav-item[data-section="playback"].active::before {
+  background: #22c55e;
+}
+
+.settings-nav-item[data-section="editor"].active,
+.settings-nav-item[data-section="process"].active {
+  background: rgba(59, 130, 246, 0.12);
+  color: #bfdbfe;
+}
+.settings-nav-item[data-section="editor"].active::before,
+.settings-nav-item[data-section="process"].active::before {
   background: #3b82f6;
+}
+
+.settings-nav-item[data-section="library"].active,
+.settings-nav-item[data-section="system"].active {
+  background: rgba(245, 197, 24, 0.12);
+  color: #fde047;
+}
+.settings-nav-item[data-section="library"].active::before,
+.settings-nav-item[data-section="system"].active::before {
+  background: #f5c518;
+}
+
+.settings-nav-item[data-section="debug"].active {
+  background: rgba(251, 146, 60, 0.12);
+  color: #fdba74;
+}
+.settings-nav-item[data-section="debug"].active::before {
+  background: #fb923c;
+}
+
+.settings-nav-item[data-section="danger-zone"].active {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+}
+.settings-nav-item[data-section="danger-zone"].active::before {
+  background: #ef4444;
 }
 
 .settings-nav-item svg {
   flex-shrink: 0;
+}
+
+.settings-nav-spacer {
+  flex: 1;
+  min-height: 8px;
+}
+
+.settings-nav-description {
+  padding: 8px 9px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 0.5px solid #1c1c1c;
+  margin-top: 2px;
+}
+
+.settings-nav-description-text {
+  margin: 0;
+  font-size: 10px;
+  color: #666666;
+  font-family: Inter, sans-serif;
+  line-height: 1.4;
+  animation: descFadeIn 0.25s ease both;
+}
+
+@keyframes descFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .settings-content {
@@ -1276,6 +1353,10 @@
 }
 
 /* Export settings button matches close button */
+.settings-footer-left {
+  display: flex;
+  gap: 8px;
+}
 .settings-dialog .delete-actions .settings-action-btn {
   padding: 7px 16px;
   border-radius: 7px;
