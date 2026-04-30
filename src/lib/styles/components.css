@@ -412,6 +412,10 @@
 .fs-controls.image-only {
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
 }
+.fs-controls.image-only .fs-time {
+  font-size: 18px;
+  color: #ffffff;
+}
 .fs-controls.gif-only {
   top: 0;
   padding: 0;
@@ -565,6 +569,10 @@
 .fs-ctrl-btn.loop-btn:hover {
   color: #ffffff;
 }
+.fs-ctrl-btn.loop-btn svg {
+  width: 20px;
+  height: 20px;
+}
 .fs-ctrl-btn.add-ts-btn {
   color: #ffffff;
 }
@@ -588,8 +596,12 @@
 .fs-ctrl-btn.volume-btn.active:hover {
   color: #ffffff;
 }
+.fs-ctrl-btn.speed-btn svg {
+  width: 24px;
+  height: 24px;
+}
 .fs-time {
-  font-size: 14px;
+  font-size: 16px;
   color: #888888;
   font-family: Inter, sans-serif;
   background: none;
@@ -602,6 +614,9 @@
     background 0.15s,
     color 0.15s;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .fs-time:hover {
   background: rgba(255, 255, 255, 0.1);

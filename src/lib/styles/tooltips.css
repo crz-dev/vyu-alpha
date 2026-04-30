@@ -70,3 +70,9 @@
 .tooltip-ctrl:hover::after {
   opacity: 1;
 }
+
+.menu-open [data-tooltip]::after,
+.menu-open .tooltip-ctrl::after {
+  opacity: 0 !important;
+  transition: opacity 0.1s ease;
+}

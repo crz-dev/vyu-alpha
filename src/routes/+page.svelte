@@ -200,6 +200,7 @@
   let slideshowMenuVisible = $state(false);
   let appDropdownVisible = $state(false);
   let settingsOpen = $state(false);
+  let tsMenuOpen = $state(false);
   let brightness = $state(1);
   let contrast = $state(1);
   let saturation = $state(1);
@@ -336,6 +337,19 @@
     !viewer.state.fsControlsVisible && !tsEditMenu.visible ? "none" : panCursor,
   );
   const isGifVideo = $derived(isVideo && fileExt() === "gif");
+  const anyMenuOpen = $derived(
+    contextMenu.visible ||
+      appDropdownVisible ||
+      slideshowMenuVisible ||
+      editMenuVisible ||
+      processMenuVisible ||
+      settingsOpen ||
+      tsEditMenu.visible ||
+      deleteConfirm ||
+      propertiesOpen ||
+      clipDeleteConfirm.visible ||
+      tsMenuOpen,
+  );
 
   function toggleFullscreen() {
     viewer.toggleFullscreen();
@@ -1793,6 +1807,7 @@
 
 <main
   class:fullscreen={viewer.state.isFullscreen}
+  class:menu-open={anyMenuOpen}
   onmousemove={viewer.state.isFullscreen ? viewer.resetFsTimer : undefined}
   ondrop={(e) => e.preventDefault()}
   ondragover={(e) => e.preventDefault()}
@@ -1996,6 +2011,7 @@
               {durationDisplay}
               {timerTooltip}
               {toggleFullscreen}
+              onTsMenuChange={(v) => (tsMenuOpen = v)}
             />
           </div>
         </div>
@@ -2175,6 +2191,7 @@
             {durationDisplay}
             {timerTooltip}
             {toggleFullscreen}
+            onTsMenuChange={(v) => (tsMenuOpen = v)}
           />
         </div>
       {:else}

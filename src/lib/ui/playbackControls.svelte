@@ -39,6 +39,7 @@
     durationDisplay,
     timerTooltip,
     toggleFullscreen,
+    onTsMenuChange,
   }: {
     fullscreen?: boolean;
     isGifVideo: boolean;
@@ -79,9 +80,14 @@
     durationDisplay: string;
     timerTooltip: string;
     toggleFullscreen: () => void;
+    onTsMenuChange?: (open: boolean) => void;
   } = $props();
   let tsMenuOpen = $state(false);
   let tsDeleteConfirm = $state(false);
+
+  $effect(() => {
+    onTsMenuChange?.(tsMenuOpen);
+  });
 
   function addClip() {
     addClipStart();

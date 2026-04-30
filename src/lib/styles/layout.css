@@ -238,7 +238,8 @@ main {
 .bottombar-right {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 0px;
+  margin-right: -8px;
 }
 .zoom {
   font-size: 12px;
@@ -300,6 +301,14 @@ main.fullscreen .video-inner video {
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+main.fullscreen .media-container {
+  width: 100%;
+  height: 100%;
+}
+main.fullscreen .media-container img {
+  width: 100%;
+  height: 100%;
 }
 
 .fs-overlay {
