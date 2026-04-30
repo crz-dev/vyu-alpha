@@ -817,62 +817,173 @@
 }
 
 .settings-dialog {
-  width: 460px;
+  width: 640px;
   max-width: calc(100vw - 32px);
-  gap: 14px;
-  padding: 22px 24px 24px;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
 }
-.settings-body {
+
+.settings-header-bar {
+  padding: 22px 24px 14px;
+  border-bottom: 0.5px solid #1f1f1f;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  max-height: calc(100vh - 220px);
-  overflow-y: auto;
-  padding-right: 4px;
-  margin-right: -4px;
+  gap: 4px;
 }
+
+.settings-header-bar .delete-title {
+  margin: 0;
+}
+
+.settings-header-bar .delete-subtitle {
+  margin: 0;
+}
+
+.settings-layout {
+  display: flex;
+  width: 100%;
+  max-height: min(520px, calc(100vh - 220px));
+}
+
+.settings-nav {
+  width: 148px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 8px 14px 10px;
+  border-right: 0.5px solid #1f1f1f;
+  background: #0d0d0d;
+  overflow-y: auto;
+}
+
+.settings-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: #555555;
+  font-size: 11px;
+  font-family: Inter, sans-serif;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, color 0.15s;
+  position: relative;
+}
+
+.settings-nav-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #888888;
+}
+
+.settings-nav-item.active {
+  background: rgba(59, 130, 246, 0.1);
+  color: #93c5fd;
+}
+
+.settings-nav-item.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  border-radius: 1px;
+  background: #3b82f6;
+}
+
+.settings-nav-item svg {
+  flex-shrink: 0;
+}
+
+.settings-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.settings-content::-webkit-scrollbar {
+  width: 5px;
+}
+
+.settings-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.settings-content::-webkit-scrollbar-thumb {
+  background: #222222;
+  border-radius: 3px;
+}
+
 .settings-section {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  scroll-margin-top: 14px;
 }
-.settings-section + .settings-section {
-  border-top: 0.5px solid #1f1f1f;
-  padding-top: 18px;
-}
-.settings-header {
+
+.settings-section-header {
   margin: 0;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #666666;
+  color: #ffffff;
   font-family: Inter, sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   user-select: none;
 }
+
+.settings-section-header svg {
+  color: #f5c518;
+}
+
 .settings-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  min-height: 28px;
+  min-height: 34px;
+  padding: 3px 0;
 }
+
 .settings-label-col {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.settings-row-icon {
+  color: #444444;
+  flex-shrink: 0;
+}
+
+.settings-label-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
 }
+
 .settings-label {
   font-size: 12px;
   color: #cccccc;
   font-family: Inter, sans-serif;
 }
+
 .settings-hint {
   font-size: 11px;
   color: #555555;
   font-family: Inter, sans-serif;
 }
+
 .settings-control {
   display: flex;
   align-items: center;
@@ -886,6 +997,7 @@
   overflow: hidden;
   background: #0d0d0d;
 }
+
 .pill-btn {
   border: none;
   background: transparent;
@@ -894,24 +1006,25 @@
   font-family: Inter, sans-serif;
   padding: 5px 12px;
   cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
+
 .pill-btn:hover {
   background: rgba(255, 255, 255, 0.04);
   color: #999999;
 }
+
 .pill-btn.active {
   background: rgba(59, 130, 246, 0.2);
   color: #93c5fd;
 }
+
 .pill-btn + .pill-btn {
   border-left: 0.5px solid #2a2a2a;
 }
 
 .settings-action-btn {
-  padding: 5px 12px;
+  padding: 6px 12px;
   border-radius: 6px;
   border: 0.5px solid rgba(255, 255, 255, 0.15);
   background: rgba(255, 255, 255, 0.06);
@@ -919,36 +1032,59 @@
   font-size: 11px;
   font-family: Inter, sans-serif;
   cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s,
-    border-color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
+
 .settings-action-btn:hover {
   background: rgba(255, 255, 255, 0.1);
   color: #cccccc;
 }
+
 .settings-action-btn.red {
   border-color: rgba(248, 113, 113, 0.35);
   background: rgba(239, 68, 68, 0.12);
   color: #f87171;
 }
+
 .settings-action-btn.red:hover {
   background: rgba(239, 68, 68, 0.22);
   border-color: rgba(248, 113, 113, 0.5);
   color: #fca5a5;
 }
+
 .settings-action-btn.blue {
   border-color: rgba(96, 165, 250, 0.35);
   background: rgba(59, 130, 246, 0.12);
   color: #93c5fd;
 }
+
 .settings-action-btn.blue:hover {
   background: rgba(59, 130, 246, 0.22);
   border-color: rgba(96, 165, 250, 0.5);
   color: #bfdbfe;
 }
 
+.settings-action-btn.yellow {
+  border-color: rgba(245, 197, 24, 0.35);
+  background: rgba(245, 197, 24, 0.12);
+  color: #facc15;
+}
+
+.settings-action-btn.yellow:hover {
+  background: rgba(245, 197, 24, 0.22);
+  border-color: rgba(245, 197, 24, 0.5);
+  color: #fde047;
+}
+
 .settings-dialog .toggle-track.on {
   background: #3b82f6;
+}
+
+.settings-dialog .delete-actions {
+  padding: 14px 24px 18px;
+  border-top: 0.5px solid #1f1f1f;
+  margin: 0;
 }
