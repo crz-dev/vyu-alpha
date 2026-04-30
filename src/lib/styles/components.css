@@ -617,7 +617,7 @@
 .clip-actions {
   position: fixed;
   left: 50%;
-  bottom: 38px;
+  bottom: 42px;
   transform: translateX(-50%);
   z-index: 1100;
   width: min(398px, calc(100vw - 30px));
@@ -1304,7 +1304,7 @@
 .edit-menu {
   position: fixed;
   left: 50%;
-  top: 38px;
+  top: 42px;
   transform: translateX(-50%);
   z-index: 1100;
   width: min(398px, calc(100vw - 30px));
@@ -1324,7 +1324,7 @@
 .process-menu {
   position: fixed;
   left: 50%;
-  top: 38px;
+  top: 42px;
   transform: translateX(-50%);
   z-index: 1100;
   width: min(398px, calc(100vw - 30px));

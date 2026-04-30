@@ -560,7 +560,7 @@
             handleExtract();
           }}
         >
-          {compressing ? "Compressing..." : "Extract"}
+          {compressing ? "Compressing..." : "Export"}
         </button>
       </div>
 
