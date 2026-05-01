@@ -14,6 +14,7 @@
   let flashId = $state<string | null>(null);
   let isScrolling = $state(false);
   let scrollTimeout = $state<ReturnType<typeof setTimeout> | null>(null);
+  let flashTimeout = $state<ReturnType<typeof setTimeout> | null>(null);
 
   $effect(() => {
     localStorage.setItem(LAST_SECTION_KEY, activeSection);
@@ -55,12 +56,13 @@
   function scrollToSection(id: string) {
     activeSection = id;
     if (scrollTimeout) clearTimeout(scrollTimeout);
+    if (flashTimeout) clearTimeout(flashTimeout);
     isScrolling = true;
     const el = document.getElementById(`settings-section-${id}`);
     if (el && contentEl) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
       flashId = id;
-      setTimeout(() => {
+      flashTimeout = setTimeout(() => {
         if (flashId === id) flashId = null;
       }, 900);
     }

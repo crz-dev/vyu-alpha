@@ -882,7 +882,7 @@
 
 /* Nav active colors per section */
 .settings-nav-item.active {
-  font-weight: 500;
+  text-shadow: 0 0 0.5px currentColor;
 }
 .settings-nav-item::before {
   content: "";
@@ -1013,6 +1013,7 @@
   padding: 14px;
   transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  position: relative;
 }
 
 .settings-section:hover {
@@ -1020,19 +1021,35 @@
   background: #0c0c0c;
 }
 
-.settings-section.flash {
-  animation: settingsFlash 0.9s ease both;
+.settings-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.055);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.settings-section.flash::before {
+  animation: settingsFlash 0.9s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 @keyframes settingsFlash {
   0% {
-    background: rgba(255, 255, 255, 0.0);
+    opacity: 0;
   }
-  20% {
-    background: rgba(255, 255, 255, 0.06);
+  12% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 0.45;
+  }
+  55% {
+    opacity: 0.08;
   }
   100% {
-    background: rgba(255, 255, 255, 0.0);
+    opacity: 0;
   }
 }
 
@@ -1361,4 +1378,325 @@
 .settings-dialog .delete-actions .settings-action-btn:hover {
   background: #1a1a1a;
   color: #cccccc;
+}
+
+/* Accessibility dialog */
+.accessibility-dialog {
+  width: 620px;
+  max-width: calc(100vw - 32px);
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.accessibility-dialog .delete-actions {
+  padding: 12px 20px 16px;
+  border-top: 0.5px solid #1f1f1f;
+  margin: 0;
+  justify-content: space-between;
+}
+
+.accessibility-dialog .delete-actions .delete-cancel {
+  padding: 7px 16px;
+  border-radius: 7px;
+  border: 0.5px solid #2a2a2a;
+  background: #1a1a1a;
+  color: #888888;
+  font-size: 12px;
+  font-family: Inter, sans-serif;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.accessibility-dialog .delete-actions .delete-cancel:hover {
+  background: #1a1a1a;
+  color: #cccccc;
+}
+
+/* Accessibility nav active colors */
+.settings-nav-item[data-section="vision"].active {
+  background: rgba(168, 85, 247, 0.12);
+  color: #c084fc;
+}
+.settings-nav-item[data-section="vision"].active::before {
+  background: #a855f7;
+}
+
+.settings-nav-item[data-section="hearing"].active {
+  background: rgba(6, 182, 212, 0.12);
+  color: #67e8f9;
+}
+.settings-nav-item[data-section="hearing"].active::before {
+  background: #06b6d4;
+}
+
+.settings-nav-item[data-section="motor"].active {
+  background: rgba(249, 115, 22, 0.12);
+  color: #fdba74;
+}
+.settings-nav-item[data-section="motor"].active::before {
+  background: #f97316;
+}
+
+.settings-nav-item[data-section="cognitive"].active {
+  background: rgba(236, 72, 153, 0.12);
+  color: #f9a8d4;
+}
+.settings-nav-item[data-section="cognitive"].active::before {
+  background: #ec4899;
+}
+
+/* Accessibility section header colors - Purple (Vision) */
+#accessibility-section-vision .settings-section-header {
+  background: rgba(168, 85, 247, 0.08);
+  border-color: rgba(168, 85, 247, 0.18);
+  color: #c084fc;
+}
+#accessibility-section-vision .settings-section-header svg {
+  color: #c084fc;
+}
+
+/* Accessibility section header colors - Cyan (Hearing) */
+#accessibility-section-hearing .settings-section-header {
+  background: rgba(6, 182, 212, 0.08);
+  border-color: rgba(6, 182, 212, 0.18);
+  color: #67e8f9;
+}
+#accessibility-section-hearing .settings-section-header svg {
+  color: #67e8f9;
+}
+
+/* Accessibility section header colors - Orange (Motor) */
+#accessibility-section-motor .settings-section-header {
+  background: rgba(249, 115, 22, 0.08);
+  border-color: rgba(249, 115, 22, 0.18);
+  color: #fdba74;
+}
+#accessibility-section-motor .settings-section-header svg {
+  color: #fdba74;
+}
+
+/* Accessibility section header colors - Pink (Cognitive) */
+#accessibility-section-cognitive .settings-section-header {
+  background: rgba(236, 72, 153, 0.08);
+  border-color: rgba(236, 72, 153, 0.18);
+  color: #f9a8d4;
+}
+#accessibility-section-cognitive .settings-section-header svg {
+  color: #f9a8d4;
+}
+
+/* Accessibility pill active colors - Purple */
+#accessibility-section-vision .pill-btn.active {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+}
+
+/* Accessibility pill active colors - Cyan */
+#accessibility-section-hearing .pill-btn.active {
+  background: rgba(6, 182, 212, 0.2);
+  color: #67e8f9;
+}
+
+/* Accessibility pill active colors - Orange */
+#accessibility-section-motor .pill-btn.active {
+  background: rgba(249, 115, 22, 0.2);
+  color: #fdba74;
+}
+
+/* Accessibility pill active colors - Pink */
+#accessibility-section-cognitive .pill-btn.active {
+  background: rgba(236, 72, 153, 0.2);
+  color: #f9a8d4;
+}
+
+/* Accessibility toggle colors - Purple */
+#accessibility-section-vision .toggle-track.on {
+  background: #a855f7;
+}
+
+/* Accessibility toggle colors - Cyan */
+#accessibility-section-hearing .toggle-track.on {
+  background: #06b6d4;
+}
+
+/* Accessibility toggle colors - Orange */
+#accessibility-section-motor .toggle-track.on {
+  background: #f97316;
+}
+
+/* Accessibility toggle colors - Pink */
+#accessibility-section-cognitive .toggle-track.on {
+  background: #ec4899;
+}
+
+/* Accessibility dialog footer buttons match close button */
+.accessibility-dialog .delete-actions .settings-action-btn {
+  padding: 7px 16px;
+  border-radius: 7px;
+  border: 0.5px solid #2a2a2a;
+  background: #1a1a1a;
+  color: #888888;
+  font-size: 12px;
+  font-family: Inter, sans-serif;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  gap: 6px;
+  min-width: 0;
+}
+.accessibility-dialog .delete-actions .settings-action-btn:hover {
+  background: #1a1a1a;
+  color: #cccccc;
+}
+
+/* Slider controls in accessibility settings */
+.settings-slider-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 160px;
+}
+
+.settings-slider-control input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 120px;
+  height: 4px;
+  background: #2a2a2a;
+  border-radius: 2px;
+  outline: none;
+}
+
+.settings-slider-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #cccccc;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.settings-slider-control input[type="range"]::-webkit-slider-thumb:hover {
+  background: #ffffff;
+  transform: scale(1.1);
+}
+
+.settings-slider-value {
+  font-size: 11px;
+  color: #888888;
+  font-family: Inter, sans-serif;
+  min-width: 32px;
+  text-align: right;
+}
+
+/* Profile button wrap */
+.profile-btn-wrap {
+  position: relative;
+}
+
+/* Profile dropdown */
+.profile-dropdown {
+  background: #111111;
+  border: 0.5px solid #2a2a2a;
+  border-radius: 10px;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 160px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+  z-index: 9999;
+  animation: uiMenuPopIn 170ms cubic-bezier(0.22, 0.9, 0.3, 1) both;
+  /* tweak these two values to move the menu around */
+  transform: translate(-12px, -80px);
+}
+
+.profile-dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  border-radius: 7px;
+  color: #aaaaaa;
+  font-size: 11px;
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  user-select: none;
+}
+
+.profile-dropdown-header svg {
+  color: #a855f7;
+  flex-shrink: 0;
+}
+
+.profile-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #888888;
+  font-size: 11px;
+  font-family: Inter, sans-serif;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, color 0.15s;
+}
+
+.profile-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #cccccc;
+}
+
+.profile-dropdown-item.active {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+}
+
+.profile-dropdown-item.save {
+  color: #a855f7;
+}
+
+.profile-dropdown-item.save:hover {
+  background: rgba(168, 85, 247, 0.12);
+  color: #c084fc;
+}
+
+.profile-check {
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+.profile-dropdown-item.active .profile-check {
+  opacity: 1;
+}
+
+.profile-dropdown-separator {
+  height: 0.5px;
+  background: #2a2a2a;
+  margin: 2px 4px;
+}
+
+.profile-dropdown-input {
+  background: #0a0a0a;
+  border: 0.5px solid #2a2a2a;
+  border-radius: 6px;
+  color: #cccccc;
+  font-size: 11px;
+  font-family: Inter, sans-serif;
+  padding: 6px 9px;
+  outline: none;
+  margin: 2px 4px;
+}
+
+.profile-dropdown-input::placeholder {
+  color: #555555;
+}
+
+.profile-dropdown-input:focus {
+  border-color: #a855f7;
 }

@@ -86,6 +86,7 @@
   import ProcessMenu from "$lib/ui/processMenu.svelte";
   import CropOverlay from "$lib/ui/cropOverlay.svelte";
   import SettingsDialog from "$lib/ui/settingsDialog.svelte";
+  import AccessibilityDialog from "$lib/ui/accessibilityDialog.svelte";
 
   let filePath = $state("");
   let fileSrc = $state("");
@@ -200,6 +201,7 @@
   let slideshowMenuVisible = $state(false);
   let appDropdownVisible = $state(false);
   let settingsOpen = $state(false);
+  let accessibilityOpen = $state(false);
   let tsMenuOpen = $state(false);
   let brightness = $state(1);
   let contrast = $state(1);
@@ -344,6 +346,7 @@
       editMenuVisible ||
       processMenuVisible ||
       settingsOpen ||
+      accessibilityOpen ||
       tsEditMenu.visible ||
       deleteConfirm ||
       propertiesOpen ||
@@ -1281,7 +1284,8 @@
       processMenuVisible ||
       slideshowMenuVisible ||
       appDropdownVisible ||
-      settingsOpen,
+      settingsOpen ||
+      accessibilityOpen,
     closeDialogs: () => {
       contextMenu.visible = false;
       deleteConfirm = false;
@@ -1291,6 +1295,7 @@
       slideshowMenuVisible = false;
       appDropdownVisible = false;
       settingsOpen = false;
+      accessibilityOpen = false;
     },
     navigateToEdge,
     navigate,
@@ -1832,6 +1837,7 @@
     onToggleDropdown={() => (appDropdownVisible = !appDropdownVisible)}
     onCloseDropdown={() => (appDropdownVisible = false)}
     onOpenSettings={() => (settingsOpen = true)}
+    onOpenAccessibility={() => (accessibilityOpen = true)}
   />
 
   <div class="content">
@@ -2324,6 +2330,7 @@
   />
 
   <SettingsDialog {settingsOpen} closeSettings={() => (settingsOpen = false)} />
+  <AccessibilityDialog {accessibilityOpen} closeAccessibility={() => (accessibilityOpen = false)} />
 
   <Tooltip
     {tsTooltip}
