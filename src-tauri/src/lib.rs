@@ -2,7 +2,9 @@ use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tauri::{Listener, Manager, PhysicalPosition, PhysicalSize, Position, Size, WindowEvent};
 
 #[derive(serde::Serialize)]
@@ -52,13 +54,17 @@ fn load_window_state(app: &tauri::AppHandle) -> Option<SavedWindowState> {
     serde_json::from_str(&contents).ok()
 }
 
-fn persist_window_state(window: &tauri::WebviewWindow) {
+fn persist_window_state(window: &tauri::WebviewWindow, skip: &Arc<AtomicBool>) {
+    if skip.load(Ordering::Relaxed) {
+        return;
+    }
+
     let Some(path) = window_state_path(&window.app_handle()) else {
         return;
     };
 
     let maximized = window.is_maximized().unwrap_or(false);
-    let Ok(size) = window.outer_size() else { return };
+    let Ok(size) = window.inner_size() else { return };
 
     let (x, y) = if maximized {
         (0, 0)
@@ -84,8 +90,11 @@ fn persist_window_state(window: &tauri::WebviewWindow) {
     }
 }
 
-fn restore_window_state(window: &tauri::WebviewWindow) {
+fn restore_window_state(window: &tauri::WebviewWindow, skip: &Arc<AtomicBool>) {
+    skip.store(true, Ordering::Relaxed);
+
     let Some(state) = load_window_state(&window.app_handle()) else {
+        skip.store(false, Ordering::Relaxed);
         return;
     };
 
@@ -116,6 +125,8 @@ fn restore_window_state(window: &tauri::WebviewWindow) {
             ));
         }
     }
+
+    skip.store(false, Ordering::Relaxed);
 }
 
 fn format_clip_tag(seconds: f64) -> String {
@@ -478,17 +489,37 @@ pub fn run() {
         .setup(|app| {
             let args: Vec<String> = std::env::args().collect();
             let window = app.get_webview_window("main").unwrap();
-            restore_window_state(&window);
+
+            let skip_save = Arc::new(AtomicBool::new(false));
+
+            restore_window_state(&window, &skip_save);
+
             let window_for_events = window.clone();
+            let skip_for_events = skip_save.clone();
+            let last_save = Arc::new(Mutex::new(Instant::now() - Duration::from_secs(60)));
+
             window.on_window_event(move |event| {
-                if matches!(event, WindowEvent::Moved(_) | WindowEvent::Resized(_)) {
-                    persist_window_state(&window_for_events);
+                match event {
+                    WindowEvent::Moved(_) | WindowEvent::Resized(_) => {
+                        let mut last = last_save.lock().unwrap();
+                        if last.elapsed() > Duration::from_millis(300) {
+                            persist_window_state(&window_for_events, &skip_for_events);
+                            *last = Instant::now();
+                        }
+                    }
+                    WindowEvent::CloseRequested { .. } => {
+                        persist_window_state(&window_for_events, &skip_for_events);
+                    }
+                    _ => {}
                 }
             });
+
             let window_for_close = window.clone();
+            let skip_for_close = skip_save.clone();
             app.listen("tauri://close-requested", move |_event| {
-                persist_window_state(&window_for_close);
+                persist_window_state(&window_for_close, &skip_for_close);
             });
+
             if args.len() > 1 {
                 let file_path = args[1].clone();
                 window.eval(&format!(
