@@ -296,9 +296,7 @@
           stroke-linecap="round"
           stroke-linejoin="round"
         >
-          <circle cx="8.5" cy="6.5" r="2.5" />
-          <path d="M10 8L15.5 13.5" />
-          <path d="M17 12L14 15" />
+          <path d="M16 9L12 22L8 9C8 5 16 5 16 9" />
         </svg>
       </button>
       <span class="ctx-dot"></span><span class="ctx-dot"></span><span
