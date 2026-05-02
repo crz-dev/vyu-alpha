@@ -1698,14 +1698,24 @@
 
   function handleGlobalMouseDown(e: MouseEvent) {
     const target = e.target as HTMLElement;
-    if (contextMenu.visible && !target.closest(".context-menu"))
+    if (
+      contextMenu.visible &&
+      !target.closest(".context-menu") &&
+      !document.querySelector(".context-menu.pinned")
+    )
       closeContextMenu();
-    if (editMenuVisible && e.button === 2 && !target.closest(".edit-menu"))
+    if (
+      editMenuVisible &&
+      e.button === 2 &&
+      !target.closest(".edit-menu") &&
+      !document.querySelector(".edit-menu.pinned")
+    )
       closeEditMenu();
     if (
       processMenuVisible &&
       e.button === 2 &&
-      !target.closest(".process-menu")
+      !target.closest(".process-menu") &&
+      !document.querySelector(".process-menu.pinned")
     )
       closeProcessMenu();
     if (

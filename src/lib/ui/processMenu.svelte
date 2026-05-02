@@ -55,6 +55,7 @@
   let compressing = $state(false);
   let compressError = $state("");
   let compressOutputPath = $state<string | null>(null);
+  let pinned = $state(false);
 
   const videoFormats = ["MP4", "WebM", "MKV", "GIF"];
   const imageFormats = ["PNG", "JPG", "WebP", "GIF"];
@@ -107,6 +108,7 @@
       compressing = false;
       compressError = "";
       compressOutputPath = null;
+      pinned = false;
     }
   });
 
@@ -223,6 +225,7 @@
 {#if visible}
   <div
     class="process-menu"
+    class:pinned={pinned}
     role="dialog"
     aria-label="Process menu"
     tabindex="-1"
@@ -270,11 +273,38 @@
         window.addEventListener("mouseup", onMouseUp);
       }}
     >
+      <button
+        class="ctx-pin tooltip-below"
+        class:active={pinned}
+        data-tooltip="Pin"
+        onclick={(e) => {
+          e.stopPropagation();
+          pinned = !pinned;
+        }}
+        onmousedown={(e) => e.stopPropagation()}
+        aria-label={pinned ? "Unpin" : "Pin"}
+      >
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="8.5" cy="6.5" r="2.5" />
+          <path d="M10 8L15.5 13.5" />
+          <path d="M17 12L14 15" />
+        </svg>
+      </button>
       <span class="ctx-dot"></span><span class="ctx-dot"></span><span
         class="ctx-dot"
       ></span>
       <button
-        class="ctx-close"
+        class="ctx-close tooltip-below"
+        data-tooltip="Close"
         onclick={(e) => {
           e.stopPropagation();
           onClose();

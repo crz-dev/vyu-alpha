@@ -46,11 +46,13 @@
   let localContrast = $state(1);
   let localSaturation = $state(1);
   let localHue = $state(0);
+  let pinned = $state(false);
 
   $effect(() => {
     if (!visible) {
       colorRowOpen = false;
       activeColorTool = null;
+      pinned = false;
     }
   });
 
@@ -238,6 +240,7 @@
 {#if visible}
   <div
     class="edit-menu"
+    class:pinned={pinned}
     transition:fly={{ y: -26, duration: 190, opacity: 0.08 }}
   >
     <div
@@ -272,11 +275,38 @@
         window.addEventListener("mouseup", onMouseUp);
       }}
     >
+      <button
+        class="ctx-pin tooltip-below"
+        class:active={pinned}
+        data-tooltip="Pin"
+        onclick={(e) => {
+          e.stopPropagation();
+          pinned = !pinned;
+        }}
+        onmousedown={(e) => e.stopPropagation()}
+        aria-label={pinned ? "Unpin" : "Pin"}
+      >
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="8.5" cy="6.5" r="2.5" />
+          <path d="M10 8L15.5 13.5" />
+          <path d="M17 12L14 15" />
+        </svg>
+      </button>
       <span class="ctx-dot"></span><span class="ctx-dot"></span><span
         class="ctx-dot"
       ></span>
       <button
-        class="ctx-close"
+        class="ctx-close tooltip-below"
+        data-tooltip="Close"
         onclick={(e) => {
           e.stopPropagation();
           onClose();

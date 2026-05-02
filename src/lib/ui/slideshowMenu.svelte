@@ -62,7 +62,10 @@
   }
 
   function handleWindowMouseDown(e: MouseEvent) {
-    if (visible && !(e.target as HTMLElement).closest(".slideshow-menu")) {
+    if (
+      visible &&
+      !(e.target as HTMLElement).closest(".slideshow-menu")
+    ) {
       onClose();
     }
   }
@@ -78,71 +81,29 @@
     class="slideshow-menu"
     transition:fly={{ y: 10, duration: 150, opacity: 0.08 }}
   >
-    <div
-      class="ctx-drag"
-      role="button"
-      tabindex="0"
-      aria-label="Drag to move"
-      onmousedown={(e) => {
-        e.preventDefault();
-        const menu = (e.currentTarget as HTMLElement).closest(
-          ".slideshow-menu",
-        ) as HTMLElement;
-        if (!menu) return;
-        const startX = e.clientX;
-        const startY = e.clientY;
-        const rect = menu.getBoundingClientRect();
-        const startLeft = rect.left;
-        const startTop = rect.top;
-
-        function onMouseMove(ev: MouseEvent) {
-          menu.style.left = `${startLeft + ev.clientX - startX}px`;
-          menu.style.top = `${startTop + ev.clientY - startY}px`;
-          menu.style.bottom = "auto";
-          menu.style.height = "fit-content";
-          menu.style.transform = "none";
-        }
-
-        function onMouseUp() {
-          window.removeEventListener("mousemove", onMouseMove);
-          window.removeEventListener("mouseup", onMouseUp);
-        }
-
-        window.addEventListener("mousemove", onMouseMove);
-        window.addEventListener("mouseup", onMouseUp);
-      }}
-    >
-      <span class="ctx-dot"></span><span class="ctx-dot"></span><span
-        class="ctx-dot"
-      ></span>
-      <button
-        class="ctx-close"
-        onclick={(e) => {
-          e.stopPropagation();
-          onClose();
-        }}
-        onmousedown={(e) => e.stopPropagation()}
-        aria-label="Close"
+    <div class="slideshow-header-bar">
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
       >
-        <svg
-          width="10"
-          height="10"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.5"
-          stroke-linecap="round"
-        >
-          <path d="M18 6L6 18M6 6l12 12" />
-        </svg>
-      </button>
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+        <line x1="8" y1="21" x2="16" y2="21" />
+        <line x1="12" y1="17" x2="12" y2="21" />
+      </svg>
+      <p class="delete-title">Slideshow</p>
     </div>
 
     <div class="slideshow-section interval-section">
-      <span class="slideshow-label">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        Interval
-      </span>
+        <span class="slideshow-label">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Interval
+        </span>
       <div
         class="color-slider-track"
         bind:this={trackEl}
@@ -199,6 +160,7 @@
         {/if}
       </div>
     </div>
+    <div class="slideshow-sep"></div>
 
     <div class="slideshow-section">
       <span class="slideshow-label">
@@ -224,6 +186,7 @@
         </button>
       </div>
     </div>
+    <div class="slideshow-sep"></div>
 
     <div class="slideshow-section">
       <span class="slideshow-label">
@@ -236,7 +199,7 @@
           class:active={slideshow.videoMode === "skip"}
           onclick={() => (slideshow.videoMode = "skip")}
         >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="17" y1="5" x2="17" y2="19"/><line x1="21" y1="5" x2="21" y2="19"/></svg>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8l4 4-4 4"/><path d="M8 12h8"/></svg>
           Skip
         </button>
         <button
@@ -249,10 +212,11 @@
         </button>
       </div>
     </div>
+    <div class="slideshow-sep"></div>
 
     <div class="slideshow-section">
       <span class="slideshow-label">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 12 22 17"/><polyline points="2 12 12 7 22 12"/></svg>
         Transition
       </span>
       <div class="slideshow-toggle-row three">
@@ -269,7 +233,7 @@
           class:active={slideshow.transition === "fade"}
           onclick={() => (slideshow.transition = "fade")}
         >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16a4 4 0 100-8 4 4 0 000 8z"/></svg>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2l3.09 8.26L21 12l-8.26 3.09L12 22l-3.09-8.26L3 12l8.26-3.09z"/></svg>
           Fade
         </button>
         <button
@@ -277,11 +241,12 @@
           class:active={slideshow.transition === "slide"}
           onclick={() => (slideshow.transition = "slide")}
         >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M9 12h6"/><path d="M13 8l4 4-4 4"/></svg>
           Slide
         </button>
       </div>
     </div>
+    <div class="slideshow-sep"></div>
 
     <div class="slideshow-actions" class:two={slideshow.active}>
       {#if !slideshow.active}

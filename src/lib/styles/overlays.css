@@ -18,7 +18,7 @@
   align-items: center;
   justify-content: center;
   gap: 3px;
-  padding: 6px 22px 6px 4px;
+  padding: 6px 4px;
   cursor: grab;
   user-select: none;
   border-radius: 6px;
@@ -64,6 +64,40 @@
 .ctx-close:hover {
   color: #ef4444;
   background: rgba(239, 68, 68, 0.12);
+}
+.ctx-pin {
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  color: #666;
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+  padding: 0;
+  transition:
+    color 0.12s,
+    background 0.12s;
+  z-index: 1;
+}
+.ctx-pin:hover {
+  color: #facc15;
+  background: rgba(245, 197, 24, 0.12);
+}
+.ctx-pin.active {
+  color: #facc15;
+}
+.ctx-pin[data-tooltip],
+.ctx-close[data-tooltip] {
+  position: absolute;
 }
 .ctx-item {
   display: flex;

@@ -138,11 +138,20 @@
     updateDeletePermanently: (v: boolean) => void;
     onClose: () => void;
   } = $props();
+
+  let pinned = $state(false);
+
+  $effect(() => {
+    if (!contextMenu.visible) {
+      pinned = false;
+    }
+  });
 </script>
 
 {#if contextMenu.visible}
   <div
     class="context-menu"
+    class:pinned={pinned}
     style="left: {contextMenu.x}px; top: {contextMenu.y}px;"
     role="menu"
   >
@@ -172,11 +181,38 @@
         window.addEventListener("mouseup", onMouseUp);
       }}
     >
+      <button
+        class="ctx-pin tooltip-below"
+        class:active={pinned}
+        data-tooltip="Pin"
+        onclick={(e) => {
+          e.stopPropagation();
+          pinned = !pinned;
+        }}
+        onmousedown={(e) => e.stopPropagation()}
+        aria-label={pinned ? "Unpin" : "Pin"}
+      >
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="8.5" cy="6.5" r="2.5" />
+          <path d="M10 8L15.5 13.5" />
+          <path d="M17 12L14 15" />
+        </svg>
+      </button>
       <span class="ctx-dot"></span><span class="ctx-dot"></span><span
         class="ctx-dot"
       ></span>
       <button
-        class="ctx-close"
+        class="ctx-close tooltip-below"
+        data-tooltip="Close"
         onclick={(e) => {
           e.stopPropagation();
           onClose();
@@ -768,7 +804,6 @@
         <div>
           <p class="delete-title">Properties</p>
           <p class="delete-subtitle">{fileName}</p>
-          <p class="props-hint">Click on a property to copy it</p>
         </div>
       </div>
       <div class="props-list">
