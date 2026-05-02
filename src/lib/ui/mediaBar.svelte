@@ -94,9 +94,7 @@
         onClose={closeSlideshowMenu}
       />
     </div>
-    <span
-      class="file-count tooltip-above"
-      data-tooltip="File position"
+    <span class="file-count tooltip-above" data-tooltip="File position"
       >{fileListLength > 0
         ? `${currentIndex + 1} / ${fileListLength}`
         : "—"}</span

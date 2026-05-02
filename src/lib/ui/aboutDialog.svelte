@@ -35,8 +35,8 @@
         </div>
 
         <p class="about-desc">
-          A fast, minimal media viewer built for creators who want to browse
-          images and videos without the bloat.
+          A modern media viewer that prioritizes speed, privacy, and a seamless
+          viewing experience
         </p>
 
         <!-- Supported formats panel -->

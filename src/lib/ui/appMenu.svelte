@@ -92,7 +92,15 @@
     >
       vyu
     </button>
-    <AppDropdownMenu visible={dropdownVisible} onClose={onCloseDropdown} {onOpenSettings} {onOpenAccessibility} {onOpenHelp} {onOpenAbout} {onOpenFeedback} />
+    <AppDropdownMenu
+      visible={dropdownVisible}
+      onClose={onCloseDropdown}
+      {onOpenSettings}
+      {onOpenAccessibility}
+      {onOpenHelp}
+      {onOpenAbout}
+      {onOpenFeedback}
+    />
   </div>
   <span class="divider">/</span>
   {#if editing}

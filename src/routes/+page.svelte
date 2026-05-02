@@ -2346,7 +2346,10 @@
   />
 
   <SettingsDialog {settingsOpen} closeSettings={() => (settingsOpen = false)} />
-  <AccessibilityDialog {accessibilityOpen} closeAccessibility={() => (accessibilityOpen = false)} />
+  <AccessibilityDialog
+    {accessibilityOpen}
+    closeAccessibility={() => (accessibilityOpen = false)}
+  />
   <HelpDialog {helpOpen} closeHelp={() => (helpOpen = false)} />
   <AboutDialog {aboutOpen} closeAbout={() => (aboutOpen = false)} />
   <FeedbackDialog {feedbackOpen} closeFeedback={() => (feedbackOpen = false)} />

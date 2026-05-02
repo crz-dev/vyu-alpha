@@ -280,8 +280,7 @@
                 stroke="currentColor"
                 stroke-width="2"
                 stroke-linecap="round"
-                stroke-linejoin="round"
-                ><circle cx="12" cy="12" r="3" /></svg
+                stroke-linejoin="round"><circle cx="12" cy="12" r="3" /></svg
               >
             {/if}
             {p}
@@ -2738,7 +2737,11 @@
       <div class="delete-actions">
         <div class="settings-footer-left">
           <div class="profile-btn-wrap">
-            <button class="settings-action-btn" bind:this={profileBtnEl} onclick={toggleProfileMenu}>
+            <button
+              class="settings-action-btn"
+              bind:this={profileBtnEl}
+              onclick={toggleProfileMenu}
+            >
               <svg
                 width="12"
                 height="12"

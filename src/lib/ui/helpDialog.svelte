@@ -314,7 +314,9 @@
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  ><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg
+                  ><polygon
+                    points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
+                  /></svg
                 >
               {:else if sec.id === "keybinds"}
                 <svg
@@ -326,7 +328,14 @@
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  ><rect x="2" y="4" width="20" height="16" rx="2" ry="2" /><path
+                  ><rect
+                    x="2"
+                    y="4"
+                    width="20"
+                    height="16"
+                    rx="2"
+                    ry="2"
+                  /><path
                     d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"
                   /></svg
                 >
@@ -340,7 +349,8 @@
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  ><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                  ><path
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
                   /></svg
                 >
               {:else if sec.id === "troubleshooting"}
@@ -353,7 +363,12 @@
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  ><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg
+                  ><circle cx="12" cy="12" r="10" /><line
+                    x1="12"
+                    y1="8"
+                    x2="12"
+                    y2="12"
+                  /><line x1="12" y1="16" x2="12.01" y2="16" /></svg
                 >
               {/if}
               {sec.label}
@@ -390,23 +405,29 @@
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                ><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg
+                ><polygon
+                  points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
+                /></svg
               >
               Quick start
             </p>
             <div class="settings-row help-text-row">
               <div class="help-text">
                 <p>
-                  <strong>Open a file</strong> — Click the folder icon in the top bar or press <span class="help-kbd-inline">Ctrl+O</span>.
+                  <strong>Open a file</strong> — Click the folder icon in the
+                  top bar or press <span class="help-kbd-inline">Ctrl+O</span>.
                 </p>
                 <p>
-                  <strong>Navigate</strong> — Use the arrow buttons or keyboard shortcuts to move between files in the same folder.
+                  <strong>Navigate</strong> — Use the arrow buttons or keyboard shortcuts
+                  to move between files in the same folder.
                 </p>
                 <p>
-                  <strong>Fullscreen</strong> — Double-click the viewer or press <span class="help-kbd-inline">F</span>.
+                  <strong>Fullscreen</strong> — Double-click the viewer or press
+                  <span class="help-kbd-inline">F</span>.
                 </p>
                 <p>
-                  <strong>Zoom & Pan</strong> — Scroll to zoom, click and drag to pan when zoomed in.
+                  <strong>Zoom & Pan</strong> — Scroll to zoom, click and drag to
+                  pan when zoomed in.
                 </p>
               </div>
             </div>
@@ -455,7 +476,9 @@
             <div class="settings-row keybind-reset-row">
               <div class="settings-label-col">
                 <div class="settings-label-text">
-                  <span class="settings-hint">Restore all shortcuts to defaults</span>
+                  <span class="settings-hint"
+                    >Restore all shortcuts to defaults</span
+                  >
                 </div>
               </div>
               <div class="settings-control">
@@ -498,7 +521,8 @@
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                ><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                ><path
+                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
                 /></svg
               >
               Tips
@@ -506,19 +530,25 @@
             <div class="settings-row help-text-row">
               <div class="help-text">
                 <p>
-                  <strong>Slideshow mode</strong> — Enable automatic playback through a folder with custom timing.
+                  <strong>Slideshow mode</strong> — Enable automatic playback through
+                  a folder with custom timing.
                 </p>
                 <p>
-                  <strong>Timestamps</strong> — Press <span class="help-kbd-inline">T</span> while a video is playing to mark a moment.
+                  <strong>Timestamps</strong> — Press
+                  <span class="help-kbd-inline">T</span> while a video is playing
+                  to mark a moment.
                 </p>
                 <p>
-                  <strong>Crop tool</strong> — Enter crop mode in the Edit menu to export a cropped region.
+                  <strong>Crop tool</strong> — Enter crop mode in the Edit menu to
+                  export a cropped region.
                 </p>
                 <p>
-                  <strong>Drag & drop</strong> — Drop a file directly onto the window to open it instantly.
+                  <strong>Drag & drop</strong> — Drop a file directly onto the window
+                  to open it instantly.
                 </p>
                 <p>
-                  <strong>Clipboard paste</strong> — Paste an image from your clipboard to view it without saving.
+                  <strong>Clipboard paste</strong> — Paste an image from your clipboard
+                  to view it without saving.
                 </p>
               </div>
             </div>
@@ -540,26 +570,36 @@
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                ><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg
+                ><circle cx="12" cy="12" r="10" /><line
+                  x1="12"
+                  y1="8"
+                  x2="12"
+                  y2="12"
+                /><line x1="12" y1="16" x2="12.01" y2="16" /></svg
               >
               Troubleshooting
             </p>
             <div class="settings-row help-text-row">
               <div class="help-text">
                 <p>
-                  <strong>Video won't play?</strong> — Make sure the file is a supported format (MP4, MKV, WebM, MOV).
+                  <strong>Video won't play?</strong> — Make sure the file is a supported
+                  format (MP4, MKV, WebM, MOV).
                 </p>
                 <p>
-                  <strong>No audio?</strong> — Check that the volume is up and the file contains an audio track.
+                  <strong>No audio?</strong> — Check that the volume is up and the
+                  file contains an audio track.
                 </p>
                 <p>
-                  <strong>FFmpeg missing?</strong> — Install FFmpeg via the prompt in Properties or Process menus for advanced features.
+                  <strong>FFmpeg missing?</strong> — Install FFmpeg via the prompt
+                  in Properties or Process menus for advanced features.
                 </p>
                 <p>
-                  <strong>Performance issues?</strong> — Try disabling hardware acceleration in Settings > System.
+                  <strong>Performance issues?</strong> — Try disabling hardware acceleration
+                  in Settings > System.
                 </p>
                 <p>
-                  <strong>Shortcuts not working?</strong> — Make sure you are not focused on a text field or menu.
+                  <strong>Shortcuts not working?</strong> — Make sure you are not
+                  focused on a text field or menu.
                 </p>
               </div>
             </div>
@@ -609,10 +649,7 @@
             >
             Import Keybinds
           </button>
-          <button
-            class="settings-action-btn"
-            onclick={exportHelpSettings}
-          >
+          <button class="settings-action-btn" onclick={exportHelpSettings}>
             <svg
               width="12"
               height="12"

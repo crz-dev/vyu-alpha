@@ -30,7 +30,8 @@ export function showFloatingTooltip(
   requestAnimationFrame(() => {
     if (!tip) return;
     const tipRect = tip.getBoundingClientRect();
-    const centeredLeft = anchorRect.left + anchorRect.width / 2 - tipRect.width / 2;
+    const centeredLeft =
+      anchorRect.left + anchorRect.width / 2 - tipRect.width / 2;
     tip.style.left = `${centeredLeft}px`;
   });
 }
