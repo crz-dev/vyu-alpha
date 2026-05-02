@@ -1450,9 +1450,9 @@
     closeContextMenu();
     try {
       await copyImageToClipboard(fileSrc);
-      showImageCopyToast("Image copied to Clipboard.", "success");
+      showImageCopyToast("Image copied to Clipboard", "success");
     } catch {
-      showImageCopyToast("Failed to copy image.", "error");
+      showImageCopyToast("Failed to copy image", "error");
     }
   }
 
@@ -1461,7 +1461,7 @@
     if (!videoEl) return;
     try {
       await copyFrameToClipboard(videoEl);
-      showFrameCopyToast("Current frame copied as PNG.", "success");
+      showFrameCopyToast("Current frame copied as PNG", "success");
     } catch (err) {
       console.error("Failed to copy current frame to clipboard:", err);
       const message =
@@ -1469,7 +1469,7 @@
           ? "Frame copy blocked by canvas security (cross-origin source)."
           : err instanceof Error
             ? err.message
-            : "Could not copy frame to clipboard.";
+            : "Could not copy frame to clipboard";
       showFrameCopyToast(message, "error");
     }
   }
@@ -1478,9 +1478,9 @@
     closeContextMenu();
     try {
       await copyPathToClipboard(filePath);
-      showFrameCopyToast("Copied file path.", "success");
+      showFrameCopyToast("Copied file path", "success");
     } catch {
-      showFrameCopyToast("Failed to copy file path.", "error");
+      showFrameCopyToast("Failed to copy file path", "error");
     }
   }
   function ctxRotate() {
@@ -1525,7 +1525,7 @@
         bounds.right === 0 &&
         bounds.bottom === 0)
     ) {
-      showFrameCopyToast("No crop applied.", "error");
+      showFrameCopyToast("No crop applied", "error");
       return;
     }
 
@@ -1552,7 +1552,7 @@
     try {
       if (isVideo) {
         if (!videoEl || videoEl.videoWidth <= 0 || videoEl.videoHeight <= 0) {
-          throw new Error("Video not ready for export.");
+          throw new Error("Video not ready for export");
         }
         await invokeExportCroppedMedia(
           filePath,
@@ -1576,7 +1576,7 @@
     } catch (err) {
       console.error("Export failed:", err);
       const message =
-        err instanceof Error ? err.message : "Failed to export file.";
+        err instanceof Error ? err.message : "Failed to export file";
       exportToast = { visible: true, phase: "error", message, outputPath };
     }
   }
@@ -1610,9 +1610,9 @@
   async function propsCopyPath() {
     try {
       await copyPathToClipboard(filePath);
-      showFrameCopyToast("Copied file path.", "info");
+      showFrameCopyToast("Copied file path", "info");
     } catch {
-      showFrameCopyToast("Failed to copy file path.", "error");
+      showFrameCopyToast("Failed to copy file path", "error");
     }
   }
 
@@ -1637,9 +1637,9 @@
         parentFolder(),
         mediaProps,
       );
-      showFrameCopyToast("Copied properties.", "info");
+      showFrameCopyToast("Copied all properties", "info");
     } catch {
-      showFrameCopyToast("Failed to copy properties.", "error");
+      showFrameCopyToast("Failed to copy properties", "error");
     }
   }
 
@@ -1661,13 +1661,11 @@
       if (deletePermanently) await invokeDeleteFile(pathToDelete);
       else await invokeTrashFile(pathToDelete);
       showFrameCopyToast(
-        deletePermanently
-          ? "File deleted permanently."
-          : "File moved to trash.",
+        deletePermanently ? "File deleted permanently" : "File moved to trash",
         "error",
       );
     } catch {
-      showFrameCopyToast("Failed to delete file.", "error");
+      showFrameCopyToast("Failed to delete file", "error");
     }
     const remaining = prevList.filter((p) => p !== pathToDelete);
     if (remaining.length > 0) {

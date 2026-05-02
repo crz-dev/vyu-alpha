@@ -222,7 +222,10 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 4px 0;
+  padding: 12px;
+  background: #0a0a0a;
+  border: 0.5px solid #1c1c1c;
+  border-radius: 10px;
 }
 .toggle-row {
   display: flex;
@@ -312,10 +315,10 @@
   display: flex;
   flex-direction: column;
   gap: 7px;
-  border: 0.5px solid #2a2a2a;
-  border-radius: 8px;
-  padding: 10px;
-  background: #111111;
+  border: 0.5px solid #1c1c1c;
+  border-radius: 10px;
+  padding: 12px;
+  background: #0a0a0a;
 }
 .props-row {
   display: flex;
@@ -323,11 +326,18 @@
   gap: 10px;
 }
 .props-k {
-  width: 86px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100px;
   flex-shrink: 0;
   font-size: 11px;
   color: #888888;
   font-family: Inter, sans-serif;
+}
+.props-k svg {
+  color: #555555;
+  flex-shrink: 0;
 }
 .props-v {
   min-width: 0;
@@ -340,9 +350,14 @@
 .props-actions {
   display: flex;
   gap: 8px;
+  justify-content: center;
   flex-wrap: wrap;
 }
 .props-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   padding: 6px 10px;
   border-radius: 7px;
   border: 0.5px solid rgba(245, 197, 24, 0.35);
@@ -414,6 +429,64 @@
   font-size: 11px;
   color: #f87171;
   font-family: Inter, sans-serif;
+}
+
+.props-header-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 0.5px solid #1f1f1f;
+}
+.props-header-bar svg {
+  color: #facc15;
+  flex-shrink: 0;
+}
+.props-header-bar .delete-title {
+  margin: 0;
+}
+.props-header-bar .delete-subtitle {
+  margin: 0;
+}
+
+.props-dialog .delete-actions {
+  justify-content: flex-end;
+  padding-top: 10px;
+  border-top: 0.5px solid #1f1f1f;
+}
+
+.delete-file-dialog .delete-header-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 0.5px solid #1f1f1f;
+}
+.delete-file-dialog .delete-header-bar svg {
+  color: #f87171;
+  flex-shrink: 0;
+}
+.delete-file-dialog .delete-header-bar .delete-title {
+  margin: 0;
+}
+.delete-file-dialog .delete-header-bar .delete-subtitle {
+  margin: 0;
+}
+.delete-file-dialog .delete-actions {
+  justify-content: center;
+  padding-top: 4px;
+}
+.delete-file-dialog .delete-cancel,
+.delete-file-dialog .delete-confirm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.delete-file-dialog .toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .ts-tooltip {

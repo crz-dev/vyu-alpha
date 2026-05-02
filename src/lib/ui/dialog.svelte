@@ -623,12 +623,45 @@
     role="presentation"
     onmousedown={(e) => e.stopPropagation()}
   >
-    <div class="delete-dialog" role="dialog" aria-modal="true">
-      <p class="delete-title">Delete file?</p>
-      <p class="delete-subtitle">{fileName}</p>
+    <div class="delete-dialog delete-file-dialog" role="dialog" aria-modal="true">
+      <div class="delete-header-bar">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6l-1 14H6L5 6" />
+          <path d="M10 11v6M14 11v6" />
+          <path d="M9 6V4h6v2" />
+        </svg>
+        <div>
+          <p class="delete-title">Delete file?</p>
+          <p class="delete-subtitle">{fileName}</p>
+        </div>
+      </div>
       <div class="delete-toggles">
         <label class="toggle-row">
-          <span class="toggle-label">Do not ask again</span>
+          <span class="toggle-label">
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            Do not ask again
+          </span>
           <input
             type="checkbox"
             checked={deleteNoAsk}
@@ -639,7 +672,25 @@
           >
         </label>
         <label class="toggle-row">
-          <span class="toggle-label">Delete permanently</span>
+          <span class="toggle-label">
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+              />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            Delete permanently
+          </span>
           <input
             type="checkbox"
             checked={deletePermanently}
@@ -651,12 +702,37 @@
         </label>
       </div>
       <div class="delete-actions">
-        <button class="delete-cancel" onclick={closeDeleteConfirm}
-          >Cancel</button
-        >
-        <button class="delete-confirm-btn" onclick={performDelete}
-          >Delete</button
-        >
+        <button class="delete-cancel" onclick={closeDeleteConfirm}>
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+          Cancel
+        </button>
+        <button class="delete-confirm-btn" onclick={performDelete}>
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14H6L5 6" />
+            <path d="M10 11v6M14 11v6" />
+          </svg>
+          Delete
+        </button>
       </div>
     </div>
   </div>
@@ -669,19 +745,58 @@
     onmousedown={(e) => e.stopPropagation()}
   >
     <div class="delete-dialog props-dialog" role="dialog" aria-modal="true">
-      <p class="delete-title">Properties</p>
-      <p class="delete-subtitle">{fileName}</p>
+      <div class="props-header-bar">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 10.5V16" stroke-linecap="round" />
+          <circle cx="12" cy="7.5" r="1" fill="currentColor" />
+        </svg>
+        <div>
+          <p class="delete-title">Properties</p>
+          <p class="delete-subtitle">{fileName}</p>
+        </div>
+      </div>
       <div class="props-list">
         <div class="props-row">
-          <span class="props-k">Type</span>
+          <span class="props-k">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Type
+          </span>
           <span class="props-v"
             >{isVideo ? "Video" : "Image"} ({fileExt() || "unknown"})</span
           >
         </div>
         <div class="props-row">
-          <span class="props-k">Dimensions</span>
+          <span class="props-k">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+            Dimensions
+          </span>
           <span class="props-v">{fileDimensions || "Unknown"}</span>
         </div>
+        <div class="props-row">
+          <span class="props-k">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Size
+          </span>
+          <span class="props-v">{fileSize || "Unknown"}</span>
+        </div>
+        {#if isVideo}
+          <div class="props-row">
+            <span class="props-k">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Duration
+            </span>
+            <span class="props-v">{durationDisplay}</span>
+          </div>
+        {/if}
         {#if ffprobeChecked && !ffprobeAvailable}
           <div class="ffprobe-note">
             <p class="ffprobe-title">Advanced metadata needs FFmpeg</p>
@@ -720,7 +835,10 @@
           </div>
         {:else}
           <div class="props-row">
-            <span class="props-k">Container</span>
+            <span class="props-k">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+              Container
+            </span>
             <span class="props-v"
               >{mediaPropsLoading
                 ? "Loading..."
@@ -728,7 +846,10 @@
             >
           </div>
           <div class="props-row">
-            <span class="props-k">Codec</span>
+            <span class="props-k">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              Codec
+            </span>
             <span class="props-v">
               {mediaPropsLoading
                 ? "Loading..."
@@ -736,7 +857,10 @@
             </span>
           </div>
           <div class="props-row">
-            <span class="props-k">Color</span>
+            <span class="props-k">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="14.31" y1="8" x2="20.05" y2="17.94"/><line x1="9.69" y1="8" x2="21.17" y2="8"/><line x1="7.38" y1="12" x2="13.12" y2="2.06"/><line x1="9.69" y1="16" x2="3.95" y2="6.06"/><line x1="14.31" y1="16" x2="2.83" y2="16"/><line x1="16.62" y1="12" x2="10.88" y2="21.94"/></svg>
+              Color
+            </span>
             <span class="props-v">
               {mediaPropsLoading
                 ? "Loading..."
@@ -745,11 +869,10 @@
           </div>
           {#if isVideo}
             <div class="props-row">
-              <span class="props-k">Duration</span>
-              <span class="props-v">{durationDisplay}</span>
-            </div>
-            <div class="props-row">
-              <span class="props-k">Frame rate</span>
+              <span class="props-k">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Frame rate
+              </span>
               <span class="props-v"
                 >{mediaPropsLoading
                   ? "Loading..."
@@ -759,35 +882,89 @@
           {/if}
         {/if}
         <div class="props-row">
-          <span class="props-k">Size</span>
-          <span class="props-v">{fileSize || "Unknown"}</span>
-        </div>
-        <div class="props-row">
-          <span class="props-k">Created</span>
+          <span class="props-k">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Created
+          </span>
           <span class="props-v">{fileCreated || "Unknown"}</span>
         </div>
         <div class="props-row">
-          <span class="props-k">Modified</span>
+          <span class="props-k">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Modified
+          </span>
           <span class="props-v">{fileModified || "Unknown"}</span>
         </div>
         <div class="props-row">
-          <span class="props-k">Folder</span>
+          <span class="props-k">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+            Folder
+          </span>
           <span class="props-v">{parentFolder() || "Unknown"}</span>
         </div>
         <div class="props-row">
-          <span class="props-k">Path</span>
+          <span class="props-k">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            Path
+          </span>
           <span class="props-v">{filePath || "Unknown"}</span>
         </div>
       </div>
       <div class="props-actions">
-        <button class="props-btn" onclick={propsCopyPath}>Copy path</button>
-        <button class="props-btn" onclick={propsOpenFolder}>Open folder</button>
-        <button class="props-btn" onclick={propsCopyAll}
-          >Copy all properties</button
-        >
+        <button class="props-btn" onclick={propsCopyPath}>
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <path
+              d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"
+            />
+            <path
+              d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"
+            />
+          </svg>
+          Copy path
+        </button>
+        <button class="props-btn" onclick={propsOpenFolder}>
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
+            />
+          </svg>
+          Open folder
+        </button>
+        <button class="props-btn" onclick={propsCopyAll}>
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <rect x="8" y="8" width="13" height="13" rx="2" />
+            <path d="M4 16V5a1 1 0 011-1h11" />
+          </svg>
+          Copy all properties
+        </button>
       </div>
       <div class="delete-actions">
-        <button class="delete-cancel" onclick={closeProperties}>Close</button>
+        <button class="delete-cancel" onclick={closeProperties}>
+          Close
+        </button>
       </div>
     </div>
   </div>
