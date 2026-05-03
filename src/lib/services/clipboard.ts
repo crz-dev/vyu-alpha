@@ -24,6 +24,8 @@ export async function copyFrameToClipboard(
   ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
 
   const dataUrl = canvas.toDataURL("image/png");
+  canvas.width = 0;
+  canvas.height = 0;
   const commaIdx = dataUrl.indexOf(",");
   if (commaIdx === -1) throw new Error("Could not encode frame as PNG.");
   const binary = atob(dataUrl.slice(commaIdx + 1));

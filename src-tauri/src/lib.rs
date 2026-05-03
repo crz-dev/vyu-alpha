@@ -1,5 +1,4 @@
 use std::fs;
-use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -701,9 +700,7 @@ fn add_dir_to_zip(
             zip.start_file(name, options)
                 .map_err(|e| format!("Zip start file error: {e}"))?;
             let mut file = fs::File::open(&path).map_err(|e| format!("Open file error: {e}"))?;
-            let mut buf = Vec::new();
-            file.read_to_end(&mut buf).map_err(|e| format!("Read file error: {e}"))?;
-            zip.write_all(&buf).map_err(|e| format!("Zip write error: {e}"))?;
+            std::io::copy(&mut file, zip).map_err(|e| format!("Zip write error: {e}"))?;
         } else if path.is_dir() {
             zip.add_directory(name + "/", options)
                 .map_err(|e| format!("Zip add dir error: {e}"))?;
@@ -760,9 +757,7 @@ fn compress_media(
         zip.start_file(name, options)
             .map_err(|e| format!("Zip start file error: {e}"))?;
         let mut f = fs::File::open(&source_path).map_err(|e| format!("Open file error: {e}"))?;
-        let mut buf = Vec::new();
-        f.read_to_end(&mut buf).map_err(|e| format!("Read file error: {e}"))?;
-        zip.write_all(&buf).map_err(|e| format!("Zip write error: {e}"))?;
+        std::io::copy(&mut f, &mut zip).map_err(|e| format!("Zip write error: {e}"))?;
     } else {
         let name = source_path.file_name().and_then(|s| s.to_str()).unwrap_or("archive").to_string();
         if name != "." {

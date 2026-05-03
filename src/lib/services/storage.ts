@@ -1,5 +1,26 @@
 import type { Timestamp, ClipBoundary } from "$lib/types";
 
+const MAX_STALE_ENTRIES = 500;
+
+export function cleanupStaleStorageEntries() {
+  const tsKeys: string[] = [];
+  const clipKeys: string[] = [];
+  const resumeKeys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key) continue;
+    if (key.startsWith("vyu-ts-")) tsKeys.push(key);
+    else if (key.startsWith("vyu-clips-")) clipKeys.push(key);
+    else if (key.startsWith("vyu-resume-")) resumeKeys.push(key);
+  }
+  for (const keys of [tsKeys, clipKeys, resumeKeys]) {
+    if (keys.length > MAX_STALE_ENTRIES) {
+      const toRemove = keys.slice(0, keys.length - MAX_STALE_ENTRIES);
+      for (const k of toRemove) localStorage.removeItem(k);
+    }
+  }
+}
+
 export function loadVolume(): number {
   const saved = localStorage.getItem("vyu-volume");
   return saved !== null ? parseFloat(saved) : 1;

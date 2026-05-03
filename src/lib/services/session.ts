@@ -26,17 +26,21 @@ export function showFloatingTooltip(
   tip.style.top = `${anchorRect.bottom + 6}px`;
   tip.style.opacity = "1";
 
-  // Center horizontally under anchor once rendered
-  requestAnimationFrame(() => {
+  const rafId = requestAnimationFrame(() => {
     if (!tip) return;
     const tipRect = tip.getBoundingClientRect();
     const centeredLeft =
       anchorRect.left + anchorRect.width / 2 - tipRect.width / 2;
     tip.style.left = `${centeredLeft}px`;
   });
+  tip.dataset.rafId = String(rafId);
 }
 
 export function hideFloatingTooltip(id: string): void {
   const tip = document.getElementById(id);
-  if (tip) tip.style.opacity = "0";
+  if (tip) {
+    const rafId = Number(tip.dataset.rafId);
+    if (rafId) cancelAnimationFrame(rafId);
+    tip.style.opacity = "0";
+  }
 }

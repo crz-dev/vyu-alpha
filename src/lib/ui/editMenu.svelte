@@ -287,8 +287,8 @@
         aria-label={pinned ? "Unpin" : "Pin"}
       >
         <svg
-          width="10"
-          height="10"
+          width="9"
+          height="9"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -296,12 +296,14 @@
           stroke-linecap="round"
           stroke-linejoin="round"
         >
-          <path d="M16 9L12 22L8 9C8 5 16 5 16 9" />
+          <path d="M12 2C8 2 6 5 6 9V11L2 15V18H22V15L18 11V9C18 5 16 2 12 2ZM12 18V23" />
         </svg>
       </button>
-      <span class="ctx-dot"></span><span class="ctx-dot"></span><span
-        class="ctx-dot"
-      ></span>
+      <span class="ctx-dots">
+        <span class="ctx-dot"></span>
+        <span class="ctx-dot"></span>
+        <span class="ctx-dot"></span>
+      </span>
       <button
         class="ctx-close tooltip-below"
         data-tooltip="Close"
@@ -313,8 +315,8 @@
         aria-label="Close"
       >
         <svg
-          width="10"
-          height="10"
+          width="9"
+          height="9"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"

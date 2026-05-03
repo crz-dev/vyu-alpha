@@ -16,15 +16,14 @@
 .ctx-drag {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 3px;
-  padding: 6px 4px;
+  justify-content: space-between;
+  gap: 0;
+  padding: 2px 4px;
   cursor: grab;
   user-select: none;
-  border-radius: 6px;
+  border-radius: 4px;
   transition: background 0.12s;
   margin-bottom: 2px;
-  position: relative;
 }
 .ctx-drag:hover {
   background: rgba(255, 255, 255, 0.06);
@@ -32,61 +31,56 @@
 .ctx-drag:active {
   cursor: grabbing;
 }
+.ctx-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex: 1;
+}
 .ctx-dot {
-  width: 3px;
-  height: 3px;
+  width: 2.5px;
+  height: 2.5px;
   border-radius: 50%;
   background: #555;
 }
 .ctx-close {
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 15px;
+  height: 15px;
   background: transparent;
   border: none;
   border-radius: 3px;
   color: #666;
   cursor: pointer;
-  font-size: 11px;
-  line-height: 1;
   padding: 0;
+  flex-shrink: 0;
   transition:
     color 0.12s,
     background 0.12s;
-  z-index: 1;
 }
 .ctx-close:hover {
   color: #ef4444;
   background: rgba(239, 68, 68, 0.12);
 }
 .ctx-pin {
-  position: absolute;
-  left: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 15px;
+  height: 15px;
   background: transparent;
   border: none;
   border-radius: 3px;
   color: #666;
   cursor: pointer;
-  font-size: 11px;
-  line-height: 1;
   padding: 0;
+  flex-shrink: 0;
   transition:
     color 0.12s,
     background 0.12s;
-  z-index: 1;
 }
 .ctx-pin:hover {
   color: #facc15;
@@ -94,10 +88,11 @@
 }
 .ctx-pin.active {
   color: #facc15;
+  background: rgba(245, 197, 24, 0.12);
 }
 .ctx-pin[data-tooltip],
 .ctx-close[data-tooltip] {
-  position: absolute;
+  position: relative;
 }
 .ctx-item {
   display: flex;

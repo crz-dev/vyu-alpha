@@ -7,12 +7,16 @@ import {
 export function createClips(getFilePath: () => string) {
   let clipBoundaries = $state<ClipBoundary[]>([]);
   let clipMarkerJustDragged = $state(false);
+  let _saveTimer: ReturnType<typeof setTimeout> | undefined;
 
   const clipPairs = $derived.by(() => computePairs(clipBoundaries));
   const clipCount = $derived(clipPairs.length);
 
   function _save() {
-    writeClipBoundaries(getFilePath(), clipBoundaries);
+    clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(() => {
+      writeClipBoundaries(getFilePath(), clipBoundaries);
+    }, 300);
   }
 
   function setBoundaries(v: ClipBoundary[]) {

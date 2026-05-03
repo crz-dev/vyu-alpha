@@ -39,6 +39,7 @@
     eraseResumePoint,
     loadLoopMode,
     saveLoopMode,
+    cleanupStaleStorageEntries,
   } from "$lib/services/storage";
 
   import {
@@ -193,6 +194,8 @@
   let dragStart = $state({ x: 0, y: 0, tx: 0, ty: 0 });
   let lastLeftClickTime = 0;
   let pendingPlay: ReturnType<typeof setTimeout> | undefined;
+  let lastTimeupdate = 0;
+  let isScrubbing = false;
 
   let contextMenu = $state<CtxMenu>({ x: 0, y: 0, visible: false });
   let deleteConfirm = $state(false);
@@ -406,6 +409,10 @@
   }
 
   function updateProgress() {
+    if (isScrubbing) return;
+    const now = performance.now();
+    if (now - lastTimeupdate < 100) return;
+    lastTimeupdate = now;
     playback.updateProgress((data) => {
       rawCurrentSecs = data.rawCurrentSecs;
       rawDurationSecs = data.rawDurationSecs;
@@ -443,6 +450,7 @@
     const bar = e.currentTarget as HTMLElement;
     const wasPlaying = !videoEl.paused;
     videoEl.pause();
+    isScrubbing = true;
 
     let rafId = 0;
     let pendingX = e.clientX;
@@ -478,6 +486,7 @@
 
     function onMouseUp() {
       cancelAnimationFrame(rafId);
+      isScrubbing = false;
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
       scrubTo(pendingX);
@@ -1207,6 +1216,7 @@
 
   function closeFile() {
     slideshow.stop();
+    clearTimeout(pendingPlay);
     resumeTooltipVisible = false;
     viewer.state.rotation = 0;
     viewer.state.flipped = false;
@@ -1746,6 +1756,7 @@
     const initial = (window as any).__INITIAL_FILE__;
     if (initial) loadFile(initial);
 
+    cleanupStaleStorageEntries();
     volume = loadVolume();
     loopMode = (loadLoopMode() as LoopMode) ?? "loop";
     const prefs = loadClipPrefs();
@@ -1911,6 +1922,7 @@
             <img
               src={fileSrc}
               alt={fileName}
+              decoding="async"
               onload={onImageLoad}
               style={imageStyle}
               class={slideshow.active && slideshow.transition !== "none"
@@ -1936,6 +1948,7 @@
                 bind:this={videoEl}
                 src={fileSrc}
                 crossorigin="anonymous"
+                preload="metadata"
                 autoplay
                 ontimeupdate={updateProgress}
                 onloadedmetadata={onVideoLoad}

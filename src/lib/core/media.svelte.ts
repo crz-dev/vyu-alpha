@@ -65,6 +65,7 @@ export function createMedia(
 ) {
   let loadingTimer: ReturnType<typeof setTimeout> | undefined;
   let finishLoadingCalled = false;
+  const statCache = new Map<string, { size: number; birthtime?: unknown; mtime?: unknown; createdAt?: unknown; modifiedAt?: unknown; birthtimeMs?: unknown; mtimeMs?: unknown }>();
 
   function finishLoading(set: (data: Partial<MediaState>) => void) {
     if (finishLoadingCalled) return;
@@ -78,10 +79,21 @@ export function createMedia(
     }, 400);
   }
 
+  function releaseMediaResources() {
+    const videoEl = videoElRef();
+    if (videoEl) {
+      videoEl.pause();
+      videoEl.removeAttribute("src");
+      videoEl.load();
+    }
+  }
+
   async function displayFile(
     path: string,
     set: (data: Partial<MediaState>) => void,
   ) {
+    releaseMediaResources();
+
     const ext = path.split(".").pop()?.toLowerCase() || "";
     const isVideo = VIDEO_EXTS.includes(ext);
 
@@ -89,7 +101,7 @@ export function createMedia(
       filePath: path,
       fileName: getFileName(path),
       isVideo,
-      fileSrc: convertFileSrc(path),
+      fileSrc: "",
       fileSize: "",
       fileDimensions: "",
       fileCreated: "",
@@ -110,8 +122,16 @@ export function createMedia(
 
     onReset();
 
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+
+    set({ fileSrc: convertFileSrc(path) });
+
     try {
-      const info = await stat(path);
+      let info = statCache.get(path);
+      if (!info) {
+        info = await stat(path);
+        statCache.set(path, info);
+      }
       set({
         fileSize: formatFileSize(info.size),
         fileCreated: formatMetaDate(
@@ -169,6 +189,7 @@ export function createMedia(
   function closeFile(set: (data: Partial<MediaState>) => void) {
     clearTimeout(loadingTimer);
     finishLoadingCalled = false;
+    releaseMediaResources();
     onReset();
     set({
       filePath: "",
