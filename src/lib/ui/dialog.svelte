@@ -184,7 +184,7 @@
       <button
         class="ctx-pin tooltip-below"
         class:active={pinned}
-        data-tooltip="Pin"
+        data-tooltip={pinned ? "Unpin" : "Pin"}
         onclick={(e) => {
           e.stopPropagation();
           pinned = !pinned;

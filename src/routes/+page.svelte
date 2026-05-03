@@ -1731,7 +1731,8 @@
     if (
       slideshowMenuVisible &&
       e.button === 2 &&
-      !target.closest(".slideshow-menu")
+      !target.closest(".slideshow-menu") &&
+      !document.querySelector(".slideshow-menu.pinned")
     )
       closeSlideshowMenu();
     if (

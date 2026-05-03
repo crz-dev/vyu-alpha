@@ -10,6 +10,7 @@
     onClose: () => void;
   } = $props();
 
+  let pinned = $state(false);
   let sliderHovered = $state(false);
   let trackEl: HTMLDivElement | null = $state(null);
   let isDragging = $state(false);
@@ -64,6 +65,7 @@
   function handleWindowMouseDown(e: MouseEvent) {
     if (
       visible &&
+      !pinned &&
       !(e.target as HTMLElement).closest(".slideshow-menu")
     ) {
       onClose();
@@ -79,8 +81,94 @@
 {#if visible}
   <div
     class="slideshow-menu"
+    class:pinned={pinned}
     transition:fly={{ y: 10, duration: 150, opacity: 0.08 }}
   >
+    <div
+      class="ctx-drag"
+      role="button"
+      tabindex="0"
+      aria-label="Drag to move"
+      onmousedown={(e) => {
+        e.preventDefault();
+        const menu = (e.currentTarget as HTMLElement).closest(
+          ".slideshow-menu",
+        ) as HTMLElement;
+        if (!menu) return;
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const rect = menu.getBoundingClientRect();
+        const startLeft = rect.left;
+        const startTop = rect.top;
+
+        function onMouseMove(ev: MouseEvent) {
+          menu.style.left = `${startLeft + ev.clientX - startX}px`;
+          menu.style.top = `${startTop + ev.clientY - startY}px`;
+          menu.style.bottom = "auto";
+          menu.style.transform = "none";
+        }
+
+        function onMouseUp() {
+          window.removeEventListener("mousemove", onMouseMove);
+          window.removeEventListener("mouseup", onMouseUp);
+        }
+
+        window.addEventListener("mousemove", onMouseMove);
+        window.addEventListener("mouseup", onMouseUp);
+      }}
+    >
+      <button
+        class="ctx-pin tooltip-below"
+        class:active={pinned}
+        data-tooltip={pinned ? "Unpin" : "Pin"}
+        onclick={(e) => {
+          e.stopPropagation();
+          pinned = !pinned;
+        }}
+        onmousedown={(e) => e.stopPropagation()}
+        aria-label={pinned ? "Unpin" : "Pin"}
+      >
+        <svg
+          width="9"
+          height="9"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M12 2C8 2 6 5 6 9V11L2 15V18H22V15L18 11V9C18 5 16 2 12 2ZM12 18V23" />
+        </svg>
+      </button>
+      <span class="ctx-dots">
+        <span class="ctx-dot"></span>
+        <span class="ctx-dot"></span>
+        <span class="ctx-dot"></span>
+      </span>
+      <button
+        class="ctx-close tooltip-below"
+        data-tooltip="Close"
+        onclick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+        onmousedown={(e) => e.stopPropagation()}
+        aria-label="Close"
+      >
+        <svg
+          width="9"
+          height="9"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+        >
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
     <div class="slideshow-header-bar">
       <svg
         width="14"
