@@ -3,7 +3,7 @@ import {
   invokeCheckFfprobe,
   invokeGetMediaProperties,
   invokeInstallFfmpeg,
-} from "$lib/features/media/mediaTools";
+} from "$lib/features/media/tools";
 
 export async function fetchMediaProperties(
   filePath: string,

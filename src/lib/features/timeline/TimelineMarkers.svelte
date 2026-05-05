@@ -2,8 +2,8 @@
   import type {
     ClipBoundary,
     ClipPair,
-    Timestamp,
-    TimestampDragRange,
+    VideoMarker,
+    VideoMarkerDragRange,
   } from "$lib/shared/types";
 
   let {
@@ -44,8 +44,8 @@
     isGifVideo: boolean;
     clipPairs: ClipPair[];
     clipBoundaries: ClipBoundary[];
-    timestamps: Timestamp[];
-    tsDragRange: TimestampDragRange;
+    timestamps: VideoMarker[];
+    tsDragRange: VideoMarkerDragRange;
     resumePoint: number | null;
     clipMarkerJustDragged: boolean;
     tsMarkerDragJustEnded: boolean;
@@ -61,7 +61,7 @@
     openSegmentEditor: (e: MouseEvent, id: string) => void;
     startTimestampRangeDrag: (e: MouseEvent, id: string) => void;
     removeTimestamp: (id: string) => void;
-    showTimestampTooltip: (e: MouseEvent, ts: Timestamp) => void;
+    showTimestampTooltip: (e: MouseEvent, ts: VideoMarker) => void;
     openTimestampEditor: (e: MouseEvent, id: string) => void;
     showResumeTooltip: (e: MouseEvent) => void;
     hideResumeTooltip: () => void;

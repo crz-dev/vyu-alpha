@@ -1,27 +1,33 @@
-# System
-.DS_Store
-
 # Dependencies
-node_modules
+node_modules/
 
 # Build output
-/build
+/build/
+/src-tauri/target/
 
 # Generated / cache
-/.svelte-kit
-/package
+/.svelte-kit/
+/package/
+/src-tauri/gen/schemas/
 
-# Editor
-/.vscode
-
-# AI tools
-/.codex
-
-# Environment variables
+# Environment
 .env
 .env.*
 !.env.example
 
-# Vite temp files
+# Editor
+/.vscode/
+/.codex/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*

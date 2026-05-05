@@ -12,7 +12,7 @@
   } from "$lib/features/media/playback.svelte";
   import { createTimeline } from "$lib/features/timeline/timeline.svelte";
   import { createClips } from "$lib/features/media/clips.svelte";
-  import { setupKeybinds } from "$lib/shared/keybinds";
+  import { createKeybindHandler } from "$lib/shared/keybinds";
 
   import {
     IMAGE_EXTS,
@@ -21,25 +21,26 @@
     LOOP_MODES,
     type LoopMode,
   } from "$lib/shared/constants";
+  import { ALL_EXTS } from "$lib/shared/constants";
   import type {
-    CtxMenu,
-    Timestamp,
+    ContextMenu,
+    VideoMarker,
     ClipBoundary,
     MediaProperties,
-    TimestampDragRange,
+    VideoMarkerDragRange,
   } from "$lib/shared/types";
 
   import {
     loadVolume,
     saveVolume,
-    loadDeleteNoAsk,
-    saveDeleteNoAsk,
-    loadClipPrefs,
-    saveClipPrefs,
+    loadSkipDeleteConfirmation,
+    saveSkipDeleteConfirmation,
+    loadClipPreferences,
+    saveClipPreferences,
     writeTimestamps,
-    eraseTimestamps,
+    deleteTimestamps,
     saveResumePoint,
-    eraseResumePoint,
+    deleteResumePoint,
     loadLoopMode,
     saveLoopMode,
     loadSliderMode,
@@ -59,13 +60,13 @@
     invokeCopyFile,
     invokeCleanupTempFolder,
     exportCroppedImage,
-  } from "$lib/features/media/mediaTools";
+  } from "$lib/features/media/tools";
 
   import {
     detectFfprobeAvailability,
     fetchMediaProperties,
     installFfmpegWithPolling,
-  } from "$lib/features/media/mediaSources";
+  } from "$lib/features/media/sources";
 
   import {
     computeContextMenuPosition,
@@ -78,6 +79,7 @@
     copyFrameToClipboard,
     copyPathToClipboard,
     copyAllPropertiesToClipboard,
+    showValue,
   } from "$lib/services/clipboard";
 
   import {
@@ -97,7 +99,6 @@
   import EditMenu from "$lib/features/menus/EditMenu.svelte";
   import ProcessMenu from "$lib/features/menus/ProcessMenu.svelte";
   import CropOverlay from "$lib/features/editing/CropOverlay.svelte";
-  import ViewerControls from "$lib/features/viewer/ViewerControls.svelte";
   import SettingsDialog from "$lib/features/dialogs/SettingsDialog.svelte";
   import AccessibilityDialog from "$lib/features/dialogs/AccessibilityDialog.svelte";
   import HelpDialog from "$lib/features/dialogs/HelpDialog.svelte";
@@ -264,7 +265,7 @@
   let lastTimeupdate = 0;
   let isScrubbing = false;
 
-  let contextMenu = $state<CtxMenu>({ x: 0, y: 0, visible: false });
+  let contextMenu = $state<ContextMenu>({ x: 0, y: 0, visible: false });
   let deleteConfirm = $state(false);
   let deletePermanently = $state(false);
   let deleteNoAsk = $state(false);
@@ -290,7 +291,7 @@
 
   let resumePoint = $state<number | null>(null);
   let resumeTooltipVisible = $state(false);
-  let timestamps = $state<Timestamp[]>([]);
+  let timestamps = $state<VideoMarker[]>([]);
 
   let clipOutputDir = $state("");
   let clipDeleteOriginal = $state(false);
@@ -346,7 +347,7 @@
     targetId: "",
     targetType: "timestamp",
   });
-  let tsDragRange = $state<TimestampDragRange>({
+  let tsDragRange = $state<VideoMarkerDragRange>({
     visible: false,
     start: 0,
     end: 0,
@@ -491,7 +492,7 @@
   async function saveClipboardFile() {
     if (!clipboardToast.filePath) return;
     const ext =
-      clipboardToast.filePath.split(".").pop()?.toLowerCase() ?? "png";
+      clipboardToast.filePath ? getFileExt(clipboardToast.filePath) || "png" : "png";
     const defaultName = `vyu-export-${Date.now()}.${ext}`;
     const outputPath = await save({
       defaultPath: defaultName,
@@ -641,7 +642,7 @@
     tsTooltip = { ...tsTooltip, visible: false };
     tsEditMenu = { ...tsEditMenu, visible: false };
     timeline.clearTimestamps((v) => (timestamps = v));
-    eraseTimestamps(filePath);
+    deleteTimestamps(filePath);
   }
 
   function updateTimestampTitle(id: string, title: string) {
@@ -654,7 +655,7 @@
     saveTimestamps();
   }
 
-  function getTimestampById(id: string): Timestamp | undefined {
+  function getTimestampById(id: string): VideoMarker | undefined {
     return timeline.getTimestampById(id, timestamps);
   }
 
@@ -662,7 +663,7 @@
     return Math.min(26, Math.max(10, (title || "").trim().length + 2));
   }
 
-  function showTimestampTooltip(e: MouseEvent, ts: Timestamp) {
+  function showTimestampTooltip(e: MouseEvent, ts: VideoMarker) {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     tsTooltip = {
       visible: true,
@@ -837,7 +838,7 @@
     tsTooltip = { ...tsTooltip, visible: false };
   }
 
-  function getActiveEditorTimestamp(): Timestamp | undefined {
+  function getActiveEditorTimestamp(): VideoMarker | undefined {
     if (!tsEditMenu.visible || tsEditMenu.targetType !== "timestamp")
       return undefined;
     return getTimestampById(tsEditMenu.targetId);
@@ -1056,7 +1057,7 @@
     tsTooltip = { ...tsTooltip, visible: false };
     resumeTooltipVisible = false;
     resumePoint = null;
-    eraseResumePoint(filePath);
+    deleteResumePoint(filePath);
   }
 
   function seekToResumePoint() {
@@ -1125,7 +1126,7 @@
   }
 
   function persistClipPrefs() {
-    saveClipPrefs({
+    saveClipPreferences({
       deleteOriginal: clipDeleteOriginal,
       useCustomPath: clipUseCustomPath,
       mergeSegments: clipMergeSegments,
@@ -1255,7 +1256,7 @@
       return;
     }
     clipOutputDir = selected as string;
-    saveClipPrefs({ outputDir: clipOutputDir });
+    saveClipPreferences({ outputDir: clipOutputDir });
     clipUseCustomPath = true;
     persistClipPrefs();
   }
@@ -1445,7 +1446,7 @@
     await getCurrentWindow().startDragging();
   }
 
-  const configuredKeydown = setupKeybinds({
+  const configuredKeydown = createKeybindHandler({
     areDialogsOpen: () =>
       contextMenu.visible ||
       deleteConfirm ||
@@ -1502,7 +1503,7 @@
   async function openFileDialog() {
     const selected = await open({
       multiple: false,
-      filters: [{ name: "Media", extensions: [...IMAGE_EXTS, ...VIDEO_EXTS] }],
+      filters: [{ name: "Media", extensions: ALL_EXTS }],
     });
     if (selected) loadFile(selected as string);
   }
@@ -1577,9 +1578,6 @@
     return getParentFolder(filePath);
   }
 
-  function showValue(v: string | undefined): string {
-    return v && v.trim() ? v : "Unknown";
-  }
 
   async function loadMediaProperties() {
     mediaPropsLoading = true;
@@ -1815,14 +1813,14 @@
 
   function ctxDelete() {
     closeContextMenu();
-    const noAsk = loadDeleteNoAsk();
+    const noAsk = loadSkipDeleteConfirmation();
     if (noAsk) performDelete();
     else deleteConfirm = true;
   }
 
   async function performDelete() {
     deleteConfirm = false;
-    if (deleteNoAsk) saveDeleteNoAsk();
+    if (deleteNoAsk) saveSkipDeleteConfirmation();
     const pathToDelete = filePath;
     const prevList = [...fileList];
     const prevIndex = currentIndex;
@@ -1916,7 +1914,7 @@
     volumeSliderMode = sliderPrefs.volume ?? false;
     speedSliderMode = sliderPrefs.speed ?? false;
     playbackUI.initSliderMode(volumeSliderMode, speedSliderMode);
-    const prefs = loadClipPrefs();
+    const prefs = loadClipPreferences();
     clipOutputDir = prefs.outputDir;
     clipDeleteOriginal = prefs.deleteOriginal;
     clipUseCustomPath = prefs.useCustomPath;
@@ -1928,7 +1926,7 @@
         if (!nearEnd) {
           saveResumePoint(filePath, rawCurrentSecs);
         } else {
-          eraseResumePoint(filePath);
+    deleteResumePoint(filePath);
         }
       }
     }
@@ -1980,8 +1978,8 @@
       try {
         const clipboardFile = await invokeGetClipboardFilePath();
         if (clipboardFile) {
-          const ext = clipboardFile.split(".").pop()?.toLowerCase() ?? "";
-          if ([...IMAGE_EXTS, ...VIDEO_EXTS].includes(ext)) {
+          const ext = getFileExt(clipboardFile);
+          if (ALL_EXTS.includes(ext)) {
             await loadFile(clipboardFile);
             return;
           }
@@ -1998,8 +1996,8 @@
             .replace(/%20/g, " "),
         );
         const match = lines.find((l) => {
-          const ext = l.split(".").pop()?.toLowerCase() ?? "";
-          return [...IMAGE_EXTS, ...VIDEO_EXTS].includes(ext);
+          const ext = getFileExt(l);
+          return ALL_EXTS.includes(ext);
         });
         if (match) {
           await loadFile(match);
@@ -2308,73 +2306,181 @@
     fullscreen={viewer.state.isFullscreen}
   />
 
-  <ViewerControls
-    {isVideo}
-    {videoEl}
-    {isGifVideo}
-    {fileList}
-    {currentIndex}
-    {fileName}
-    {progress}
-    {rawCurrentSecs}
-    {playing}
-    {muted}
-    {volume}
-    {loopMode}
-    {VOLUME_SEGMENTS}
-    {timestamps}
-    {resumePoint}
-    {tsDragRange}
-    {clips}
-    {playbackUI}
-    {tsEditMenu}
-    {volumeSliderMode}
-    {speedSliderMode}
-    bind:tsMenuOpen
-    {togglePlay}
-    {cycleLoopMode}
-    {toggleMute}
-    {setVolume}
-    {addTimestamp}
-    {addClipBoundary}
-    {addClipBoundaryAt}
-    {clearAllTimestamps}
-    {clearAllSegments}
-    {toggleTimer}
-    {currentTimeDisplay}
-    {durationDisplay}
-    {timerTooltip}
-    {toggleFullscreen}
-    {toggleVolumeSliderMode}
-    {toggleSpeedSliderMode}
-    {startScrubbing}
-    {getTimestampPct}
-    {getDragRangeStyle}
-    {startClipMarkerDrag}
-    {removeClipBoundary}
-    {showClipBoundaryTooltip}
-    {hideTsTooltip}
-    {seekToTimestamp}
-    {openSegmentEditor}
-    {startTimestampRangeDrag}
-    {removeTimestamp}
-    {showTimestampTooltip}
-    {openTimestampEditor}
-    {showResumeTooltip}
-    {hideResumeTooltip}
-    {seekToResumePoint}
-    {removeResumePoint}
-    {formatTime}
-    {tsMarkerDragJustEnded}
-    {navigate}
-    {startPan}
-    {handleViewerScroll}
-    {fsCursor}
-    {minimizeWindow}
-    {maximizeWindow}
-    {closeWindow}
-    {toggleThumbnailBar}
-  />
+  {#if viewer.state.isFullscreen}
+    <div
+      class="fs-overlay"
+      class:visible={viewer.state.fsControlsVisible || tsEditMenu.visible}
+      role="button"
+      tabindex="0"
+      onwheel={handleViewerScroll}
+      onmousedown={startPan}
+      ontouchstart={(e) => {
+        if (e.touches.length === 2) e.preventDefault();
+      }}
+      ontouchmove={viewer.handleTouchZoom}
+      ontouchend={viewer.handleTouchEnd}
+      style="cursor: {fsCursor}"
+    >
+      <div class="fs-topbar">
+        <span class="fs-filename">{fileName}</span>
+        <div class="fs-window-controls">
+          <button
+            class="fs-wc-btn"
+            onclick={minimizeWindow}
+            aria-label="minimize">−</button
+          >
+          <button
+            class="fs-wc-btn"
+            onclick={maximizeWindow}
+            aria-label="maximize">▢</button
+          >
+          <button
+            class="fs-wc-btn close"
+            onclick={closeWindow}
+            aria-label="close">✕</button
+          >
+        </div>
+      </div>
+      <div class="fs-nav-left">
+        <button
+          class="fs-nav-btn"
+          onclick={() => navigate(-1)}
+          aria-label="previous file">‹</button
+        >
+      </div>
+      <div class="fs-nav-right">
+        <button
+          class="fs-nav-btn"
+          onclick={() => navigate(1)}
+          aria-label="next file">›</button
+        >
+      </div>
+
+      {#if isVideo && videoEl}
+        <div class="fs-controls" class:gif-only={isGifVideo}>
+          <TimelineMarkers
+            fullscreen={true}
+            {progress}
+            currentTimeSecs={rawCurrentSecs}
+            {isGifVideo}
+            clipPairs={clips.clipPairs}
+            clipBoundaries={clips.clipBoundaries}
+            {timestamps}
+            {tsDragRange}
+            {resumePoint}
+            clipMarkerJustDragged={clips.clipMarkerJustDragged}
+            {tsMarkerDragJustEnded}
+            tsEditMenuVisible={tsEditMenu.visible}
+            {startScrubbing}
+            {getTimestampPct}
+            {getDragRangeStyle}
+            {startClipMarkerDrag}
+            {removeClipBoundary}
+            {showClipBoundaryTooltip}
+            {hideTsTooltip}
+            {seekToTimestamp}
+            {openSegmentEditor}
+            {startTimestampRangeDrag}
+            {removeTimestamp}
+            {showTimestampTooltip}
+            {openTimestampEditor}
+            {showResumeTooltip}
+            {hideResumeTooltip}
+            {seekToResumePoint}
+            {removeResumePoint}
+            {formatTime}
+          />
+          <PlaybackControls
+            fullscreen={true}
+            {isGifVideo}
+            {playing}
+            looping={loopMode}
+            {muted}
+            {volume}
+            volumeHovered={playbackUI.volumeHovered}
+            volumeSegments={VOLUME_SEGMENTS}
+            {togglePlay}
+            toggleLoop={cycleLoopMode}
+            {toggleMute}
+            showVolumeOverlay={playbackUI.showVolumeOverlay}
+            handleVolumeAreaLeave={playbackUI.handleVolumeAreaLeave}
+            handleVolumeScroll={playbackUI.handleVolumeScroll}
+            startVolumeDrag={playbackUI.startVolumeDrag}
+            handleVolumeDiamondHover={playbackUI.handleVolumeDiamondHover}
+            {setVolume}
+            playbackSpeed={playbackUI.playbackSpeed}
+            speedHovered={playbackUI.speedHovered}
+            setPlaybackSpeed={playbackUI.setPlaybackSpeed}
+            showSpeedOverlay={playbackUI.showSpeedOverlay}
+            handleSpeedAreaLeave={playbackUI.handleSpeedAreaLeave}
+            handleSpeedScroll={playbackUI.handleSpeedScroll}
+            speedTooltipVisible={playbackUI.speedTooltipVisible}
+            speedTooltipX={playbackUI.speedTooltipX}
+            speedTooltipY={playbackUI.speedTooltipY}
+            handleSpeedDiamondHover={playbackUI.handleSpeedDiamondHover}
+            startSpeedDrag={playbackUI.startSpeedDrag}
+            {addTimestamp}
+            addClipStart={() => addClipBoundary("start")}
+            addClipEnd={() => addClipBoundary("end")}
+            addClipEnd5s={() => addClipBoundaryAt("end", rawCurrentSecs + 5)}
+            hasMarkers={timestamps.length > 0 ||
+              clips.clipBoundaries.length > 0}
+            deleteAllMarkers={() => {
+              clearAllTimestamps();
+              clearAllSegments();
+            }}
+            {toggleTimer}
+            {currentTimeDisplay}
+            {durationDisplay}
+            {timerTooltip}
+            {toggleFullscreen}
+            onTsMenuChange={(v) => (tsMenuOpen = v)}
+            volumeSliderMode={playbackUI.volumeSliderMode || volumeSliderMode}
+            speedSliderMode={playbackUI.speedSliderMode || speedSliderMode}
+            volumeSliderValue={playbackUI.volumeSliderValue}
+            speedSliderValue={playbackUI.speedSliderValue}
+            {toggleVolumeSliderMode}
+            {toggleSpeedSliderMode}
+            startVolumeSliderDrag={playbackUI.startVolumeSliderDrag}
+            startSpeedSliderDrag={playbackUI.startSpeedSliderDrag}
+            handleVolumeSliderChange={setVolume}
+            handleSpeedSliderChange={playbackUI.handleSpeedSliderChange}
+          />
+        </div>
+      {:else}
+        <div class="fs-controls image-only">
+          <div class="fs-controls-row">
+            <span class="fs-time"
+              >{fileList.length > 0
+                ? `${currentIndex + 1} / ${fileList.length}`
+                : ""}</span
+            >
+            <div class="fs-right">
+              <button
+                class="fs-ctrl-btn"
+                onclick={viewer.toggleFullscreen}
+                aria-label="exit fullscreen"
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+                  ><path
+                    d="M4 1H1V4M8 1H11V4M11 8V11H8M4 11H1V8"
+                    stroke="currentColor"
+                    stroke-width="1.2"
+                    stroke-linecap="round"
+                  /></svg
+                >
+              </button>
+            </div>
+          </div>
+        </div>
+      {/if}
+    </div>
+    {#if fileList.length > 0}
+      <button class="fs-file-count-pill" onclick={toggleThumbnailBar}>
+        {currentIndex + 1} / {fileList.length}
+      </button>
+    {/if}
+  {/if}
 
   {#if isLoadingFile}
     <div class="border-sweep" class:fading={loadingFadingOut}></div>

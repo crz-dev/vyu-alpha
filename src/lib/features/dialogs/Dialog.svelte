@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ClipBoundary, CtxMenu, MediaProperties, Timestamp } from "$lib/shared/types";
+  import type { ClipBoundary, ContextMenu, MediaProperties, VideoMarker } from "$lib/shared/types";
 
   let {
     contextMenu,
@@ -64,9 +64,9 @@
     updateDeletePermanently,
     onClose,
   }: {
-    contextMenu: CtxMenu;
+    contextMenu: ContextMenu;
     isVideo: boolean;
-    timestamps: Timestamp[];
+    timestamps: VideoMarker[];
     clipBoundaries: ClipBoundary[];
     frameCopyToast: {
       visible: boolean;

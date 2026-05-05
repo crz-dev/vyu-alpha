@@ -1,11 +1,11 @@
-import type { CtxMenu } from "$lib/shared/types";
+import type { ContextMenu } from "$lib/shared/types";
 
 export function computeContextMenuPosition(
   clientX: number,
   clientY: number,
   menuWidth: number,
   menuHeight: number,
-): Pick<CtxMenu, "x" | "y"> {
+): Pick<ContextMenu, "x" | "y"> {
   let x = clientX;
   let y = clientY;
   if (x + menuWidth > window.innerWidth) x = window.innerWidth - menuWidth - 8;

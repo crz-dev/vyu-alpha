@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ClipBoundary, Timestamp } from "$lib/shared/types";
+  import type { ClipBoundary, VideoMarker } from "$lib/shared/types";
 
   let {
     tsTooltip,
@@ -49,7 +49,7 @@
       targetId: string;
       targetType: string;
     };
-    editingTimestamp: Timestamp | undefined;
+    editingTimestamp: VideoMarker | undefined;
     editingSegment: ClipBoundary | undefined;
     currentTitle: string;
     getTitleEditorWidthCh: (title: string) => number;

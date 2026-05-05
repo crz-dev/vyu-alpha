@@ -134,14 +134,12 @@
     URL.revokeObjectURL(url);
   }
 
-  // Appearance
   let theme = $state<"dark" | "light" | "system">("dark");
   let uiMode = $state<"simple" | "advanced">("advanced");
   let transition = $state<"none" | "fade" | "slide">("fade");
   let allowZoomOut = $state(false);
   let alwaysShowControls = $state(false);
 
-  // Playback
   let volumeBoost = $state(false);
   let resumePlayback = $state(true);
   let defaultLoop = $state<"loop" | "stop" | "next" | "shuffle">("loop");
@@ -149,7 +147,6 @@
   let rememberVolume = $state(true);
   let autoplayNext = $state(false);
 
-  // Editor
   let autoSaveMarkers = $state(true);
   let defaultQuality = $state<"fast" | "balanced" | "quality" | "lossless">(
     "balanced",
@@ -158,32 +155,26 @@
   let confirmDelete = $state(true);
   let preserveMetadata = $state(true);
 
-  // Process
   let gpuEncoding = $state(true);
   let overwriteExisting = $state(false);
   let includeSubtitles = $state(false);
 
-  // System
   let hardwareAcceleration = $state(true);
   let minimizeToTray = $state(false);
   let startOnLogin = $state(false);
 
-  // Library
   let recentFilesLimit = $state<"10" | "25" | "50" | "100">("25");
   let favoriteFilesEnabled = $state(true);
   let autoScanFolders = $state(false);
   let showThumbnails = $state(true);
 
-  // Folders
   let editorOutputFolder = $state("~/Videos/Editor");
   let processOutputFolder = $state("~/Videos/Exports");
 
-  // Debug
   let experimentalFeatures = $state(false);
   let showFpsCounter = $state(false);
   let forceSoftwareRendering = $state(false);
 
-  // Profile
   let profileMenuOpen = $state(false);
   let profileNameInput = $state("");
   let profiles = $state<string[]>(["Default"]);

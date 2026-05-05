@@ -2,7 +2,8 @@
   import { convertFileSrc } from "@tauri-apps/api/core";
   import { invoke } from "@tauri-apps/api/core";
   import { tick } from "svelte";
-  import { VIDEO_EXTS } from "$lib/shared/constants";
+  import { VIDEO_EXTS, IMAGE_EXTS } from "$lib/shared/constants";
+  import { getFileExt } from "$lib/services/files";
 
   let {
     fileList,
@@ -32,7 +33,7 @@
   const TOTAL_SLOTS = LIMIT * 2 + 1;
   const MAX_CONCURRENT = 3;
 
-  const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp", "bmp"]);
+  const IMAGE_EXTS_SET = new Set(IMAGE_EXTS);
 
   let thumbnailUrls = $state<Record<string, string>>({});
   let fetchingPaths = $state(new Set<string>());
@@ -41,13 +42,11 @@
   const srcCache = new Map<string, string>();
 
   function isVideo(path: string): boolean {
-    const ext = path.split(".").pop()?.toLowerCase() || "";
-    return VIDEO_EXTS.includes(ext);
+    return VIDEO_EXTS.includes(getFileExt(path));
   }
 
   function isImage(path: string): boolean {
-    const ext = path.split(".").pop()?.toLowerCase() || "";
-    return IMAGE_EXTS.has(ext);
+    return IMAGE_EXTS_SET.has(getFileExt(path));
   }
 
   function getSrc(path: string): string {

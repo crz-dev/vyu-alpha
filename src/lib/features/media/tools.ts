@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { MediaProperties, ClipJobResult } from "$lib/shared/types";
+import { getFileExt } from "$lib/services/files";
 
 export async function exportCroppedImage(
   filePath: string,
@@ -34,7 +35,7 @@ export async function exportCroppedImage(
   if (!ctx) throw new Error("Could not create canvas context");
   ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
 
-  const ext = outputPath.split(".").pop()?.toLowerCase() || "png";
+  const ext = getFileExt(outputPath) || "png";
   const mimeType =
     ext === "jpg" || ext === "jpeg"
       ? "image/jpeg"

@@ -1,12 +1,12 @@
-import type { Timestamp } from "$lib/shared/types";
+import type { VideoMarker } from "$lib/shared/types";
 
 export function createTimeline() {
   function addTimestamp(
     currentTime: number,
-    timestamps: Timestamp[],
-    set: (v: Timestamp[]) => void,
+    timestamps: VideoMarker[],
+    set: (v: VideoMarker[]) => void,
   ) {
-    const newTimestamp: Timestamp = {
+    const newTimestamp: VideoMarker = {
       id: crypto.randomUUID(),
       time: currentTime,
       title: undefined,
@@ -19,22 +19,22 @@ export function createTimeline() {
 
   function removeTimestamp(
     id: string,
-    timestamps: Timestamp[],
-    set: (v: Timestamp[]) => void,
+    timestamps: VideoMarker[],
+    set: (v: VideoMarker[]) => void,
   ) {
     const next = timestamps.filter((t) => t.id !== id);
     set(next);
   }
 
-  function clearTimestamps(set: (v: Timestamp[]) => void) {
+  function clearTimestamps(set: (v: VideoMarker[]) => void) {
     set([]);
   }
 
   function updateTimestampTitle(
     id: string,
     title: string,
-    timestamps: Timestamp[],
-    set: (v: Timestamp[]) => void,
+    timestamps: VideoMarker[],
+    set: (v: VideoMarker[]) => void,
   ) {
     const next = timestamps.map((ts) =>
       ts.id === id ? { ...ts, title: title.trim() } : ts,
@@ -44,8 +44,8 @@ export function createTimeline() {
 
   function getTimestampById(
     id: string,
-    timestamps: Timestamp[],
-  ): Timestamp | undefined {
+    timestamps: VideoMarker[],
+  ): VideoMarker | undefined {
     return timestamps.find((ts) => ts.id === id);
   }
 
@@ -55,11 +55,11 @@ export function createTimeline() {
   }
 
   function findTouchTarget(
-    timestamps: Timestamp[],
+    timestamps: VideoMarker[],
     time: number,
     tolerance = 0.6,
-  ): Timestamp | null {
-    let found: Timestamp | null = null;
+  ): VideoMarker | null {
+    let found: VideoMarker | null = null;
     let best = Number.POSITIVE_INFINITY;
     for (const ts of timestamps) {
       const d = Math.abs(ts.time - time);
@@ -73,7 +73,7 @@ export function createTimeline() {
 
   function seekToTimestamp(
     index: number,
-    timestamps: Timestamp[],
+    timestamps: VideoMarker[],
     videoEl: HTMLVideoElement | null,
   ) {
     if (!videoEl) return;

@@ -92,7 +92,6 @@
       </div>
 
       <div class="feedback-content">
-        <!-- System & app -->
         <div class="feedback-section">
           <div class="feedback-section-header grey">
             <svg
@@ -380,7 +379,6 @@
           </div>
         </div>
 
-        <!-- Star ratings -->
         <div class="feedback-section">
           <div class="feedback-section-header yellow">
             <svg
@@ -540,7 +538,6 @@
           </div>
         </div>
 
-        <!-- Feature usefulness -->
         <div class="feedback-section">
           <div class="feedback-section-header blue">
             <svg
@@ -704,7 +701,6 @@
           </div>
         </div>
 
-        <!-- Pain points -->
         <div class="feedback-section">
           <div class="feedback-section-header red">
             <svg
@@ -880,7 +876,6 @@
           </div>
         </div>
 
-        <!-- Future & Improvements -->
         <div class="feedback-section">
           <div class="feedback-section-header green">
             <svg
@@ -1049,7 +1044,6 @@
           </div>
         </div>
 
-        <!-- Submit -->
         <div class="feedback-submit-wrap">
           <button
             class="settings-action-btn blue feedback-send-btn"

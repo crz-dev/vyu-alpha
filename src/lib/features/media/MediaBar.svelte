@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
-  import SlideshowMenu from "../menus/SlideshowMenu.svelte";
+  import SlideshowMenu from "$lib/features/menus/SlideshowMenu.svelte";
   import { slideshow } from "$lib/features/media/slideshow.svelte";
 
   let dismissed = $state(false);

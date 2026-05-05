@@ -3,13 +3,13 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { stat } from "@tauri-apps/plugin-fs";
 import { VIDEO_EXTS } from "$lib/shared/constants";
-import { readMediaFilesInFolder, getFileName } from "$lib/services/files";
+import { readMediaFilesInFolder, getFileName, getFileExt } from "$lib/services/files";
 import {
   readTimestamps,
   readClipBoundaries,
   loadResumePoint,
 } from "$lib/services/storage";
-import type { Timestamp, ClipBoundary } from "$lib/shared/types";
+import type { VideoMarker, ClipBoundary } from "$lib/shared/types";
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -53,7 +53,7 @@ export interface MediaState {
   rawDurationSecs: number;
   progress: number;
   playing: boolean;
-  timestamps: Timestamp[];
+  timestamps: VideoMarker[];
   clipBoundaries: ClipBoundary[];
   resumePoint: number | null;
 }
@@ -107,7 +107,7 @@ export function createMedia(
   ): Promise<void> {
     releaseMediaResources();
 
-    const ext = path.split(".").pop()?.toLowerCase() || "";
+    const ext = getFileExt(path);
     const isVideo = VIDEO_EXTS.includes(ext);
 
     set({

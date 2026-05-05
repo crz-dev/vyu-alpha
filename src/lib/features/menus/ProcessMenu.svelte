@@ -4,7 +4,7 @@
   import {
     invokeConvertMedia,
     invokeCompressMedia,
-  } from "$lib/features/media/mediaTools";
+  } from "$lib/features/media/tools";
 
   let {
     visible,
@@ -36,7 +36,6 @@
     showInExplorer: (path: string) => Promise<void>;
   } = $props();
 
-  // Convert state
   let convertOpen = $state(false);
   let activeConvertTool: "format" | "preset" | null = $state(null);
   let activeFormat = $state<string | null>(null);
@@ -46,7 +45,6 @@
   let convertError = $state("");
   let convertOutputPath = $state<string | null>(null);
 
-  // Compress state
   let compressOpen = $state(false);
   let activeCompressTool: "target" | "preset" | null = $state(null);
   let activeTarget = $state<string | null>(null);
@@ -90,7 +88,6 @@
 
   $effect(() => {
     if (!visible) {
-      // Reset convert
       convertOpen = false;
       activeConvertTool = null;
       activeFormat = null;
@@ -99,7 +96,6 @@
       converting = false;
       convertError = "";
       convertOutputPath = null;
-      // Reset compress
       compressOpen = false;
       activeCompressTool = null;
       activeTarget = null;

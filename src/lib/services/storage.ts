@@ -1,7 +1,7 @@
 // DATAFLOW: readTimestamps/readClipBoundaries/loadResumePoint called by
 // media.svelte.ts:displayFile (line 129-131) on every file load/navigation.
 // Save variants called on state mutation (timestamps/clips) and beforeunload (resume).
-import type { Timestamp, ClipBoundary } from "$lib/shared/types";
+import type { VideoMarker, ClipBoundary } from "$lib/shared/types";
 
 const MAX_STALE_ENTRIES = 500;
 
@@ -33,15 +33,15 @@ export function saveVolume(volume: number): void {
   localStorage.setItem("vyu-volume", String(volume));
 }
 
-export function loadDeleteNoAsk(): boolean {
+export function loadSkipDeleteConfirmation(): boolean {
   return localStorage.getItem("vyu-delete-no-ask") === "true";
 }
 
-export function saveDeleteNoAsk(): void {
+export function saveSkipDeleteConfirmation(): void {
   localStorage.setItem("vyu-delete-no-ask", "true");
 }
 
-export function loadClipPrefs(): {
+export function loadClipPreferences(): {
   deleteOriginal: boolean;
   useCustomPath: boolean;
   mergeSegments: boolean;
@@ -55,7 +55,7 @@ export function loadClipPrefs(): {
   };
 }
 
-export function saveClipPrefs(prefs: {
+export function saveClipPreferences(prefs: {
   deleteOriginal?: boolean;
   useCustomPath?: boolean;
   mergeSegments?: boolean;
@@ -80,11 +80,11 @@ export function saveClipPrefs(prefs: {
     localStorage.setItem("vyu-clip-output-dir", prefs.outputDir);
 }
 
-export function readTimestamps(filePath: string): Timestamp[] {
+export function readTimestamps(filePath: string): VideoMarker[] {
   if (!filePath) return [];
   try {
     const raw = localStorage.getItem(`vyu-ts-${filePath}`);
-    const parsed = raw ? (JSON.parse(raw) as Array<Partial<Timestamp>>) : [];
+    const parsed = raw ? (JSON.parse(raw) as Array<Partial<VideoMarker>>) : [];
     return parsed
       .filter((ts) => typeof ts?.time === "number")
       .map((ts) => ({
@@ -101,13 +101,13 @@ export function readTimestamps(filePath: string): Timestamp[] {
 
 export function writeTimestamps(
   filePath: string,
-  timestamps: Timestamp[],
+  timestamps: VideoMarker[],
 ): void {
   if (!filePath) return;
   localStorage.setItem(`vyu-ts-${filePath}`, JSON.stringify(timestamps));
 }
 
-export function eraseTimestamps(filePath: string): void {
+export function deleteTimestamps(filePath: string): void {
   if (filePath) localStorage.removeItem(`vyu-ts-${filePath}`);
 }
 
@@ -144,7 +144,7 @@ export function writeClipBoundaries(
   localStorage.setItem(`vyu-clips-${filePath}`, JSON.stringify(boundaries));
 }
 
-export function eraseClipBoundaries(filePath: string): void {
+export function deleteClipBoundaries(filePath: string): void {
   if (filePath) localStorage.removeItem(`vyu-clips-${filePath}`);
 }
 
@@ -161,7 +161,7 @@ export function saveResumePoint(filePath: string, time: number): void {
   localStorage.setItem(`vyu-resume-${filePath}`, String(time));
 }
 
-export function eraseResumePoint(filePath: string): void {
+export function deleteResumePoint(filePath: string): void {
   if (!filePath) return;
   localStorage.removeItem(`vyu-resume-${filePath}`);
 }

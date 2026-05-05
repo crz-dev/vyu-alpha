@@ -1,7 +1,7 @@
 import type { ClipBoundary, ClipPair } from "$lib/shared/types";
 import {
   writeClipBoundaries,
-  eraseClipBoundaries,
+  deleteClipBoundaries,
 } from "$lib/services/storage";
 
 export function createClips(getFilePath: () => string) {
@@ -50,7 +50,7 @@ export function createClips(getFilePath: () => string) {
 
   function clearBoundaries() {
     clipBoundaries = [];
-    eraseClipBoundaries(getFilePath());
+    deleteClipBoundaries(getFilePath());
   }
 
   function updateBoundaryTitle(id: string, title: string) {

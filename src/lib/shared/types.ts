@@ -1,10 +1,10 @@
-export interface CtxMenu {
+export interface ContextMenu {
   x: number;
   y: number;
   visible: boolean;
 }
 
-export interface Timestamp {
+export interface VideoMarker {
   id: string;
   time: number;
   title?: string;
@@ -42,7 +42,7 @@ export interface MediaProperties {
   frame_rate?: string;
 }
 
-export interface TimestampDragRange {
+export interface VideoMarkerDragRange {
   visible: boolean;
   start: number;
   end: number;

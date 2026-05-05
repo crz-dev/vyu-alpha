@@ -90,7 +90,6 @@
     activeSection = current;
   }
 
-  // Example keybinds state
   type KeybindEntry = { action: string; key: string; id: string };
   let keybinds = $state<KeybindEntry[]>([
     { id: "fullscreen", action: "Fullscreen", key: "F" },
@@ -139,7 +138,6 @@
     URL.revokeObjectURL(url);
   }
 
-  // Profile
   let profileMenuOpen = $state(false);
   let profileNameInput = $state("");
   let profiles = $state<string[]>(["Default"]);
@@ -389,7 +387,6 @@
           bind:this={contentEl}
           onscroll={handleScroll}
         >
-          <!-- Quick start -->
           <div
             id="help-section-quick-start"
             class="settings-section"
@@ -433,7 +430,6 @@
             </div>
           </div>
 
-          <!-- Keybinds -->
           <div
             id="help-section-keybinds"
             class="settings-section"
@@ -505,7 +501,6 @@
             </div>
           </div>
 
-          <!-- Tips -->
           <div
             id="help-section-tips"
             class="settings-section"
@@ -554,7 +549,6 @@
             </div>
           </div>
 
-          <!-- Troubleshooting -->
           <div
             id="help-section-troubleshooting"
             class="settings-section"

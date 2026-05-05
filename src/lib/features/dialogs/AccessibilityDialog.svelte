@@ -135,7 +135,6 @@
     URL.revokeObjectURL(url);
   }
 
-  // Vision
   let highContrast = $state(false);
   let largeText = $state(false);
   let reduceMotion = $state(false);
@@ -149,7 +148,6 @@
   let invertColors = $state(false);
   let uiScale = $state(1.0);
 
-  // Hearing
   let alwaysShowCaptions = $state(false);
   let visualAudioNotifications = $state(false);
   let volumeNormalization = $state(false);
@@ -159,14 +157,12 @@
     "medium",
   );
 
-  // Motor
   let dwellClicking = $state(false);
   let keyboardNavigation = $state(true);
   let gestureDelay = $state<"normal" | "long" | "extra-long">("normal");
   let holdToConfirm = $state(false);
   let removeConfirm = $state(false);
 
-  // Cognitive
   let reduceDistractions = $state(false);
   let readingMode = $state(false);
   let simplifyInterface = $state(false);
@@ -174,7 +170,6 @@
   let slideshowPacingAssist = $state(false);
   let focusMode = $state(false);
 
-  // Profile
   let profileMenuOpen = $state(false);
   let profileNameInput = $state("");
   let profiles = $state<string[]>(["Default"]);

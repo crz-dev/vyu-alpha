@@ -1,14 +1,14 @@
 // DATAFLOW: bind() receives live refs from +page.svelte. schedule() uses setTimeout
 // (images) or 'ended' event (videos). advanceFn → +page.svelte:advanceSlide → media.displayFile.
 import { VIDEO_EXTS } from "$lib/shared/constants";
+import { getFileExt } from "$lib/services/files";
 
 export type SlideshowOrder = "next" | "shuffle";
 export type SlideshowVideoMode = "skip" | "full";
 export type SlideshowTransition = "none" | "fade" | "slide";
 
 function getIsVideo(path: string): boolean {
-  const ext = path.split(".").pop()?.toLowerCase() || "";
-  return VIDEO_EXTS.includes(ext);
+  return VIDEO_EXTS.includes(getFileExt(path));
 }
 
 export function createSlideshow() {

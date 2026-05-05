@@ -1,5 +1,9 @@
 import type { MediaProperties } from "$lib/shared/types";
 
+export function showValue(v: string | undefined): string {
+  return v && v.trim() ? v : "Unknown";
+}
+
 export async function copyImageToClipboard(fileSrc: string): Promise<void> {
   const response = await fetch(fileSrc);
   const blob = await response.blob();
@@ -56,9 +60,6 @@ export async function copyAllPropertiesToClipboard(
   parentFolder: string,
   mediaProps: MediaProperties | null,
 ): Promise<void> {
-  function showValue(v: string | undefined): string {
-    return v && v.trim() ? v : "Unknown";
-  }
   const lines = [
     `Name: ${fileName}`,
     `Type: ${isVideo ? "Video" : "Image"} (${fileExt || "unknown"})`,

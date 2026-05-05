@@ -16,7 +16,7 @@ export type KeybindActions = {
   frameStep: (direction: -1 | 1) => void;
 };
 
-export function setupKeybinds(actions: KeybindActions) {
+export function createKeybindHandler(actions: KeybindActions) {
   return function handleKeydown(e: KeyboardEvent) {
     const target = e.target as HTMLElement | null;
     const isTypingTarget =

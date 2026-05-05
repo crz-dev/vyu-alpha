@@ -23,7 +23,6 @@
       </div>
 
       <div class="about-content">
-        <!-- Brand diamond -->
         <div class="about-brand">
           <div class="about-logo-diamond-wrap">
             <div class="about-logo-diamond"></div>
@@ -39,7 +38,6 @@
           viewing experience
         </p>
 
-        <!-- Supported formats panel -->
         <div class="about-panel">
           <div class="about-panel-header">
             <svg
@@ -84,7 +82,6 @@
           </div>
         </div>
 
-        <!-- Links panel -->
         <div class="about-panel">
           <div class="about-panel-header about-panel-header-yellow">
             <svg
@@ -164,7 +161,6 @@
           </div>
         </div>
 
-        <!-- Credits -->
         <div class="about-credits">
           <span>Made by <strong>crz-dev</strong></span>
           <span class="about-credits-sep">|</span>
