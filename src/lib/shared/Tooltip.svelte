@@ -1,4 +1,6 @@
 <script lang="ts">
+  import type { ClipBoundary, Timestamp } from "$lib/shared/types";
+
   let {
     tsTooltip,
     tsEditMenuVisible,
@@ -47,8 +49,8 @@
       targetId: string;
       targetType: string;
     };
-    editingTimestamp: any;
-    editingSegment: any;
+    editingTimestamp: Timestamp | undefined;
+    editingSegment: ClipBoundary | undefined;
     currentTitle: string;
     getTitleEditorWidthCh: (title: string) => number;
     updateEditorTitle: (v: string) => void;

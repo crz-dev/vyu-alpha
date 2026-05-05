@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ClipBoundary, CtxMenu, Timestamp } from "$lib/shared/types";
+  import type { ClipBoundary, CtxMenu, MediaProperties, Timestamp } from "$lib/shared/types";
 
   let {
     contextMenu,
@@ -129,7 +129,7 @@
     ffmpegInstalling: boolean;
     ffmpegInstallError: string;
     mediaPropsLoading: boolean;
-    mediaProps: any;
+    mediaProps: MediaProperties | null;
     installFfmpegAndWait: () => void;
     refreshFfprobeAvailability: () => Promise<void>;
     loadMediaProperties: () => Promise<void>;

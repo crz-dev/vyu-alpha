@@ -1,3 +1,5 @@
+// DATAFLOW: createPlaybackActions monitors <video> element via videoElRef callback.
+// updateProgress called on 'timeupdate' event from +page.svelte.
 import { VOLUME_SEGMENTS } from "$lib/shared/constants";
 
 export function createPlaybackActions(

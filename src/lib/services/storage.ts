@@ -1,8 +1,11 @@
+// DATAFLOW: readTimestamps/readClipBoundaries/loadResumePoint called by
+// media.svelte.ts:displayFile (line 129-131) on every file load/navigation.
+// Save variants called on state mutation (timestamps/clips) and beforeunload (resume).
 import type { Timestamp, ClipBoundary } from "$lib/shared/types";
 
 const MAX_STALE_ENTRIES = 500;
 
-export function cleanupStaleStorageEntries() {
+export function cleanupStaleStorageEntries(): void {
   const tsKeys: string[] = [];
   const clipKeys: string[] = [];
   const resumeKeys: string[] = [];
@@ -38,7 +41,12 @@ export function saveDeleteNoAsk(): void {
   localStorage.setItem("vyu-delete-no-ask", "true");
 }
 
-export function loadClipPrefs() {
+export function loadClipPrefs(): {
+  deleteOriginal: boolean;
+  useCustomPath: boolean;
+  mergeSegments: boolean;
+  outputDir: string;
+} {
   return {
     deleteOriginal: localStorage.getItem("vyu-clip-delete-original") === "true",
     useCustomPath: localStorage.getItem("vyu-clip-use-custom-path") === "true",

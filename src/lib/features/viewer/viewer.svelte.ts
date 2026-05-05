@@ -1,4 +1,6 @@
-export type CropBounds = {
+// DATAFLOW: setCurrentFile restores crop from cropMap. fitToScreen called by
+// +page.svelte:onImageLoad. Transform functions drive CSS in template.
+type CropBounds = {
   left: number;
   top: number;
   right: number;

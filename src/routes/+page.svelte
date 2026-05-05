@@ -1,3 +1,6 @@
+<!-- DATAFLOW: loadFile (line 1304) → media.loadFile → displayFile → services.
+  navigate (line 1314) → media.navigate → displayFile. videoEl bound at line 2118,
+  injected into viewer/playback/slideshow. -->
 <script lang="ts">
   import { onMount } from "svelte";
   import { getCurrentWindow } from "@tauri-apps/api/window";

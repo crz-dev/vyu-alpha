@@ -1,3 +1,5 @@
+// DATAFLOW: loadFile/displayFile → services/files + services/storage.
+// navigate → displayFile (no folder rescan). closeFile → releaseMediaResources + reset state.
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { stat } from "@tauri-apps/plugin-fs";
 import { VIDEO_EXTS } from "$lib/shared/constants";
@@ -78,7 +80,7 @@ export function createMedia(
     }
   >();
 
-  function finishLoading(set: (data: Partial<MediaState>) => void) {
+  function finishLoading(set: (data: Partial<MediaState>) => void): void {
     if (finishLoadingCalled) return;
     finishLoadingCalled = true;
     clearTimeout(loadingTimer);
@@ -102,7 +104,7 @@ export function createMedia(
   async function displayFile(
     path: string,
     set: (data: Partial<MediaState>) => void,
-  ) {
+  ): Promise<void> {
     releaseMediaResources();
 
     const ext = path.split(".").pop()?.toLowerCase() || "";
@@ -163,7 +165,7 @@ export function createMedia(
     path: string,
     set: (data: Partial<MediaState>) => void,
     setFileList: (list: string[], index: number) => void,
-  ) {
+  ): Promise<void> {
     clearTimeout(loadingTimer);
     finishLoadingCalled = false;
     set({ isLoadingFile: true, loadingFadingOut: false });
@@ -197,7 +199,7 @@ export function createMedia(
     return next;
   }
 
-  function closeFile(set: (data: Partial<MediaState>) => void) {
+  function closeFile(set: (data: Partial<MediaState>) => void): void {
     clearTimeout(loadingTimer);
     finishLoadingCalled = false;
     releaseMediaResources();
@@ -235,7 +237,7 @@ export function createMedia(
     isLoadingFile: boolean,
     set: (data: Partial<MediaState>) => void,
     finishLoadingCb: () => void,
-  ) {
+  ): void {
     const img = e.target as HTMLImageElement;
     set({
       imageNaturalWidth: img.naturalWidth,
@@ -250,7 +252,7 @@ export function createMedia(
     isLoadingFile: boolean,
     set: (data: Partial<MediaState>) => void,
     finishLoadingCb: () => void,
-  ) {
+  ): void {
     const videoEl = videoElRef();
     if (!videoEl) return;
     const volume = getVolume();

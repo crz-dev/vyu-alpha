@@ -1,3 +1,5 @@
+// DATAFLOW: bind() receives live refs from +page.svelte. schedule() uses setTimeout
+// (images) or 'ended' event (videos). advanceFn → +page.svelte:advanceSlide → media.displayFile.
 import { VIDEO_EXTS } from "$lib/shared/constants";
 
 export type SlideshowOrder = "next" | "shuffle";

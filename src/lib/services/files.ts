@@ -1,3 +1,5 @@
+// DATAFLOW: readMediaFilesInFolder (line 15) scans parent dir for sibling media —
+// called by media.svelte.ts:loadFile (line 172) on initial file open only.
 import { readDir } from "@tauri-apps/plugin-fs";
 import { ALL_EXTS } from "$lib/shared/constants";
 
@@ -30,7 +32,7 @@ export async function readMediaFilesInFolder(path: string): Promise<string[]> {
   return list;
 }
 
-export function clearFolderCache(folder?: string) {
+export function clearFolderCache(folder?: string): void {
   if (folder) {
     folderCache.delete(folder);
     const idx = folderCacheOrder.indexOf(folder);
