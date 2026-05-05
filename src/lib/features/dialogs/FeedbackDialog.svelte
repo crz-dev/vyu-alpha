@@ -1101,8 +1101,7 @@
               d="M7 11V7a5 5 0 0 1 10 0v4"
             /></svg
           >
-          Used only to improve the app. Nothing is logged permanently or tied to your
-          identity.
+          Used only to improve the app. Nothing is tied to your identity.
         </span>
         <button class="delete-cancel" onclick={closeFeedback}>Close</button>
       </div>

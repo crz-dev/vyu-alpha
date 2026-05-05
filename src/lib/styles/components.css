@@ -922,8 +922,8 @@ main.thumbnail-bar-open .video-inner video {
 
 .slideshow-menu {
   position: fixed;
-  bottom: calc(36px + 10px);
-  left: 16px;
+  bottom: calc(36px + 8px);
+  left: 8px;
   z-index: 1100;
   width: min(260px, calc(100vw - 24px));
   background: #111111;
