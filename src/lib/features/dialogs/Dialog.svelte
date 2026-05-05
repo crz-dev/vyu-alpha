@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ClipBoundary, CtxMenu, Timestamp } from "$lib/types";
+  import type { ClipBoundary, CtxMenu, Timestamp } from "$lib/shared/types";
 
   let {
     contextMenu,

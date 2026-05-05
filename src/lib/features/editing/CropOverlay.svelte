@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { viewer } from "$lib/core/viewer.svelte";
+  import { viewer } from "$lib/features/viewer/viewer.svelte";
 
   let { containerEl }: { containerEl: HTMLElement | null } = $props();
 

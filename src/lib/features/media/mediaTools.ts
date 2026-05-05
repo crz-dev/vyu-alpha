@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { MediaProperties, ClipJobResult } from "$lib/types";
+import type { MediaProperties, ClipJobResult } from "$lib/shared/types";
 
 export async function exportCroppedImage(
   filePath: string,

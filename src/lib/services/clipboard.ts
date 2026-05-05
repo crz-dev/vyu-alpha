@@ -1,4 +1,4 @@
-import type { MediaProperties } from "$lib/types";
+import type { MediaProperties } from "$lib/shared/types";
 
 export async function copyImageToClipboard(fileSrc: string): Promise<void> {
   const response = await fetch(fileSrc);

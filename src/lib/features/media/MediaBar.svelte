@@ -1,7 +1,7 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
-  import SlideshowMenu from "./slideshowMenu.svelte";
-  import { slideshow } from "$lib/core/slideshow.svelte";
+  import SlideshowMenu from "../menus/SlideshowMenu.svelte";
+  import { slideshow } from "$lib/features/media/slideshow.svelte";
 
   let dismissed = $state(false);
   let pinned = $state(false);

@@ -1,4 +1,4 @@
-import type { Timestamp, ClipBoundary } from "$lib/types";
+import type { Timestamp, ClipBoundary } from "$lib/shared/types";
 
 const MAX_STALE_ENTRIES = 500;
 

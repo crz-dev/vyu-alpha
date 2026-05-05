@@ -1,4 +1,4 @@
-import type { Timestamp } from "$lib/types";
+import type { Timestamp } from "$lib/shared/types";
 
 export function createTimeline() {
   function addTimestamp(

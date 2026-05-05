@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { invokeRenameFile } from "$lib/services/mediaTools";
-  import AppDropdownMenu from "./appDropdownMenu.svelte";
+  import { invokeRenameFile } from "$lib/features/media/mediaTools";
+  import AppDropdownMenu from "./AppDropdownMenu.svelte";
 
   let {
     fileName,

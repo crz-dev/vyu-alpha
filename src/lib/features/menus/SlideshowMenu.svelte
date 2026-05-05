@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
-  import { slideshow } from "$lib/core/slideshow.svelte";
+  import { slideshow } from "$lib/features/media/slideshow.svelte";
 
   let {
     visible,

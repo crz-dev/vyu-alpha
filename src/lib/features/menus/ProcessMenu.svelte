@@ -4,7 +4,7 @@
   import {
     invokeConvertMedia,
     invokeCompressMedia,
-  } from "$lib/services/mediaTools";
+  } from "$lib/features/media/mediaTools";
 
   let {
     visible,

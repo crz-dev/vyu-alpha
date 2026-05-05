@@ -1,13 +1,13 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { stat } from "@tauri-apps/plugin-fs";
-import { VIDEO_EXTS } from "$lib/constants";
+import { VIDEO_EXTS } from "$lib/shared/constants";
 import { readMediaFilesInFolder, getFileName } from "$lib/services/files";
 import {
   readTimestamps,
   readClipBoundaries,
   loadResumePoint,
 } from "$lib/services/storage";
-import type { Timestamp, ClipBoundary } from "$lib/types";
+import type { Timestamp, ClipBoundary } from "$lib/shared/types";
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;

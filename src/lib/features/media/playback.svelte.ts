@@ -1,4 +1,4 @@
-import { VOLUME_SEGMENTS } from "$lib/constants";
+import { VOLUME_SEGMENTS } from "$lib/shared/constants";
 
 export function createPlaybackActions(
   videoElRef: () => HTMLVideoElement | null,

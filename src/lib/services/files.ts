@@ -1,5 +1,5 @@
 import { readDir } from "@tauri-apps/plugin-fs";
-import { ALL_EXTS } from "$lib/constants";
+import { ALL_EXTS } from "$lib/shared/constants";
 
 const FOLDER_CACHE_MAX = 50;
 const folderCache = new Map<string, string[]>();

@@ -1,4 +1,4 @@
-import { VIDEO_EXTS } from "$lib/constants";
+import { VIDEO_EXTS } from "$lib/shared/constants";
 
 export type SlideshowOrder = "next" | "shuffle";
 export type SlideshowVideoMode = "skip" | "full";

@@ -1,4 +1,4 @@
-import type { ClipBoundary, ClipPair } from "$lib/types";
+import type { ClipBoundary, ClipPair } from "$lib/shared/types";
 import {
   writeClipBoundaries,
   eraseClipBoundaries,

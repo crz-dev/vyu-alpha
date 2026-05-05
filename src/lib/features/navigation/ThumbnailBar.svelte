@@ -2,7 +2,7 @@
   import { convertFileSrc } from "@tauri-apps/api/core";
   import { invoke } from "@tauri-apps/api/core";
   import { tick } from "svelte";
-  import { VIDEO_EXTS } from "$lib/constants";
+  import { VIDEO_EXTS } from "$lib/shared/constants";
 
   let {
     fileList,

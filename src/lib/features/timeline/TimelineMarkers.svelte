@@ -4,7 +4,7 @@
     ClipPair,
     Timestamp,
     TimestampDragRange,
-  } from "$lib/types";
+  } from "$lib/shared/types";
 
   let {
     fullscreen = false,

@@ -1,9 +1,9 @@
-import type { MediaProperties } from "$lib/types";
+import type { MediaProperties } from "$lib/shared/types";
 import {
   invokeCheckFfprobe,
   invokeGetMediaProperties,
   invokeInstallFfmpeg,
-} from "$lib/services/mediaTools";
+} from "$lib/features/media/mediaTools";
 
 export async function fetchMediaProperties(
   filePath: string,

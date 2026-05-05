@@ -1,4 +1,4 @@
-import type { CtxMenu } from "$lib/types";
+import type { CtxMenu } from "$lib/shared/types";
 
 export function computeContextMenuPosition(
   clientX: number,

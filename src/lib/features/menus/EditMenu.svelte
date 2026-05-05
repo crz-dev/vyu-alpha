@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
-  import { viewer } from "$lib/core/viewer.svelte";
+  import { viewer } from "$lib/features/viewer/viewer.svelte";
 
   let {
     visible,
