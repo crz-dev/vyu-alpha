@@ -40,6 +40,7 @@
     { id: "process", label: "Process" },
     { id: "library", label: "Library" },
     { id: "system", label: "System" },
+    { id: "keybinds", label: "Keybinds" },
     { id: "debug", label: "Debug" },
     { id: "danger-zone", label: "Danger Zone" },
   ];
@@ -51,6 +52,7 @@
     process: "Set processing and encoding options.",
     library: "Manage your media library and history.",
     system: "System-level app behavior and updates.",
+    keybinds: "View and customize keyboard shortcuts.",
     debug: "Diagnostic tools and developer options.",
     "danger-zone": "Destructive actions that cannot be undone.",
   };
@@ -122,6 +124,7 @@
       hardwareAcceleration,
       minimizeToTray,
       startOnLogin,
+      keybinds,
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], {
       type: "application/json",
@@ -174,6 +177,41 @@
   let experimentalFeatures = $state(false);
   let showFpsCounter = $state(false);
   let forceSoftwareRendering = $state(false);
+
+  type KeybindEntry = { action: string; key: string; id: string };
+  let keybinds = $state<KeybindEntry[]>([
+    { id: "fullscreen", action: "Fullscreen", key: "F" },
+    { id: "play-pause", action: "Play / Pause", key: "Space" },
+    { id: "next-file", action: "Next file", key: "Alt + →" },
+    { id: "prev-file", action: "Previous file", key: "Alt + ←" },
+    { id: "vol-up", action: "Volume up", key: "↑" },
+    { id: "vol-down", action: "Volume down", key: "↓" },
+    { id: "seek-fwd", action: "Seek forward", key: "→" },
+    { id: "seek-bwd", action: "Seek backward", key: "←" },
+    { id: "frame-back", action: "Frame step back", key: "," },
+    { id: "frame-fwd", action: "Frame step forward", key: "." },
+    { id: "nav-first", action: "Navigate to first", key: "Ctrl + ←" },
+    { id: "nav-last", action: "Navigate to last", key: "Ctrl + →" },
+    { id: "escape", action: "Close dialogs / Exit fullscreen", key: "Esc" },
+  ]);
+
+  function resetKeybindsToDefault() {
+    keybinds = [
+      { id: "fullscreen", action: "Fullscreen", key: "F" },
+      { id: "play-pause", action: "Play / Pause", key: "Space" },
+      { id: "next-file", action: "Next file", key: "Alt + →" },
+      { id: "prev-file", action: "Previous file", key: "Alt + ←" },
+      { id: "vol-up", action: "Volume up", key: "↑" },
+      { id: "vol-down", action: "Volume down", key: "↓" },
+      { id: "seek-fwd", action: "Seek forward", key: "→" },
+      { id: "seek-bwd", action: "Seek backward", key: "←" },
+      { id: "frame-back", action: "Frame step back", key: "," },
+      { id: "frame-fwd", action: "Frame step forward", key: "." },
+      { id: "nav-first", action: "Navigate to first", key: "Ctrl + ←" },
+      { id: "nav-last", action: "Navigate to last", key: "Ctrl + →" },
+      { id: "escape", action: "Close dialogs / Exit fullscreen", key: "Esc" },
+    ];
+  }
 
   let profileMenuOpen = $state(false);
   let profileNameInput = $state("");
@@ -431,6 +469,27 @@
                     y1="17"
                     x2="12"
                     y2="21"
+                  /></svg
+                >
+              {:else if sec.id === "keybinds"}
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  ><rect
+                    x="2"
+                    y="4"
+                    width="20"
+                    height="16"
+                    rx="2"
+                    ry="2"
+                  /><path
+                    d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"
                   /></svg
                 >
               {:else if sec.id === "debug"}
@@ -1944,6 +2003,78 @@
                     /></svg
                   >
                   Reset
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Keybinds -->
+          <div
+            id="settings-section-keybinds"
+            class="settings-section"
+            class:flash={flashId === "keybinds"}
+          >
+            <p class="settings-section-header">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><rect x="2" y="4" width="20" height="16" rx="2" ry="2" /><path
+                  d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"
+                /></svg
+              >
+              Keybinds
+            </p>
+            {#each keybinds as kb}
+              <div class="settings-row">
+                <div class="settings-label-col">
+                  <div class="settings-label-text">
+                    <span class="settings-label">{kb.action}</span>
+                  </div>
+                </div>
+                <div class="settings-control">
+                  <button
+                    class="help-kbd-btn"
+                    title="Click to set custom keybind"
+                    onclick={() => {}}
+                  >
+                    {kb.key}
+                  </button>
+                </div>
+              </div>
+            {/each}
+            <div class="settings-row keybind-reset-row">
+              <div class="settings-label-col">
+                <div class="settings-label-text">
+                  <span class="settings-hint"
+                    >Restore all shortcuts to defaults</span
+                  >
+                </div>
+              </div>
+              <div class="settings-control">
+                <button
+                  class="settings-action-btn yellow"
+                  onclick={resetKeybindsToDefault}
+                >
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    ><polyline points="1 4 1 10 7 10" /><path
+                      d="M3.51 15a9 9 0 102.13-9.36L1 10"
+                    /></svg
+                  >
+                  Reset to default
                 </button>
               </div>
             </div>

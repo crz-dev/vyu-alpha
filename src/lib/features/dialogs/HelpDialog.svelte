@@ -35,14 +35,12 @@
 
   const sections = [
     { id: "quick-start", label: "Quick start" },
-    { id: "keybinds", label: "Keybinds" },
     { id: "tips", label: "Tips" },
     { id: "troubleshooting", label: "Troubleshooting" },
   ];
 
   const sectionDescriptions: Record<string, string> = {
     "quick-start": "Get up and running with vyu in seconds.",
-    keybinds: "View and customize keyboard shortcuts.",
     tips: "Hidden features and power-user tricks.",
     troubleshooting: "Fix common issues quickly.",
   };
@@ -90,79 +88,7 @@
     activeSection = current;
   }
 
-  type KeybindEntry = { action: string; key: string; id: string };
-  let keybinds = $state<KeybindEntry[]>([
-    { id: "fullscreen", action: "Fullscreen", key: "F" },
-    { id: "play-pause", action: "Play / Pause", key: "Space" },
-    { id: "next-file", action: "Next file", key: "Alt + →" },
-    { id: "prev-file", action: "Previous file", key: "Alt + ←" },
-    { id: "vol-up", action: "Volume up", key: "↑" },
-    { id: "vol-down", action: "Volume down", key: "↓" },
-    { id: "seek-fwd", action: "Seek forward", key: "→" },
-    { id: "seek-bwd", action: "Seek backward", key: "←" },
-    { id: "frame-back", action: "Frame step back", key: "," },
-    { id: "frame-fwd", action: "Frame step forward", key: "." },
-    { id: "nav-first", action: "Navigate to first", key: "Ctrl + ←" },
-    { id: "nav-last", action: "Navigate to last", key: "Ctrl + →" },
-    { id: "escape", action: "Close dialogs / Exit fullscreen", key: "Esc" },
-  ]);
 
-  function resetKeybindsToDefault() {
-    keybinds = [
-      { id: "fullscreen", action: "Fullscreen", key: "F" },
-      { id: "play-pause", action: "Play / Pause", key: "Space" },
-      { id: "next-file", action: "Next file", key: "Alt + →" },
-      { id: "prev-file", action: "Previous file", key: "Alt + ←" },
-      { id: "vol-up", action: "Volume up", key: "↑" },
-      { id: "vol-down", action: "Volume down", key: "↓" },
-      { id: "seek-fwd", action: "Seek forward", key: "→" },
-      { id: "seek-bwd", action: "Seek backward", key: "←" },
-      { id: "frame-back", action: "Frame step back", key: "," },
-      { id: "frame-fwd", action: "Frame step forward", key: "." },
-      { id: "nav-first", action: "Navigate to first", key: "Ctrl + ←" },
-      { id: "nav-last", action: "Navigate to last", key: "Ctrl + →" },
-      { id: "escape", action: "Close dialogs / Exit fullscreen", key: "Esc" },
-    ];
-  }
-
-  function exportHelpSettings() {
-    const data = { keybinds };
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "vyu-help.json";
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  let profileMenuOpen = $state(false);
-  let profileNameInput = $state("");
-  let profiles = $state<string[]>(["Default"]);
-  let activeProfile = $state("Default");
-  let profileBtnEl = $state<HTMLButtonElement | null>(null);
-  let profileDropdownStyle = $state("");
-
-  function openProfileMenu() {
-    if (profileBtnEl) {
-      const rect = profileBtnEl.getBoundingClientRect();
-      const dropdownWidth = 176;
-      const left = Math.max(8, rect.left - dropdownWidth - 8);
-      const bottom = window.innerHeight - rect.top + -46;
-      profileDropdownStyle = `position: fixed; left: ${left}px; bottom: ${bottom}px;`;
-    }
-    profileMenuOpen = true;
-  }
-
-  function toggleProfileMenu() {
-    if (profileMenuOpen) {
-      profileMenuOpen = false;
-    } else {
-      openProfileMenu();
-    }
-  }
 </script>
 
 {#if helpOpen}
@@ -170,123 +96,10 @@
     class="delete-overlay"
     role="presentation"
     onmousedown={(e) => {
-      const target = e.target as HTMLElement;
-      if (
-        profileMenuOpen &&
-        !target.closest(".profile-dropdown") &&
-        !target.closest(".profile-btn-wrap")
-      ) {
-        profileMenuOpen = false;
-      }
       if (e.target === e.currentTarget) closeHelp();
     }}
   >
-    {#if profileMenuOpen}
-      <div class="profile-dropdown" style={profileDropdownStyle}>
-        <div class="profile-dropdown-header">
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            ><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle
-              cx="12"
-              cy="7"
-              r="4"
-            /></svg
-          >
-          <span>Select Profile</span>
-        </div>
-        <div class="profile-dropdown-separator"></div>
-        {#each profiles as p}
-          <button
-            class="profile-dropdown-item"
-            class:active={activeProfile === p}
-            onclick={() => {
-              activeProfile = p;
-              profileMenuOpen = false;
-            }}
-          >
-            {#if activeProfile === p}
-              <svg
-                class="profile-check"
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                ><polyline points="20 6 9 17 4 12" /></svg
-              >
-            {:else}
-              <svg
-                class="profile-check"
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"><circle cx="12" cy="12" r="3" /></svg
-              >
-            {/if}
-            {p}
-          </button>
-        {/each}
-        <div class="profile-dropdown-separator"></div>
-        <input
-          class="profile-dropdown-input"
-          bind:value={profileNameInput}
-          placeholder="New profile name"
-          onkeydown={(e) => {
-            if (e.key === "Enter") {
-              if (profileNameInput.trim()) {
-                profiles = [...profiles, profileNameInput.trim()];
-                activeProfile = profileNameInput.trim();
-                profileNameInput = "";
-                profileMenuOpen = false;
-              }
-            }
-          }}
-        />
-        <button
-          class="profile-dropdown-item save"
-          onclick={() => {
-            if (profileNameInput.trim()) {
-              profiles = [...profiles, profileNameInput.trim()];
-              activeProfile = profileNameInput.trim();
-              profileNameInput = "";
-              profileMenuOpen = false;
-            }
-          }}
-        >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            ><line x1="12" y1="5" x2="12" y2="19" /><line
-              x1="5"
-              y1="12"
-              x2="19"
-              y2="12"
-            /></svg
-          >
-          Save current
-        </button>
-      </div>
-    {/if}
+
     <div class="delete-dialog help-dialog" role="dialog" aria-modal="true">
       <div class="settings-header-bar">
         <p class="delete-title">Help</p>
@@ -314,27 +127,6 @@
                   stroke-linejoin="round"
                   ><polygon
                     points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
-                  /></svg
-                >
-              {:else if sec.id === "keybinds"}
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  ><rect
-                    x="2"
-                    y="4"
-                    width="20"
-                    height="16"
-                    rx="2"
-                    ry="2"
-                  /><path
-                    d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"
                   /></svg
                 >
               {:else if sec.id === "tips"}
@@ -426,77 +218,6 @@
                   <strong>Zoom & Pan</strong> — Scroll to zoom, click and drag to
                   pan when zoomed in.
                 </p>
-              </div>
-            </div>
-          </div>
-
-          <div
-            id="help-section-keybinds"
-            class="settings-section"
-            class:flash={flashId === "keybinds"}
-          >
-            <p class="settings-section-header">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                ><rect x="2" y="4" width="20" height="16" rx="2" ry="2" /><path
-                  d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"
-                /></svg
-              >
-              Keybinds
-            </p>
-            {#each keybinds as kb}
-              <div class="settings-row">
-                <div class="settings-label-col">
-                  <div class="settings-label-text">
-                    <span class="settings-label">{kb.action}</span>
-                  </div>
-                </div>
-                <div class="settings-control">
-                  <button
-                    class="help-kbd-btn"
-                    title="Click to set custom keybind"
-                    onclick={() => {}}
-                  >
-                    {kb.key}
-                  </button>
-                </div>
-              </div>
-            {/each}
-            <div class="settings-row keybind-reset-row">
-              <div class="settings-label-col">
-                <div class="settings-label-text">
-                  <span class="settings-hint"
-                    >Restore all shortcuts to defaults</span
-                  >
-                </div>
-              </div>
-              <div class="settings-control">
-                <button
-                  class="settings-action-btn yellow"
-                  onclick={resetKeybindsToDefault}
-                >
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    ><polyline points="1 4 1 10 7 10" /><path
-                      d="M3.51 15a9 9 0 102.13-9.36L1 10"
-                    /></svg
-                  >
-                  Reset to default
-                </button>
               </div>
             </div>
           </div>
@@ -602,64 +323,6 @@
       </div>
 
       <div class="delete-actions">
-        <div class="settings-footer-left">
-          <div class="profile-btn-wrap">
-            <button
-              class="settings-action-btn"
-              bind:this={profileBtnEl}
-              onclick={toggleProfileMenu}
-            >
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                ><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle
-                  cx="12"
-                  cy="7"
-                  r="4"
-                /></svg
-              >
-              Profile
-            </button>
-          </div>
-          <button class="settings-action-btn">
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline
-                points="17 8 12 3 7 8"
-              /><line x1="12" y1="3" x2="12" y2="15" /></svg
-            >
-            Import Keybinds
-          </button>
-          <button class="settings-action-btn" onclick={exportHelpSettings}>
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline
-                points="7 10 12 15 17 10"
-              /><line x1="12" y1="15" x2="12" y2="3" /></svg
-            >
-            Export Keybinds
-          </button>
-        </div>
         <button class="delete-cancel" onclick={closeHelp}>Close</button>
       </div>
     </div>

@@ -1123,11 +1123,13 @@
   background: #f5c518;
 }
 
-.settings-nav-item[data-section="debug"].active {
+.settings-nav-item[data-section="debug"].active,
+.settings-nav-item[data-section="keybinds"].active {
   background: rgba(255, 255, 255, 0.08);
   color: #cccccc;
 }
-.settings-nav-item[data-section="debug"].active::before {
+.settings-nav-item[data-section="debug"].active::before,
+.settings-nav-item[data-section="keybinds"].active::before {
   background: #888888;
 }
 
@@ -1483,13 +1485,15 @@
   color: #facc15;
 }
 
-/* Section header colors - Grey/White (Debug) */
-#settings-section-debug .settings-section-header {
+/* Section header colors - Grey/White (Debug, Keybinds) */
+#settings-section-debug .settings-section-header,
+#settings-section-keybinds .settings-section-header {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.12);
   color: #aaaaaa;
 }
-#settings-section-debug .settings-section-header svg {
+#settings-section-debug .settings-section-header svg,
+#settings-section-keybinds .settings-section-header svg {
   color: #aaaaaa;
 }
 
@@ -1524,8 +1528,9 @@
   color: #facc15;
 }
 
-/* Section pill active colors - Grey/White (Debug) */
-#settings-section-debug .pill-btn.active {
+/* Section pill active colors - Grey/White (Debug, Keybinds) */
+#settings-section-debug .pill-btn.active,
+#settings-section-keybinds .pill-btn.active {
   background: rgba(255, 255, 255, 0.1);
   color: #cccccc;
 }
@@ -1554,8 +1559,9 @@
   background: #f5c518;
 }
 
-/* Section toggle colors - Grey/White (Debug) */
-#settings-section-debug .toggle-track.on {
+/* Section toggle colors - Grey/White (Debug, Keybinds) */
+#settings-section-debug .toggle-track.on,
+#settings-section-keybinds .toggle-track.on {
   background: #888888;
 }
 
@@ -1851,14 +1857,6 @@
   background: #22c55e;
 }
 
-.settings-nav-item[data-section="keybinds"].active {
-  background: rgba(59, 130, 246, 0.12);
-  color: #bfdbfe;
-}
-.settings-nav-item[data-section="keybinds"].active::before {
-  background: #3b82f6;
-}
-
 .settings-nav-item[data-section="tips"].active {
   background: rgba(245, 197, 24, 0.12);
   color: #fde047;
@@ -1883,16 +1881,6 @@
 }
 #help-section-quick-start .settings-section-header svg {
   color: #4ade80;
-}
-
-/* Help section header colors - Blue (Keybinds) */
-#help-section-keybinds .settings-section-header {
-  background: rgba(59, 130, 246, 0.08);
-  border-color: rgba(59, 130, 246, 0.18);
-  color: #93c5fd;
-}
-#help-section-keybinds .settings-section-header svg {
-  color: #93c5fd;
 }
 
 /* Help section header colors - Yellow (Tips) */
