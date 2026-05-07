@@ -35,12 +35,14 @@
 
   const sections = [
     { id: "quick-start", label: "Quick start" },
+    { id: "faq", label: "FAQ" },
     { id: "tips", label: "Tips" },
     { id: "troubleshooting", label: "Troubleshooting" },
   ];
 
   const sectionDescriptions: Record<string, string> = {
     "quick-start": "Get up and running with vyu in seconds.",
+    faq: "Common questions about privacy and usage.",
     tips: "Hidden features and power-user tricks.",
     troubleshooting: "Fix common issues quickly.",
   };
@@ -128,6 +130,20 @@
                   ><polygon
                     points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
                   /></svg
+                >
+              {:else if sec.id === "faq"}
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  ><circle cx="12" cy="12" r="10" /><path
+                    d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"
+                  /><line x1="12" y1="17" x2="12.01" y2="17" /></svg
                 >
               {:else if sec.id === "tips"}
                 <svg
@@ -217,6 +233,55 @@
                 <p>
                   <strong>Zoom & Pan</strong> — Scroll to zoom, click and drag to
                   pan when zoomed in.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div
+            id="help-section-faq"
+            class="settings-section"
+            class:flash={flashId === "faq"}
+          >
+            <p class="settings-section-header">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><circle cx="12" cy="12" r="10" /><path
+                  d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"
+                /><line x1="12" y1="17" x2="12.01" y2="17" /></svg
+              >
+              FAQ
+            </p>
+            <div class="settings-row help-text-row">
+              <div class="help-text">
+                <p>
+                  <strong>Is this app private?</strong> — Yes, vyu is open source.
+                  Your files stay on your device and are never uploaded anywhere.
+                </p>
+                <p>
+                  <strong>Does the app work offline?</strong> — Yes, no internet
+                  connection is required. We do not collect analytics or telemetry.
+                </p>
+                <p>
+                  <strong>How do I change the UI?</strong> — Visit Settings
+                  <span class="help-kbd-inline">Accessibility</span> to adjust
+                  contrast, font size, motion reduction, and more.
+                </p>
+                <p>
+                  <strong>Can I edit files?</strong> — Yes, use the Edit menu to
+                  crop, rotate, flip, and adjust colors. Use Process to convert
+                  or compress.
+                </p>
+                <p>
+                  <strong>Where are converted files saved?</strong> — You pick the
+                  location. Vyu never saves files without asking you first.
                 </p>
               </div>
             </div>
@@ -323,6 +388,9 @@
       </div>
 
       <div class="delete-actions">
+        <div class="settings-footer-left">
+          <button class="settings-action-btn">Restart tutorial</button>
+        </div>
         <button class="delete-cancel" onclick={closeHelp}>Close</button>
       </div>
     </div>

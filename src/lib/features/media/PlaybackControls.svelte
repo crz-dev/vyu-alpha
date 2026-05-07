@@ -629,10 +629,10 @@
           viewBox="0 0 24 24"
           fill="none"
         >
-          <path
-            d="M4 16 L12 6 L20 16"
+          <polygon
+            points="12,2 22,12 12,22 2,12"
             stroke="currentColor"
-            stroke-width="2.2"
+            stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
           />
@@ -1296,10 +1296,10 @@
           viewBox="0 0 24 24"
           fill="none"
         >
-          <path
-            d="M4 16 L12 6 L20 16"
+          <polygon
+            points="12,2 22,12 12,22 2,12"
             stroke="currentColor"
-            stroke-width="2.2"
+            stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
           />

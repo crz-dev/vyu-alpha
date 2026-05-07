@@ -4,3 +4,5 @@
 @import "$lib/styles/overlays.css";
 @import "$lib/styles/layout.css";
 @import "$lib/styles/components.css";
+
+:focus-visible { outline: none !important; }

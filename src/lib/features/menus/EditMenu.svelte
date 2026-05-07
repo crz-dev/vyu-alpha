@@ -91,6 +91,9 @@
     } else {
       activeColorTool = tool;
       colorRowOpen = true;
+      rotateRowOpen = false;
+      activeRotateTool = null;
+      flipRowOpen = false;
     }
   }
 
@@ -200,9 +203,15 @@
       } else {
         activeRotateTool = "custom";
         localRotationAngle = viewer.state.rotation;
+        colorRowOpen = false;
+        activeColorTool = null;
+        flipRowOpen = false;
       }
     } else {
       activeRotateTool = tool;
+      colorRowOpen = false;
+      activeColorTool = null;
+      flipRowOpen = false;
       if (tool === "90-right") {
         viewer.rotate(90);
       } else if (tool === "90-left") {
@@ -486,7 +495,16 @@
       {:else}
         <button
           class="edit-menu-btn yellow"
-          onclick={() => (rotateRowOpen = !rotateRowOpen)}
+          onclick={() => {
+            if (rotateRowOpen) {
+              rotateRowOpen = false;
+            } else {
+              rotateRowOpen = true;
+              colorRowOpen = false;
+              activeColorTool = null;
+              flipRowOpen = false;
+            }
+          }}
         >
           <svg
             width="13"
@@ -531,7 +549,17 @@
       {:else}
         <button
           class="edit-menu-btn green"
-          onclick={() => (flipRowOpen = !flipRowOpen)}
+          onclick={() => {
+            if (flipRowOpen) {
+              flipRowOpen = false;
+            } else {
+              flipRowOpen = true;
+              colorRowOpen = false;
+              activeColorTool = null;
+              rotateRowOpen = false;
+              activeRotateTool = null;
+            }
+          }}
         >
           <svg
             width="13"
@@ -575,7 +603,16 @@
       {:else}
         <button
           class="edit-menu-btn blue"
-          onclick={() => (colorRowOpen = !colorRowOpen)}
+          onclick={() => {
+            if (colorRowOpen) {
+              colorRowOpen = false;
+            } else {
+              colorRowOpen = true;
+              rotateRowOpen = false;
+              activeRotateTool = null;
+              flipRowOpen = false;
+            }
+          }}
         >
           <svg
             width="13"
