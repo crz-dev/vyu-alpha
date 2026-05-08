@@ -258,7 +258,7 @@
       </button>
     </div>
     {#if !isVideo}
-      <button class="ctx-item green" onclick={ctxCopyImage} role="menuitem" transition:fly={{ y: -8, duration: 120, delay: 0 }}>
+      <button class="ctx-item green" onclick={ctxCopyImage} role="menuitem" transition:fly={{ y: -10, duration: 140, delay: 0 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
           ><rect
             x="8"
@@ -277,7 +277,7 @@
         >
         Copy image
       </button>
-      <button class="ctx-item green" onclick={ctxCopyPath} role="menuitem" transition:fly={{ y: -8, duration: 120, delay: 28 }}>
+      <button class="ctx-item green" onclick={ctxCopyPath} role="menuitem" transition:fly={{ y: -10, duration: 140, delay: 32 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
           ><path
             d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"
@@ -294,7 +294,7 @@
         Copy file path
       </button>
       <div class="ctx-sep"></div>
-      <button class="ctx-item blue" onclick={ctxEdit} role="menuitem" transition:fly={{ y: -8, duration: 120, delay: 56 }}>
+      <button class="ctx-item blue" onclick={ctxEdit} role="menuitem" transition:fly={{ y: -10, duration: 140, delay: 64 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
           ><path
             d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"
@@ -306,7 +306,7 @@
         >
         Edit
       </button>
-      <button class="ctx-item blue" onclick={ctxProcess} role="menuitem" transition:fly={{ y: -8, duration: 120, delay: 84 }}>
+      <button class="ctx-item blue" onclick={ctxProcess} role="menuitem" transition:fly={{ y: -10, duration: 140, delay: 96 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
           ><path
             d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
@@ -340,7 +340,7 @@
         class="ctx-item yellow"
         onclick={ctxShowInExplorer}
         role="menuitem"
-        transition:fly={{ y: -8, duration: 120, delay: 112 }}
+        transition:fly={{ y: -10, duration: 140, delay: 128 }}
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
           ><path
@@ -351,7 +351,7 @@
         >
         Show in explorer
       </button>
-      <button class="ctx-item yellow" onclick={ctxProperties} role="menuitem" transition:fly={{ y: -8, duration: 120, delay: 140 }}>
+      <button class="ctx-item yellow" onclick={ctxProperties} role="menuitem" transition:fly={{ y: -10, duration: 140, delay: 160 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
           ><circle
             cx="12"
@@ -369,7 +369,7 @@
         Properties
       </button>
       <div class="ctx-sep"></div>
-      <button class="ctx-item red" onclick={ctxDelete} role="menuitem" transition:fly={{ y: -8, duration: 120, delay: 168 }}>
+      <button class="ctx-item red" onclick={ctxDelete} role="menuitem" transition:fly={{ y: -10, duration: 140, delay: 192 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
           ><polyline
             points="3 6 5 6 21 6"
@@ -396,7 +396,7 @@
         Delete
       </button>
     {:else}
-      <button class="ctx-item green" onclick={ctxCopyFrame} role="menuitem" transition:fly={{ y: -8, duration: 120, delay: 0 }}>
+      <button class="ctx-item green" onclick={ctxCopyFrame} role="menuitem" transition:fly={{ y: -10, duration: 140, delay: 0 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
           ><rect
             x="2"
@@ -415,7 +415,7 @@
         >
         Copy current frame
       </button>
-      <button class="ctx-item green" onclick={ctxCopyPath} role="menuitem" transition:fly={{ y: -8, duration: 120, delay: 28 }}>
+      <button class="ctx-item green" onclick={ctxCopyPath} role="menuitem" transition:fly={{ y: -10, duration: 140, delay: 32 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
           ><path
             d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"
@@ -432,7 +432,7 @@
         Copy file path
       </button>
       <div class="ctx-sep"></div>
-      <button class="ctx-item blue" onclick={ctxEdit} role="menuitem" transition:fly={{ y: -8, duration: 120, delay: 56 }}>
+      <button class="ctx-item blue" onclick={ctxEdit} role="menuitem" transition:fly={{ y: -10, duration: 140, delay: 64 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
           ><path
             d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"
@@ -444,7 +444,7 @@
         >
         Edit
       </button>
-      <button class="ctx-item blue" onclick={ctxProcess} role="menuitem" transition:fly={{ y: -8, duration: 120, delay: 84 }}>
+      <button class="ctx-item blue" onclick={ctxProcess} role="menuitem" transition:fly={{ y: -10, duration: 140, delay: 96 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
           ><path
             d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
@@ -478,7 +478,7 @@
         class="ctx-item yellow"
         onclick={ctxShowInExplorer}
         role="menuitem"
-        transition:fly={{ y: -8, duration: 120, delay: 112 }}
+        transition:fly={{ y: -10, duration: 140, delay: 128 }}
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
           ><path
@@ -489,7 +489,7 @@
         >
         Show in explorer
       </button>
-      <button class="ctx-item yellow" onclick={ctxProperties} role="menuitem" transition:fly={{ y: -8, duration: 120, delay: 140 }}>
+      <button class="ctx-item yellow" onclick={ctxProperties} role="menuitem" transition:fly={{ y: -10, duration: 140, delay: 160 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
           ><circle
             cx="12"
@@ -517,7 +517,7 @@
               ctxClearMarkers();
             }}
             role="menuitem"
-            transition:fly={{ y: -8, duration: 120, delay: 168 }}
+            transition:fly={{ y: -10, duration: 140, delay: 192 }}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
               ><circle
@@ -546,7 +546,7 @@
               }, 3000);
             }}
             role="menuitem"
-            transition:fly={{ y: -8, duration: 120, delay: 168 }}
+            transition:fly={{ y: -10, duration: 140, delay: 192 }}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
               ><circle
@@ -566,7 +566,7 @@
           </button>
         {/if}
       {/if}
-      <button class="ctx-item red" onclick={ctxDelete} role="menuitem" transition:fly={{ y: -8, duration: 120, delay: 168 }}>
+      <button class="ctx-item red" onclick={ctxDelete} role="menuitem" transition:fly={{ y: -10, duration: 140, delay: 192 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
           ><polyline
             points="3 6 5 6 21 6"

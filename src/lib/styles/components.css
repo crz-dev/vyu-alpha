@@ -601,8 +601,8 @@ main.thumbnail-bar-open .video-inner video {
   color: #ffffff;
 }
 .fs-ctrl-btn.speed-btn svg {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
 }
 .fs-time {
   font-size: 16px;
@@ -1059,12 +1059,12 @@ main.thumbnail-bar-open .video-inner video {
   height: 34px;
 }
 .speed-btn {
-  font-size: 11px;
+  font-size: 16px;
   font-family: Inter, sans-serif;
   font-weight: 600;
   color: #ffffff;
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   flex-shrink: 0;
 }
@@ -1582,14 +1582,24 @@ main.thumbnail-bar-open .video-inner video {
   color: #ffffff;
   background: rgba(255, 255, 255, 0.08);
 }
-.ts-drop-arrow-icon {
-  transition: transform 0.2s cubic-bezier(0.22, 0.9, 0.3, 1);
+.ts-drop-arrow-icon .diamond-shape,
+.ts-drop-arrow-icon .x-shape {
+  transform-origin: center;
+  transition:
+    transform 0.3s cubic-bezier(0.22, 0.9, 0.3, 1),
+    opacity 0.25s;
 }
-.ts-menu-open .ts-drop-arrow-icon {
-  animation: diamondToX 0.25s cubic-bezier(0.22, 0.9, 0.3, 1) forwards;
+.ts-drop-arrow-icon .x-shape {
+  opacity: 0;
+  transform: rotate(-45deg);
 }
-.add-ts-btn:not(.ts-menu-open) .ts-drop-arrow-icon {
-  animation: xToDiamond 0.25s cubic-bezier(0.22, 0.9, 0.3, 1) forwards;
+.ts-menu-open .ts-drop-arrow-icon .diamond-shape {
+  transform: rotate(45deg);
+  opacity: 0;
+}
+.ts-menu-open .ts-drop-arrow-icon .x-shape {
+  transform: rotate(0deg);
+  opacity: 1;
 }
 
 .edit-menu {

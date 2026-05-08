@@ -630,12 +630,27 @@
           fill="none"
         >
           <polygon
-            points="12,2 22,12 12,22 2,12"
+            class="diamond-shape"
+            points="12,3 21,12 12,21 3,12"
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
           />
+          <g class="x-shape">
+            <path
+              d="M4.5,4.5 L19.5,19.5"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+            <path
+              d="M19.5,4.5 L4.5,19.5"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </g>
         </svg>
       </button>
       {#if tsMenuOpen}
@@ -1297,12 +1312,27 @@
           fill="none"
         >
           <polygon
-            points="12,2 22,12 12,22 2,12"
+            class="diamond-shape"
+            points="12,3 21,12 12,21 3,12"
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
           />
+          <g class="x-shape">
+            <path
+              d="M4.5,4.5 L19.5,19.5"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+            <path
+              d="M19.5,4.5 L4.5,19.5"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </g>
         </svg>
       </button>
       {#if tsMenuOpen}

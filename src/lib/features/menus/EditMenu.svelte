@@ -435,7 +435,18 @@
       <button
         class="edit-menu-btn red"
         class:active={cropMode}
-        onclick={() => (cropMode ? viewer.cancelCrop() : onCrop())}
+        onclick={() => {
+          if (cropMode) {
+            viewer.cancelCrop();
+          } else {
+            onCrop();
+            colorRowOpen = false;
+            activeColorTool = null;
+            rotateRowOpen = false;
+            activeRotateTool = null;
+            flipRowOpen = false;
+          }
+        }}
       >
         {#if cropMode}
           <svg
