@@ -601,12 +601,12 @@ main.thumbnail-bar-open .video-inner video {
   color: #ffffff;
 }
 .fs-ctrl-btn.speed-btn svg {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
 }
 .fs-time {
   font-size: 16px;
-  color: #888888;
+  color: #cccccc;
   font-family: Inter, sans-serif;
   background: none;
   border: none;
@@ -1063,8 +1063,8 @@ main.thumbnail-bar-open .video-inner video {
   font-family: Inter, sans-serif;
   font-weight: 600;
   color: #ffffff;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   flex-shrink: 0;
 }
@@ -1241,7 +1241,7 @@ main.thumbnail-bar-open .video-inner video {
 }
 
 .thumbnail-bar.fullscreen {
-  bottom: 92px;
+  bottom: 60px;
   z-index: 101;
 }
 
@@ -1586,20 +1586,26 @@ main.thumbnail-bar-open .video-inner video {
 .ts-drop-arrow-icon .x-shape {
   transform-origin: center;
   transition:
-    transform 0.3s cubic-bezier(0.22, 0.9, 0.3, 1),
-    opacity 0.25s;
+    transform 0.5s cubic-bezier(0.22, 0.9, 0.3, 1),
+    opacity 0.4s;
 }
 .ts-drop-arrow-icon .x-shape {
   opacity: 0;
   transform: rotate(-45deg);
 }
 .ts-menu-open .ts-drop-arrow-icon .diamond-shape {
-  transform: rotate(45deg);
+  transform: rotate(765deg);
   opacity: 0;
 }
 .ts-menu-open .ts-drop-arrow-icon .x-shape {
   transform: rotate(0deg);
   opacity: 1;
+}
+.add-ts-btn:not(.ts-menu-open) .ts-drop-arrow-icon .diamond-shape {
+  transform: rotate(0deg);
+}
+.add-ts-btn:not(.ts-menu-open) .ts-drop-arrow-icon .x-shape {
+  transform: rotate(-765deg);
 }
 
 .edit-menu {

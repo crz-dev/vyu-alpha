@@ -195,6 +195,11 @@ export function createSlideshow() {
     },
     set order(v: SlideshowOrder) {
       order = v;
+      if (v === "shuffle") {
+        const fileList = bound.getFileList();
+        const currentIndex = bound.getCurrentIndex();
+        buildShuffle(fileList, currentIndex);
+      }
       restartIfActive();
     },
     get videoMode() {

@@ -1877,12 +1877,13 @@
             </div>
           </div>
         {/if}
+        {#if fileList.length > 0}<button
+            class="fs-file-count-pill"
+            class:slideshow-active={slideshowMenuVisible}
+            onclick={toggleThumbnailBar}
+            >{currentIndex + 1} / {fileList.length}</button
+          >{/if}
       </div>
-      {#if fileList.length > 0}<button
-          class="fs-file-count-pill"
-          onclick={toggleThumbnailBar}
-          >{currentIndex + 1} / {fileList.length}</button
-        >{/if}
     {/if}
   {/snippet}
 </Shell>

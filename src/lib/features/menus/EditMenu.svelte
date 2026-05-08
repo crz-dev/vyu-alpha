@@ -510,6 +510,7 @@
             if (rotateRowOpen) {
               rotateRowOpen = false;
             } else {
+              if (cropMode) viewer.cancelCrop();
               rotateRowOpen = true;
               colorRowOpen = false;
               activeColorTool = null;
@@ -564,6 +565,7 @@
             if (flipRowOpen) {
               flipRowOpen = false;
             } else {
+              if (cropMode) viewer.cancelCrop();
               flipRowOpen = true;
               colorRowOpen = false;
               activeColorTool = null;
@@ -618,6 +620,7 @@
             if (colorRowOpen) {
               colorRowOpen = false;
             } else {
+              if (cropMode) viewer.cancelCrop();
               colorRowOpen = true;
               rotateRowOpen = false;
               activeRotateTool = null;
