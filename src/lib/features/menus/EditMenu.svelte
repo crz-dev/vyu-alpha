@@ -1,21 +1,22 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
   import { editing } from "$lib/features/editing/editing.svelte";
+  import EditActions from "$lib/features/editing/EditActions.svelte";
 
   let {
     visible,
+    onClose,
     onApply,
     onExport,
     onUndo,
     onReset,
-    onClose,
   }: {
     visible: boolean;
+    onClose: () => void;
     onApply: () => void;
     onExport: () => void;
     onUndo: () => void;
     onReset: () => void;
-    onClose: () => void;
   } = $props();
 
   let colorRowOpen = $state(false);
@@ -260,9 +261,6 @@
     }
   }
 
-  const canUndo = $derived(editing.getCanUndo());
-  const hasEdits = $derived(editing.getHasEdits() || editing.getCropBounds() !== null);
-
   const scrubberTooltipVisible = $derived(
     activeColorTool !== null &&
       (sliderHovered ||
@@ -335,6 +333,7 @@
 </script>
 
 {#if visible}
+  <div class="edit-menu-wrapper">
   <div
     class="edit-menu"
     class:pinned
@@ -348,7 +347,7 @@
       onmousedown={(e) => {
         e.preventDefault();
         const menu = (e.currentTarget as HTMLElement).closest(
-          ".edit-menu",
+          ".edit-menu-wrapper",
         ) as HTMLElement;
         if (!menu) return;
         const startX = e.clientX;
@@ -1020,97 +1019,9 @@
       </div>
     {/if}
 
-    <div class="edit-menu-separator"></div>
+  </div>
 
-    <div class="edit-menu-row edit-actions-row">
-      <div class="edit-actions-left">
-        <button
-          class="edit-menu-btn blue"
-          class:inactive={!canUndo}
-          onclick={onUndo}
-          disabled={!canUndo}
-        >
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-            <path d="M3 3v5h5" />
-          </svg>
-          <span>Undo</span>
-        </button>
-        <button
-          class="edit-menu-btn red"
-          class:inactive={!hasEdits}
-          onclick={onReset}
-          disabled={!hasEdits}
-        >
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-            <path d="M3 3v5h5" />
-          </svg>
-          <span>Reset</span>
-        </button>
-      </div>
-      <div class="edit-actions-right">
-        <button
-          class="edit-menu-btn green"
-          class:inactive={!hasEdits}
-          onclick={onApply}
-          disabled={!hasEdits}
-        >
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M20 6L9 17l-5-5" />
-          </svg>
-          <span>Apply</span>
-        </button>
-        <button
-          class="edit-menu-btn yellow"
-          class:inactive={!hasEdits}
-          onclick={onExport}
-          disabled={!hasEdits}
-        >
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="17,8 12,3 7,8" />
-            <line x1="12" y1="3" x2="12" y2="15" />
-          </svg>
-          <span>Export</span>
-        </button>
-      </div>
-    </div>
+    <EditActions {onApply} {onExport} {onUndo} {onReset} />
+
   </div>
 {/if}

@@ -487,11 +487,11 @@
 
   <EditMenu
     visible={editMenuVisible}
+    onClose={closeEditMenu}
     {onApply}
     {onExport}
     {onUndo}
     {onReset}
-    onClose={closeEditMenu}
   />
 
   <ProcessMenu

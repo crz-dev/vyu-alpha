@@ -1330,6 +1330,7 @@ import { invoke } from "@tauri-apps/api/core";
       editMenuVisible &&
       e.button === 2 &&
       !target.closest(".edit-menu") &&
+      !target.closest(".edit-menu-wrapper") &&
       !document.querySelector(".edit-menu.pinned")
     )
       closeEditMenu();
