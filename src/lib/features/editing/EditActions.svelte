@@ -19,7 +19,7 @@
 </script>
 
 {#if hasEdits}
-  <div class="edit-actions-bar" transition:fly={{ y: -8, duration: 180, opacity: 0 }}>
+  <div class="edit-actions-bar" transition:fly={{ y: 10, duration: 160, opacity: 0 }}>
     <button
       class="edit-action-btn red tooltip-ctrl"
       class:inactive={!hasEdits}

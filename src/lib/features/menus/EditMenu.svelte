@@ -168,11 +168,6 @@
     }
   }
 
-  function closeColorTools() {
-    activeColorTool = null;
-    colorRowOpen = false;
-  }
-
   function toggleRotateTool(tool: "90-right" | "90-left" | "180" | "custom") {
     if (tool === "custom") {
       if (activeRotateTool === "custom") {
@@ -230,11 +225,6 @@
     rotateTrackEl.releasePointerCapture(e.pointerId);
   }
 
-  function closeRotateTools() {
-    activeRotateTool = null;
-    rotateRowOpen = false;
-  }
-
   function toggleFlip(direction: "horizontal" | "vertical") {
     editing.pushUndo();
     if (direction === "horizontal") {
@@ -242,10 +232,6 @@
     } else {
       editing.flipVertical();
     }
-  }
-
-  function closeFlipTools() {
-    flipRowOpen = false;
   }
 
   function handleCropClick() {
@@ -429,209 +415,125 @@
     <div class="edit-menu-row">
       <button
         class="edit-menu-btn red"
-        class:active={editing.cropMode}
+        class:sub-open={editing.cropMode}
         onclick={handleCropClick}
       >
-        {#if editing.cropMode}
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="speed-mode-icon"
-          >
-            <path d="M18 6L6 18M6 6l12 12" />
-          </svg>
-          <span>Close</span>
-        {:else}
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="speed-mode-icon"
-          >
-            <path d="M6 2h12v20H6z" opacity="0.3" />
-            <path d="M2 6h20M2 18h20M6 2v20M18 2v20" />
-          </svg>
-          <span>Crop</span>
-        {/if}
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="speed-mode-icon"
+        >
+          <path d="M6 2h12v20H6z" opacity="0.3" />
+          <path d="M2 6h20M2 18h20M6 2v20M18 2v20" />
+        </svg>
+        <span>Crop</span>
       </button>
-      {#if rotateRowOpen}
-        <button
-          class="edit-menu-btn red brightness-close-btn"
-          onclick={closeRotateTools}
+      <button
+        class="edit-menu-btn yellow"
+        class:sub-open={rotateRowOpen}
+        onclick={() => {
+          if (rotateRowOpen) {
+            rotateRowOpen = false;
+            activeRotateTool = null;
+          } else {
+            if (editing.cropMode) editing.exitCropMode();
+            rotateRowOpen = true;
+            colorRowOpen = false;
+            activeColorTool = null;
+            flipRowOpen = false;
+          }
+        }}
+      >
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
         >
-          {#key rotateRowOpen}
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="speed-mode-icon"
-            >
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-            <span>Close</span>
-          {/key}
-        </button>
-      {:else}
-        <button
-          class="edit-menu-btn yellow"
-          onclick={() => {
-            if (rotateRowOpen) {
-              rotateRowOpen = false;
-            } else {
-              if (editing.cropMode) editing.exitCropMode();
-              rotateRowOpen = true;
-              colorRowOpen = false;
-              activeColorTool = null;
-              flipRowOpen = false;
-            }
-          }}
+          <path d="M21 2v6h-6" />
+          <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+          <path d="M3 22v-6h6" />
+          <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+        </svg>
+        <span>Rotate</span>
+      </button>
+      <button
+        class="edit-menu-btn green"
+        class:sub-open={flipRowOpen}
+        onclick={() => {
+          if (flipRowOpen) {
+            flipRowOpen = false;
+          } else {
+            if (editing.cropMode) editing.exitCropMode();
+            flipRowOpen = true;
+            colorRowOpen = false;
+            activeColorTool = null;
+            rotateRowOpen = false;
+            activeRotateTool = null;
+          }
+        }}
+      >
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
         >
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M21 2v6h-6" />
-            <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
-            <path d="M3 22v-6h6" />
-            <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
-          </svg>
-          <span>Rotate</span>
-        </button>
-      {/if}
-      {#if flipRowOpen}
-        <button
-          class="edit-menu-btn red brightness-close-btn"
-          onclick={closeFlipTools}
+          <path d="M12 3v18" />
+          <path d="M16 7l4 5-4 5" />
+          <path d="M8 7l-4 5 4 5" />
+        </svg>
+        <span>Flip</span>
+      </button>
+      <button
+        class="edit-menu-btn blue"
+        class:sub-open={colorRowOpen}
+        onclick={() => {
+          if (colorRowOpen) {
+            colorRowOpen = false;
+            activeColorTool = null;
+          } else {
+            if (editing.cropMode) editing.exitCropMode();
+            colorRowOpen = true;
+            rotateRowOpen = false;
+            activeRotateTool = null;
+            flipRowOpen = false;
+          }
+        }}
+      >
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
         >
-          {#key flipRowOpen}
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="speed-mode-icon"
-            >
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-            <span>Close</span>
-          {/key}
-        </button>
-      {:else}
-        <button
-          class="edit-menu-btn green"
-          onclick={() => {
-            if (flipRowOpen) {
-              flipRowOpen = false;
-            } else {
-              if (editing.cropMode) editing.exitCropMode();
-              flipRowOpen = true;
-              colorRowOpen = false;
-              activeColorTool = null;
-              rotateRowOpen = false;
-              activeRotateTool = null;
-            }
-          }}
-        >
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M12 3v18" />
-            <path d="M16 7l4 5-4 5" />
-            <path d="M8 7l-4 5 4 5" />
-          </svg>
-          <span>Flip</span>
-        </button>
-      {/if}
-      {#if colorRowOpen}
-        <button
-          class="edit-menu-btn red brightness-close-btn"
-          onclick={closeColorTools}
-        >
-          {#key colorRowOpen}
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="speed-mode-icon"
-            >
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-            <span>Close</span>
-          {/key}
-        </button>
-      {:else}
-        <button
-          class="edit-menu-btn blue"
-          onclick={() => {
-            if (colorRowOpen) {
-              colorRowOpen = false;
-            } else {
-              if (editing.cropMode) editing.exitCropMode();
-              colorRowOpen = true;
-              rotateRowOpen = false;
-              activeRotateTool = null;
-              flipRowOpen = false;
-            }
-          }}
-        >
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <path
-              d="M12 2a10 10 0 0 1 0 20 10 10 0 0 1 0-20"
-              fill="currentColor"
-              opacity="0.25"
-            />
-          </svg>
-          <span>Color</span>
-        </button>
-      {/if}
+          <circle cx="12" cy="12" r="10" />
+          <path
+            d="M12 2a10 10 0 0 1 0 20 10 10 0 0 1 0-20"
+            fill="currentColor"
+            opacity="0.25"
+          />
+        </svg>
+        <span>Color</span>
+      </button>
     </div>
 
     {#if colorRowOpen}

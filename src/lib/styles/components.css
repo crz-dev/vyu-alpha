@@ -1815,17 +1815,16 @@ main.thumbnail-bar-open .video-inner video {
   color: #bfdbfe;
 }
 
-.edit-menu-btn.brightness-close-btn {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: rgba(248, 113, 113, 0.45);
-  color: #fca5a5;
-  opacity: 1;
+.edit-menu-btn.sub-open {
+  opacity: 0.35;
+  cursor: pointer;
+  pointer-events: auto;
+  filter: grayscale(0.6);
 }
-
-.edit-menu-btn.brightness-close-btn:hover {
-  background: rgba(239, 68, 68, 0.3);
+.edit-menu-btn.sub-open:hover {
+  opacity: 0.52;
+  filter: grayscale(0.3);
 }
-
 .edit-menu-btn.inactive {
   opacity: 0.25;
   cursor: default;
