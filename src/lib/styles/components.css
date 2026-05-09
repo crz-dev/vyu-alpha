@@ -1615,9 +1615,9 @@ main.thumbnail-bar-open .video-inner video {
   transform: translateX(-50%);
   z-index: 1100;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 6px;
 }
 .edit-menu {
   width: min(398px, calc(100vw - 30px));
@@ -1839,38 +1839,23 @@ main.thumbnail-bar-open .video-inner video {
   flex-shrink: 0;
 }
 
-.edit-actions-row {
-  gap: 4px;
-}
-
-.edit-actions-left,
-.edit-actions-right {
-  display: flex;
-  flex-direction: row;
-  gap: 4px;
-  flex: 1;
-}
-
-.edit-actions-left .edit-menu-btn,
-.edit-actions-right .edit-menu-btn {
-  flex: 1;
-  min-width: 0;
-}
-
 .edit-actions-bar {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   gap: 4px;
   background: #0e0e0e;
   border: 0.5px solid #2a2a2a;
   border-radius: 9px;
   padding: 5px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  height: 74px;
+  max-height: 74px;
+  min-height: 74px;
 }
 
 .edit-action-btn {
   width: 36px;
-  height: 36px;
+  height: 30px;
   border-radius: 7px;
   border: 0.5px solid #323232;
   background: rgba(255, 255, 255, 0.055);

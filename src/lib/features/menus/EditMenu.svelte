@@ -320,6 +320,7 @@
 
 {#if visible}
   <div class="edit-menu-wrapper">
+    <EditActions side="left" {onApply} {onExport} {onUndo} {onReset} />
   <div
     class="edit-menu"
     class:pinned
@@ -923,7 +924,7 @@
 
   </div>
 
-    <EditActions {onApply} {onExport} {onUndo} {onReset} />
+    <EditActions side="right" {onApply} {onExport} {onUndo} {onReset} />
 
   </div>
 {/if}
