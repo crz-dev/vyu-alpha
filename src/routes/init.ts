@@ -28,6 +28,7 @@ export interface InitState {
   clipUseCustomPath: { get: () => boolean; set: (v: boolean) => void };
   clipMergeSegments: { get: () => boolean; set: (v: boolean) => void };
   isVideo: { get: () => boolean };
+  isAudio: { get: () => boolean };
   filePath: { get: () => string };
   rawCurrentSecs: { get: () => number };
   rawDurationSecs: { get: () => number };
@@ -64,7 +65,7 @@ export function setupInit(s: InitState) {
 
     function saveResumeBeforeUnload() {
       if (
-        s.isVideo.get() &&
+        (s.isVideo.get() || s.isAudio.get()) &&
         s.filePath.get() &&
         s.rawCurrentSecs.get() > 0 &&
         s.rawDurationSecs.get() > 0
@@ -97,7 +98,9 @@ export function setupInit(s: InitState) {
       const mediaItem = Array.from(e.clipboardData?.items ?? []).find(
         (item) =>
           item.kind === "file" &&
-          (item.type.startsWith("image/") || item.type.startsWith("video/")),
+          (item.type.startsWith("image/") ||
+          item.type.startsWith("video/") ||
+          item.type.startsWith("audio/")),
       );
       if (mediaItem) {
         const file = mediaItem.getAsFile();

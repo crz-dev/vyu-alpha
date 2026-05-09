@@ -1,14 +1,15 @@
 // DATAFLOW: bind() receives live refs from +page.svelte. schedule() uses setTimeout
 // (images) or 'ended' event (videos). advanceFn → +page.svelte:advanceSlide → media.displayFile.
-import { VIDEO_EXTS } from "$lib/shared/constants";
+import { VIDEO_EXTS, AUDIO_EXTS } from "$lib/shared/constants";
 import { getFileExt } from "$lib/services/files";
 
 export type SlideshowOrder = "next" | "shuffle";
 export type SlideshowVideoMode = "skip" | "full";
 export type SlideshowTransition = "none" | "fade" | "slide";
 
-function getIsVideo(path: string): boolean {
-  return VIDEO_EXTS.includes(getFileExt(path));
+function getIsTimedMedia(path: string): boolean {
+  const ext = getFileExt(path);
+  return VIDEO_EXTS.includes(ext) || AUDIO_EXTS.includes(ext);
 }
 
 export function createSlideshow() {
@@ -20,7 +21,7 @@ export function createSlideshow() {
   let transition = $state<SlideshowTransition>("none");
 
   let timer: ReturnType<typeof setTimeout> | undefined;
-  let pendingVideoEl: HTMLVideoElement | null = null;
+  let pendingVideoEl: HTMLMediaElement | null = null;
   let pendingVideoHandler: (() => void) | null = null;
   let shuffledIndices: number[] = [];
   let shufflePos = 0;
@@ -29,16 +30,16 @@ export function createSlideshow() {
     getFileList: () => [] as string[],
     getCurrentIndex: () => 0,
     advanceFn: (_: number) => {},
-    getVideoEl: () => null as HTMLVideoElement | null,
+    getMediaEl: () => null as HTMLMediaElement | null,
   };
 
   function bind(
     getFileList: () => string[],
     getCurrentIndex: () => number,
     advanceFn: (nextIndex: number) => void,
-    getVideoEl: () => HTMLVideoElement | null,
+    getMediaEl: () => HTMLMediaElement | null,
   ) {
-    bound = { getFileList, getCurrentIndex, advanceFn, getVideoEl };
+    bound = { getFileList, getCurrentIndex, advanceFn, getMediaEl };
   }
 
   function clearVideoListener() {
@@ -77,9 +78,9 @@ export function createSlideshow() {
     const currentIndex = bound.getCurrentIndex();
     if (fileList.length === 0) return;
     const path = fileList[currentIndex];
-    const isVid = getIsVideo(path);
+    const isTimed = getIsTimedMedia(path);
 
-    if (isVid && videoMode === "skip") {
+    if (isTimed && videoMode === "skip") {
       if (fileList.length === 1) {
         timer = setTimeout(() => {
           if (!active || paused) return;
@@ -95,9 +96,9 @@ export function createSlideshow() {
       return;
     }
 
-    if (isVid && videoMode === "full") {
-      const videoEl = bound.getVideoEl();
-      if (videoEl) {
+    if (isTimed && videoMode === "full") {
+      const mediaEl = bound.getMediaEl();
+      if (mediaEl) {
         clearVideoListener();
         const handler = () => {
           clearVideoListener();
@@ -105,9 +106,9 @@ export function createSlideshow() {
           const nextIndex = getNextIndex(fileList, currentIndex);
           bound.advanceFn(nextIndex);
         };
-        pendingVideoEl = videoEl;
+        pendingVideoEl = mediaEl;
         pendingVideoHandler = handler;
-        videoEl.addEventListener("ended", handler);
+        mediaEl.addEventListener("ended", handler);
         return;
       }
       timer = setTimeout(() => {

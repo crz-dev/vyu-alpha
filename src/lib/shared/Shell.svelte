@@ -21,6 +21,7 @@
     fileList,
     currentIndex,
     isVideo,
+    isAudio,
     fileDimensions,
     fileSize,
     fileInfoLoading,
@@ -196,6 +197,7 @@
     fileList: string[];
     currentIndex: number;
     isVideo: boolean;
+    isAudio: boolean;
     fileDimensions: string;
     fileSize: string;
     fileInfoLoading: boolean;
@@ -406,6 +408,7 @@
     {resetZoom}
     toggleFullscreen={viewerToggleFullscreen}
     {isVideo}
+    {isAudio}
     {clipCount}
     {triggerClipSegments}
     {clipJobRunning}
@@ -522,6 +525,7 @@
     visible={processMenuVisible}
     onClose={closeProcessMenu}
     {isVideo}
+    {isAudio}
     {filePath}
     {fileName}
     {ffprobeChecked}

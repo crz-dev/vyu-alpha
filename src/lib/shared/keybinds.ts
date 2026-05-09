@@ -8,8 +8,9 @@ export type KeybindActions = {
   toggleFullscreen: () => void;
   setVolume: (v: number) => void;
   getVolume: () => number;
+  isTimedMedia: () => boolean;
   isVideo: () => boolean;
-  getVideoEl: () => HTMLVideoElement | null;
+  getMediaEl: () => HTMLMediaElement | null;
   getHoverZone: () => string;
   isFullscreen: () => boolean;
   togglePlay: () => void;
@@ -74,21 +75,22 @@ export function createKeybindHandler(actions: KeybindActions) {
     if (["ArrowRight", "ArrowLeft", " "].includes(e.key)) e.preventDefault();
 
     const isVid = actions.isVideo();
-    const videoEl = actions.getVideoEl();
+    const isTimed = actions.isTimedMedia();
+    const mediaEl = actions.getMediaEl();
 
     if (
-      isVid &&
-      videoEl &&
+      isTimed &&
+      mediaEl &&
       (actions.getHoverZone() === "video" || actions.isFullscreen())
     ) {
       if (e.key === " ") actions.togglePlay();
       if (e.key === "ArrowRight")
-        videoEl.currentTime = Math.min(
-          videoEl.currentTime + 5,
-          videoEl.duration,
+        mediaEl.currentTime = Math.min(
+          mediaEl.currentTime + 5,
+          mediaEl.duration,
         );
       if (e.key === "ArrowLeft")
-        videoEl.currentTime = Math.max(videoEl.currentTime - 5, 0);
+        mediaEl.currentTime = Math.max(mediaEl.currentTime - 5, 0);
       if (e.key === "," || e.key === "<") {
         e.preventDefault();
         actions.frameStep(-1);
@@ -98,16 +100,16 @@ export function createKeybindHandler(actions: KeybindActions) {
         actions.frameStep(1);
       }
     } else {
-      if (e.key === " " && isVid && videoEl) actions.togglePlay();
+      if (e.key === " " && isTimed && mediaEl) actions.togglePlay();
       if (e.key === "ArrowRight") actions.navigate(1);
       if (e.key === "ArrowLeft") actions.navigate(-1);
       if (e.key === "," || e.key === "<") {
         e.preventDefault();
-        actions.frameStep(-1);
+        if (isVid) actions.frameStep(-1);
       }
       if (e.key === "." || e.key === ">") {
         e.preventDefault();
-        actions.frameStep(1);
+        if (isVid) actions.frameStep(1);
       }
     }
   };

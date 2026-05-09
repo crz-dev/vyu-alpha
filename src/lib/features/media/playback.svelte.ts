@@ -5,7 +5,7 @@ import { VOLUME_SEGMENTS } from "$lib/shared/constants";
 const SPEED_STEPS = [0.25, 0.5, 0.75, 1, 1.25, 2, 3];
 
 export function createPlaybackActions(
-  videoElRef: () => HTMLVideoElement | null,
+  mediaElRef: () => HTMLMediaElement | null,
 ) {
   function updateProgress(
     set: (data: {
@@ -15,11 +15,11 @@ export function createPlaybackActions(
       playing: boolean;
     }) => void,
   ) {
-    const videoEl = videoElRef();
-    if (!videoEl) return;
+    const mediaEl = mediaElRef();
+    if (!mediaEl) return;
 
-    const rawCurrentSecs = videoEl.currentTime;
-    const rawDurationSecs = videoEl.duration || 0;
+    const rawCurrentSecs = mediaEl.currentTime;
+    const rawDurationSecs = mediaEl.duration || 0;
     const progress =
       rawDurationSecs > 0 ? (rawCurrentSecs / rawDurationSecs) * 100 : 0;
 
@@ -27,23 +27,23 @@ export function createPlaybackActions(
       rawCurrentSecs,
       rawDurationSecs,
       progress,
-      playing: !videoEl.paused,
+      playing: !mediaEl.paused,
     });
   }
 
   function togglePlay() {
-    const videoEl = videoElRef();
-    if (!videoEl) return;
+    const mediaEl = mediaElRef();
+    if (!mediaEl) return;
 
-    videoEl.paused ? videoEl.play() : videoEl.pause();
+    mediaEl.paused ? mediaEl.play() : mediaEl.pause();
   }
 
   function toggleMute(set: (muted: boolean) => void, currentMuted: boolean) {
-    const videoEl = videoElRef();
-    if (!videoEl) return;
+    const mediaEl = mediaElRef();
+    if (!mediaEl) return;
 
     const next = !currentMuted;
-    videoEl.muted = next;
+    mediaEl.muted = next;
     set(next);
   }
 
@@ -51,12 +51,12 @@ export function createPlaybackActions(
     val: number,
     set: (data: { volume: number; muted: boolean }) => void,
   ) {
-    const videoEl = videoElRef();
+    const mediaEl = mediaElRef();
     const volume = Math.max(0, Math.min(1, val));
 
-    if (videoEl) {
-      videoEl.volume = volume;
-      videoEl.muted = volume === 0;
+    if (mediaEl) {
+      mediaEl.volume = volume;
+      mediaEl.muted = volume === 0;
     }
 
     set({
@@ -74,7 +74,7 @@ export function createPlaybackActions(
 }
 
 export function createPlaybackUI(
-  videoElRef: () => HTMLVideoElement | null,
+  mediaElRef: () => HTMLMediaElement | null,
   getVolume: () => number,
   setVolume: (v: number) => void,
 ) {
@@ -163,8 +163,8 @@ export function createPlaybackUI(
   function setPlaybackSpeed(val: number) {
     playbackSpeed = val;
     speedSliderValue = speedToSliderVal(val);
-    const videoEl = videoElRef();
-    if (videoEl) videoEl.playbackRate = val;
+    const mediaEl = mediaElRef();
+    if (mediaEl) mediaEl.playbackRate = val;
   }
 
   function showSpeedOverlay() {
@@ -254,8 +254,8 @@ export function createPlaybackUI(
     speedSliderValue = val;
     const speed = sliderValToSpeed(val);
     playbackSpeed = speed;
-    const videoEl = videoElRef();
-    if (videoEl) videoEl.playbackRate = speed;
+    const mediaEl = mediaElRef();
+    if (mediaEl) mediaEl.playbackRate = speed;
   }
 
   function initSliderMode(volume: boolean, speed: boolean) {

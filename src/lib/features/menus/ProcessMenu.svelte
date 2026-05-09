@@ -10,6 +10,7 @@
     visible,
     onClose,
     isVideo,
+    isAudio = false,
     filePath,
     fileName,
     ffprobeChecked,
@@ -24,6 +25,7 @@
     visible: boolean;
     onClose: () => void;
     isVideo: boolean;
+    isAudio?: boolean;
     filePath: string;
     fileName: string;
     ffprobeChecked: boolean;
@@ -57,7 +59,10 @@
 
   const videoFormats = ["MP4", "WebM", "MKV", "GIF"];
   const imageFormats = ["PNG", "JPG", "WebP", "GIF"];
-  const formatOptions = $derived(isVideo ? videoFormats : imageFormats);
+  const audioFormats = ["MP3", "WAV", "FLAC", "OGG", "AAC"];
+  const formatOptions = $derived(
+    isAudio ? audioFormats : isVideo ? videoFormats : imageFormats,
+  );
   const presetOptions = ["Fast", "Balanced", "Quality", "Lossless"];
   const targetOptions = ["This file", "Full folder"];
 

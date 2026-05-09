@@ -1,8 +1,9 @@
 <!-- DATAFLOW: loadFile → media.loadFile → displayFile → services.
   navigate → media.navigate → displayFile. videoEl bound and injected into viewer/playback/slideshow. -->
 <script lang="ts">
-  import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { open } from "@tauri-apps/plugin-dialog";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { open } from "@tauri-apps/plugin-dialog";
+import { invoke } from "@tauri-apps/api/core";
   import {
     createPlaybackActions,
     createPlaybackUI,
@@ -84,6 +85,8 @@
   let fileSrc = $state("");
   let fileName = $state("no file open");
   let isVideo = $state(false);
+  let isAudio = $state(false);
+  let waveformSrc = $state("");
   let fileList: string[] = $state([]);
   let currentIndex = $state(0);
   let fileSize = $state("");
@@ -94,6 +97,7 @@
   let isLoadingFile = $state(false);
   let loadingFadingOut = $state(false);
   let videoEl = $state<HTMLVideoElement | null>(null);
+  let audioEl = $state<HTMLAudioElement | null>(null);
   let cropContainerEl = $state<HTMLElement | null>(null);
   let viewerEl = $state<HTMLElement | null>(null);
   let playing = $state(false);
@@ -209,16 +213,7 @@
   });
 
   // ── Derived ────────────────────────────────────────────
-  const isQuarterTurn = $derived(Math.abs(viewer.state.rotation % 180) === 90);
-  const rotationFitScale = $derived.by(() => {
-    if (!isQuarterTurn || imageNaturalWidth <= 0 || imageNaturalHeight <= 0)
-      return 1;
-    const ratio = imageNaturalWidth / imageNaturalHeight;
-    return Math.min(ratio, 1 / ratio);
-  });
-  const imageScale = $derived(
-    (viewer.state.zoomLevel / 100) * rotationFitScale,
-  );
+  const imageScale = $derived(viewer.state.zoomLevel / 100);
   const cropClipPath = $derived.by(() => {
     const bounds = viewer.getCropBounds();
     if (!bounds) return "";
@@ -325,6 +320,7 @@
   });
   $effect(() => {
     const _ = thumbnailBarVisible;
+    void viewer.state.rotation;
     if (
       viewerEl &&
       fileSrc &&
@@ -352,9 +348,10 @@
   }
 
   // ── Playback ───────────────────────────────────────────
-  const playback = createPlaybackActions(() => videoEl);
+  const getMediaEl = () => (isVideo ? videoEl : isAudio ? audioEl : null);
+  const playback = createPlaybackActions(getMediaEl);
   const playbackUI = createPlaybackUI(
-    () => videoEl,
+    getMediaEl,
     () => volume,
     setVolume,
   );
@@ -382,6 +379,7 @@
     loopMode = LOOP_MODES[(idx + 1) % LOOP_MODES.length];
     saveLoopMode(loopMode);
     if (videoEl) videoEl.loop = loopMode === "loop";
+    if (audioEl) audioEl.loop = loopMode === "loop";
   }
   function toggleTimer() {
     timerShowRemaining = !timerShowRemaining;
@@ -390,10 +388,11 @@
     if (e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
-    if (!videoEl) return;
+    const mediaEl = isVideo ? videoEl : audioEl;
+    if (!mediaEl) return;
     const bar = e.currentTarget as HTMLElement;
-    const wasPlaying = !videoEl.paused;
-    videoEl.pause();
+    const wasPlaying = !mediaEl.paused;
+    mediaEl.pause();
     isScrubbing = true;
     let rafId = 0;
     let pendingX = e.clientX;
@@ -404,8 +403,8 @@
         0,
         Math.min(1, (clientX - rect.left) / rect.width),
       );
-      videoEl!.currentTime = ratio * videoEl!.duration;
-      rawCurrentSecs = videoEl!.currentTime;
+      mediaEl!.currentTime = ratio * mediaEl!.duration;
+      rawCurrentSecs = mediaEl!.currentTime;
       progress = ratio * 100;
     }
     function scheduleScrub(clientX: number) {
@@ -428,7 +427,7 @@
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
       scrubTo(pendingX);
-      if (wasPlaying) videoEl!.play();
+      if (wasPlaying) mediaEl!.play();
     }
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
@@ -567,10 +566,11 @@
   // ── Clip boundaries ────────────────────────────────────
   const clips = createClips(() => filePath);
   function addClipBoundary(kind: "start" | "end") {
-    if (!videoEl || rawDurationSecs <= 0) return;
+    const mediaEl = isVideo ? videoEl : audioEl;
+    if (!mediaEl || rawDurationSecs <= 0) return;
     clips.addClipBoundary(
       kind,
-      Math.max(0, Math.min(videoEl.currentTime, rawDurationSecs)),
+      Math.max(0, Math.min(mediaEl.currentTime, rawDurationSecs)),
     );
   }
   function addClipBoundaryAt(kind: "start" | "end", time: number) {
@@ -621,7 +621,8 @@
 
   // ── Resume point ───────────────────────────────────────
   function seekToTimestamp(time: number) {
-    if (videoEl) videoEl.currentTime = time;
+    const mediaEl = isVideo ? videoEl : audioEl;
+    if (mediaEl) mediaEl.currentTime = time;
   }
   function removeResumePoint() {
     resumeTooltipVisible = false;
@@ -629,7 +630,8 @@
     deleteResumePoint(filePath);
   }
   function seekToResumePoint() {
-    if (resumePoint !== null && videoEl) seekToTimestamp(resumePoint);
+    const mediaEl = isVideo ? videoEl : audioEl;
+    if (resumePoint !== null && mediaEl) seekToTimestamp(resumePoint);
   }
   function showResumeTooltip(e: MouseEvent) {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -720,6 +722,7 @@
     if (data.fileSrc !== undefined) fileSrc = data.fileSrc;
     if (data.fileName !== undefined) fileName = data.fileName;
     if (data.isVideo !== undefined) isVideo = data.isVideo;
+    if (data.isAudio !== undefined) isAudio = data.isAudio;
     if (data.fileList !== undefined) fileList = data.fileList;
     if (data.currentIndex !== undefined) currentIndex = data.currentIndex;
     if (data.fileSize !== undefined) fileSize = data.fileSize;
@@ -751,6 +754,7 @@
   }
   const media = createMedia(
     () => videoEl,
+    () => audioEl,
     () => volume,
     () => muted,
     () => loopMode === "loop",
@@ -767,7 +771,7 @@
     () => fileList,
     () => currentIndex,
     advanceSlide,
-    () => videoEl,
+    () => (isVideo ? videoEl : isAudio ? audioEl : null),
   );
   function onImageLoad(e: Event) {
     media.onImageLoad(e, isLoadingFile, setMediaState, () =>
@@ -787,6 +791,31 @@
     viewer.resetZoom();
     viewer.state.baseZoomLevel = 100;
     if (slideshow.active) slideshow.onMediaLoaded();
+  }
+  function onAudioLoad() {
+    const el = audioEl;
+    if (!el) return;
+    el.volume = volume;
+    el.muted = muted;
+    el.loop = loopMode === "loop";
+    setMediaState({
+      fileDimensions: "",
+      fileInfoLoading: false,
+      rawCurrentSecs: 0,
+      rawDurationSecs: el.duration || 0,
+      progress: 0,
+      playing: !el.paused,
+    });
+    if (isLoadingFile) media.finishLoading(setMediaState);
+    if (slideshow.active) slideshow.onMediaLoaded();
+    waveformSrc = "";
+    import("@tauri-apps/api/core").then(({ convertFileSrc }) => {
+      invoke<string | null>("generate_thumbnail", { path: filePath }).then(
+        (thumbPath) => {
+          if (thumbPath) waveformSrc = convertFileSrc(thumbPath);
+        },
+      );
+    });
   }
   async function loadFile(path: string) {
     slideshow.stop();
@@ -847,6 +876,7 @@
     contrast = 1;
     saturation = 1;
     hue = 0;
+    waveformSrc = "";
     mediaProps = null;
     mediaPropsLoading = false;
     clearFolderCache();
@@ -963,8 +993,9 @@
     toggleFullscreen,
     setVolume,
     getVolume: () => volume,
+    isTimedMedia: () => isVideo || isAudio,
     isVideo: () => isVideo,
-    getVideoEl: () => videoEl,
+    getMediaEl: () => (isVideo ? videoEl : isAudio ? audioEl : null),
     getHoverZone: () => hoverZone,
     isFullscreen: () => viewer.state.isFullscreen,
     togglePlay,
@@ -997,7 +1028,7 @@
     if (target.closest("button, .progress-bar, .fs-progress")) return;
     if (!fileSrc) return;
     const menuW = 200;
-    const menuH = isVideo ? 300 : 260;
+    const menuH = (isVideo || isAudio) ? 300 : 260;
     const { x, y } = computeContextMenuPosition(
       e.clientX,
       e.clientY,
@@ -1283,6 +1314,7 @@
       set: (v) => (clipMergeSegments = v),
     },
     isVideo: { get: () => isVideo },
+    isAudio: { get: () => isAudio },
     filePath: { get: () => filePath },
     rawCurrentSecs: { get: () => rawCurrentSecs },
     rawDurationSecs: { get: () => rawDurationSecs },
@@ -1304,6 +1336,7 @@
   {fileList}
   {currentIndex}
   {isVideo}
+  {isAudio}
   {fileDimensions}
   {fileSize}
   {fileInfoLoading}
@@ -1523,7 +1556,7 @@
         style="cursor: {!isVideo ? panCursor : 'default'}"
         role="presentation"
       >
-        {#if fileSrc && !isVideo}
+        {#if fileSrc && !isVideo && !isAudio}
           <div
             class="media-container"
             bind:this={cropContainerEl}
@@ -1676,6 +1709,117 @@
                   clearAllTimestamps();
                   clearAllSegments();
                 }}
+                {toggleTimer}
+                {currentTimeDisplay}
+                {durationDisplay}
+                {timerTooltip}
+                {toggleFullscreen}
+                onTsMenuChange={(v) => (tsMenuOpen = v)}
+                volumeSliderMode={playbackUI.volumeSliderMode ||
+                  volumeSliderMode}
+                speedSliderMode={playbackUI.speedSliderMode || speedSliderMode}
+                volumeSliderValue={playbackUI.volumeSliderValue}
+                speedSliderValue={playbackUI.speedSliderValue}
+                {toggleVolumeSliderMode}
+                {toggleSpeedSliderMode}
+                startVolumeSliderDrag={playbackUI.startVolumeSliderDrag}
+                startSpeedSliderDrag={playbackUI.startSpeedSliderDrag}
+                handleVolumeSliderChange={setVolume}
+                handleSpeedSliderChange={playbackUI.handleSpeedSliderChange}
+              />
+            </div>
+          </div>
+        {:else if fileSrc && isAudio}
+          <div
+            class="audio-wrapper"
+            role="presentation"
+            onmouseenter={() => (hoverZone = "video")}
+            onmouseleave={() => (hoverZone = "none")}
+          >
+            <audio
+              bind:this={audioEl}
+              src={fileSrc}
+              crossorigin="anonymous"
+              preload="metadata"
+              autoplay
+              ontimeupdate={updateProgress}
+              onloadedmetadata={onAudioLoad}
+              onended={() => {
+              if (slideshow.active) return;
+              if (loopMode === "stop") {
+                playing = false;
+              } else if (loopMode === "next") {
+                navigate(1);
+              } else if (loopMode === "shuffle") {
+                if (fileList.length > 1) {
+                  let idx;
+                  do {
+                    idx = Math.floor(Math.random() * fileList.length);
+                  } while (idx === currentIndex);
+                  currentIndex = media.navigate(
+                    idx - currentIndex,
+                    fileList,
+                    currentIndex,
+                    setMediaState,
+                  );
+                }
+              }
+            }}
+            ></audio>
+            <div class="audio-waveform">
+              {#if waveformSrc}
+                <img src={waveformSrc} alt="waveform" />
+              {:else}
+                <div class="audio-waveform-placeholder"></div>
+              {/if}
+            </div>
+            <div
+              class="audio-progress-bar"
+              class:editor-open={tsEditMenu.visible}
+              onmousedown={startScrubbing}
+              role="button"
+              tabindex="0"
+              aria-label="Seek audio"
+            >
+              <div class="audio-progress-fill" style="width: {progress}%"></div>
+              <div class="audio-progress-playhead" style="left: {progress}%"></div>
+            </div>
+            <div class="audio-controls">
+              <PlaybackControls
+                fullscreen={false}
+                {isGifVideo}
+                {playing}
+                looping={loopMode}
+                {muted}
+                {volume}
+                volumeHovered={playbackUI.volumeHovered}
+                volumeSegments={VOLUME_SEGMENTS}
+                {togglePlay}
+                toggleLoop={cycleLoopMode}
+                {toggleMute}
+                showVolumeOverlay={playbackUI.showVolumeOverlay}
+                handleVolumeAreaLeave={playbackUI.handleVolumeAreaLeave}
+                handleVolumeScroll={playbackUI.handleVolumeScroll}
+                startVolumeDrag={playbackUI.startVolumeDrag}
+                handleVolumeDiamondHover={playbackUI.handleVolumeDiamondHover}
+                {setVolume}
+                playbackSpeed={playbackUI.playbackSpeed}
+                speedHovered={playbackUI.speedHovered}
+                setPlaybackSpeed={playbackUI.setPlaybackSpeed}
+                showSpeedOverlay={playbackUI.showSpeedOverlay}
+                handleSpeedAreaLeave={playbackUI.handleSpeedAreaLeave}
+                handleSpeedScroll={playbackUI.handleSpeedScroll}
+                speedTooltipVisible={playbackUI.speedTooltipVisible}
+                speedTooltipX={playbackUI.speedTooltipX}
+                speedTooltipY={playbackUI.speedTooltipY}
+                handleSpeedDiamondHover={playbackUI.handleSpeedDiamondHover}
+                startSpeedDrag={playbackUI.startSpeedDrag}
+                addTimestamp={() => {}}
+                addClipStart={() => {}}
+                addClipEnd={() => {}}
+                addClipEnd5s={() => {}}
+                hasMarkers={false}
+                deleteAllMarkers={() => {}}
                 {toggleTimer}
                 {currentTimeDisplay}
                 {durationDisplay}

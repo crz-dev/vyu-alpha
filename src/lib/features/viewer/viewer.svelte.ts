@@ -138,17 +138,7 @@ function createViewer() {
   }
 
   function getVideoInnerTransform(): string {
-    const isQuarterTurn = Math.abs(state.rotation % 180) === 90;
-    let rotationFitScale = 1;
-    if (isQuarterTurn && state.videoEl) {
-      const w = state.videoEl.videoWidth;
-      const h = state.videoEl.videoHeight;
-      if (w > 0 && h > 0) {
-        const ratio = w / h;
-        rotationFitScale = Math.min(ratio, 1 / ratio);
-      }
-    }
-    const scale = (state.zoomLevel / 100) * rotationFitScale;
+    const scale = state.zoomLevel / 100;
     return `transform: scale(${scale}) rotate(${state.rotation}deg) scaleX(${state.flipped ? -1 : 1}) scaleY(${state.flippedVertical ? -1 : 1}); transform-origin: center center;`;
   }
 

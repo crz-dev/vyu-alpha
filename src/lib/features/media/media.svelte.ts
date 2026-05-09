@@ -2,7 +2,7 @@
 // navigate → displayFile (no folder rescan). closeFile → releaseMediaResources + reset state.
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { stat } from "@tauri-apps/plugin-fs";
-import { VIDEO_EXTS } from "$lib/shared/constants";
+import { VIDEO_EXTS, AUDIO_EXTS } from "$lib/shared/constants";
 import {
   readMediaFilesInFolder,
   getFileName,
@@ -40,6 +40,7 @@ export interface MediaState {
   fileSrc: string;
   fileName: string;
   isVideo: boolean;
+  isAudio: boolean;
   fileList: string[];
   currentIndex: number;
   fileSize: string;
@@ -64,6 +65,7 @@ export interface MediaState {
 
 export function createMedia(
   videoElRef: () => HTMLVideoElement | null,
+  audioElRef: () => HTMLAudioElement | null,
   getVolume: () => number,
   getMuted: () => boolean,
   getLooping: () => boolean,
@@ -103,6 +105,12 @@ export function createMedia(
       videoEl.removeAttribute("src");
       videoEl.load();
     }
+    const audioEl = audioElRef();
+    if (audioEl) {
+      audioEl.pause();
+      audioEl.removeAttribute("src");
+      audioEl.load();
+    }
   }
 
   async function displayFile(
@@ -113,11 +121,13 @@ export function createMedia(
 
     const ext = getFileExt(path);
     const isVideo = VIDEO_EXTS.includes(ext);
+    const isAudio = AUDIO_EXTS.includes(ext);
 
     set({
       filePath: path,
       fileName: getFileName(path),
       isVideo,
+      isAudio,
       fileSrc: "",
       fileSize: "",
       fileDimensions: "",
@@ -134,7 +144,7 @@ export function createMedia(
       playing: false,
       timestamps: isVideo ? readTimestamps(path) : [],
       clipBoundaries: isVideo ? readClipBoundaries(path) : [],
-      resumePoint: isVideo ? loadResumePoint(path) : null,
+      resumePoint: (isVideo || isAudio) ? loadResumePoint(path) : null,
     });
 
     onReset();
@@ -214,6 +224,7 @@ export function createMedia(
       fileSrc: "",
       fileName: "no file open",
       isVideo: false,
+      isAudio: false,
       fileList: [],
       currentIndex: 0,
       playing: false,

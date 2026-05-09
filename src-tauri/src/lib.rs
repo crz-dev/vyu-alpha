@@ -268,6 +268,7 @@ fn hash_path(path: &str) -> String {
 
 const IMAGE_EXTS_RUST: &[&str] = &["jpg", "jpeg", "png", "gif", "webp", "bmp"];
 const VIDEO_EXTS_RUST: &[&str] = &["mp4", "webm", "mkv", "avi", "mov", "wmv"];
+const AUDIO_EXTS_RUST: &[&str] = &["mp3", "wav", "flac", "ogg", "aac", "wma", "m4a", "opus"];
 const FFMPEG_THUMB_TIMEOUT: Duration = Duration::from_secs(8);
 
 fn generate_video_frame(path: &str, thumb_path: &Path) -> Result<Option<String>, String> {
@@ -279,6 +280,45 @@ fn generate_video_frame(path: &str, thumb_path: &Path) -> Result<Option<String>,
             "-vframes", "1",
             "-vf", "scale=200:200:force_original_aspect_ratio=decrease",
             "-q:v", "4",
+            &thumb_path.to_string_lossy(),
+        ])
+        .spawn()
+        .map_err(|e| format!("Failed to spawn ffmpeg: {e}"))?;
+
+    let start = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) if status.success() => {
+                return Ok(Some(thumb_path.to_string_lossy().to_string()));
+            }
+            Ok(Some(_)) => {
+                let _ = fs::remove_file(thumb_path);
+                return Ok(None);
+            }
+            Ok(None) => {
+                if start.elapsed() > FFMPEG_THUMB_TIMEOUT {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    let _ = fs::remove_file(thumb_path);
+                    return Ok(None);
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            Err(e) => {
+                let _ = fs::remove_file(thumb_path);
+                return Err(format!("ffmpeg error: {e}"));
+            }
+        }
+    }
+}
+
+fn generate_audio_waveform(path: &str, thumb_path: &Path) -> Result<Option<String>, String> {
+    let mut child = Command::new("ffmpeg")
+        .args([
+            "-y", "-hide_banner", "-loglevel", "error",
+            "-i", path,
+            "-filter_complex", "showwavespic=s=640x200:colors=#ffffff",
+            "-frames:v", "1",
             &thumb_path.to_string_lossy(),
         ])
         .spawn()
@@ -354,8 +394,9 @@ async fn generate_thumbnail(
 
     let is_image = IMAGE_EXTS_RUST.contains(&ext.as_str());
     let is_video = VIDEO_EXTS_RUST.contains(&ext.as_str());
+    let is_audio = AUDIO_EXTS_RUST.contains(&ext.as_str());
 
-    if !is_image && !is_video {
+    if !is_image && !is_video && !is_audio {
         return Ok(None);
     }
 
@@ -386,6 +427,8 @@ async fn generate_thumbnail(
     tauri::async_runtime::spawn_blocking(move || {
         if is_video {
             generate_video_frame(&path, &thumb_path)
+        } else if is_audio {
+            generate_audio_waveform(&path, &thumb_path)
         } else {
             generate_image_thumb(&path, &thumb_path)
         }
