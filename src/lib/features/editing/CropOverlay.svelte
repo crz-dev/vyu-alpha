@@ -213,6 +213,37 @@
   }
 
   $effect(() => {
+    if (!editing.cropMode || overlayRect.width <= 0 || overlayRect.height <= 0)
+      return;
+    if (!editing.cropShouldCenter) return;
+    editing.cropShouldCenter = false;
+
+    const ratio = editing.snapshot.cropAspectRatio;
+    if (ratio === null) {
+      editing.setCropBounds({ left: 0, top: 0, right: 0, bottom: 0 });
+    } else {
+      const containerRatio = overlayRect.width / overlayRect.height;
+      const rel = ratio / containerRatio;
+      let w: number, h: number;
+      if (rel >= 1) {
+        w = 1;
+        h = 1 / rel;
+      } else {
+        h = 1;
+        w = rel;
+      }
+      const marginX = (1 - w) / 2;
+      const marginY = (1 - h) / 2;
+      editing.setCropBounds({
+        left: marginX,
+        top: marginY,
+        right: marginX,
+        bottom: marginY,
+      });
+    }
+  });
+
+  $effect(() => {
     if (!editing.cropMode && dragging) {
       dragging = null;
     }

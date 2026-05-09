@@ -16,6 +16,7 @@ export interface EditSnapshot {
   saturation: number;
   hue: number;
   cropBounds: CropBounds;
+  cropAspectRatio: number | null;
 }
 
 function defaultSnapshot(): EditSnapshot {
@@ -28,6 +29,7 @@ function defaultSnapshot(): EditSnapshot {
     saturation: 1,
     hue: 0,
     cropBounds: { left: 0, top: 0, right: 0, bottom: 0 },
+    cropAspectRatio: null,
   };
 }
 
@@ -40,6 +42,7 @@ function snapEqual(a: EditSnapshot, b: EditSnapshot): boolean {
     a.contrast === b.contrast &&
     a.saturation === b.saturation &&
     a.hue === b.hue &&
+    a.cropAspectRatio === b.cropAspectRatio &&
     a.cropBounds.left === b.cropBounds.left &&
     a.cropBounds.top === b.cropBounds.top &&
     a.cropBounds.right === b.cropBounds.right &&
@@ -57,6 +60,7 @@ function cloneSnapshot(s: EditSnapshot): EditSnapshot {
     saturation: s.saturation,
     hue: s.hue,
     cropBounds: { ...s.cropBounds },
+    cropAspectRatio: s.cropAspectRatio,
   };
 }
 
@@ -69,6 +73,7 @@ function createEditingStore() {
   let isExporting = $state(false);
   let isApplying = $state(false);
   let cropMode = $state(false);
+  let _cropShouldCenter = $state(false);
   let _exportPath = $state<string | null>(null);
   let _exportError = $state<string | null>(null);
 
@@ -81,6 +86,7 @@ function createEditingStore() {
     const prev = undoStack[undoStack.length - 1];
     undoStack = undoStack.slice(0, -1);
     snapshot = { ...prev, cropBounds: { ...prev.cropBounds } };
+    _cropShouldCenter = false;
   }
 
   function getCanUndo() {
@@ -105,6 +111,11 @@ function createEditingStore() {
     } else {
       cropMode = true;
     }
+  }
+
+  function setCropAspectRatio(ratio: number | null) {
+    snapshot.cropAspectRatio = ratio;
+    _cropShouldCenter = true;
   }
 
   function setCropBounds(bounds: Partial<CropBounds>) {
@@ -203,12 +214,14 @@ function createEditingStore() {
     snapshot = defaultSnapshot();
     undoStack = [];
     cropMode = false;
+    _cropShouldCenter = false;
   }
 
   function cleanup() {
     undoStack = [];
     snapshot = defaultSnapshot();
     cropMode = false;
+    _cropShouldCenter = false;
     isApplied = false;
     filePath = "";
     originalBackupPath = null;
@@ -253,6 +266,12 @@ function createEditingStore() {
     get cropMode() {
       return cropMode;
     },
+    get cropShouldCenter() {
+      return _cropShouldCenter;
+    },
+    set cropShouldCenter(v: boolean) {
+      _cropShouldCenter = v;
+    },
     get filePath() {
       return filePath;
     },
@@ -263,6 +282,7 @@ function createEditingStore() {
     startCropMode,
     exitCropMode,
     toggleCropMode,
+    setCropAspectRatio,
     setCropBounds,
     resetCrop,
     getCropBounds,

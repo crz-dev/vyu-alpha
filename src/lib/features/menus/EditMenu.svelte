@@ -38,6 +38,8 @@
   let isRotateDragging = $state(false);
   let localRotationAngle = $state(0);
   let flipRowOpen = $state(false);
+  let cropRowOpen = $state(false);
+  let activeCropTool: "16-9" | "9-16" | "1-1" | "custom" | null = $state(null);
 
   $effect(() => {
     if (!visible) {
@@ -47,6 +49,8 @@
       rotateRowOpen = false;
       activeRotateTool = null;
       flipRowOpen = false;
+      cropRowOpen = false;
+      activeCropTool = null;
     }
   });
 
@@ -235,16 +239,29 @@
   }
 
   function handleCropClick() {
-    if (editing.cropMode) {
-      editing.exitCropMode();
+    if (cropRowOpen) {
+      cropRowOpen = false;
+      activeCropTool = null;
+      if (editing.cropMode) editing.exitCropMode();
     } else {
+      cropRowOpen = true;
+      activeCropTool = null;
       colorRowOpen = false;
       activeColorTool = null;
       rotateRowOpen = false;
       activeRotateTool = null;
       flipRowOpen = false;
-      editing.startCropMode();
     }
+  }
+
+  function selectCropTool(
+    tool: "16-9" | "9-16" | "1-1" | "custom",
+    ratio: number | null,
+  ) {
+    activeCropTool = tool;
+    editing.pushUndo();
+    editing.setCropAspectRatio(ratio);
+    if (!editing.cropMode) editing.startCropMode();
   }
 
   const scrubberTooltipVisible = $derived(
@@ -416,7 +433,7 @@
     <div class="edit-menu-row">
       <button
         class="edit-menu-btn red"
-        class:sub-open={editing.cropMode}
+        class:sub-open={cropRowOpen || editing.cropMode}
         onclick={handleCropClick}
       >
         <svg
@@ -448,6 +465,8 @@
             colorRowOpen = false;
             activeColorTool = null;
             flipRowOpen = false;
+            cropRowOpen = false;
+            activeCropTool = null;
           }
         }}
       >
@@ -481,6 +500,8 @@
             activeColorTool = null;
             rotateRowOpen = false;
             activeRotateTool = null;
+            cropRowOpen = false;
+            activeCropTool = null;
           }
         }}
       >
@@ -513,6 +534,8 @@
             rotateRowOpen = false;
             activeRotateTool = null;
             flipRowOpen = false;
+            cropRowOpen = false;
+            activeCropTool = null;
           }
         }}
       >
@@ -536,6 +559,43 @@
         <span>Color</span>
       </button>
     </div>
+
+    {#if cropRowOpen}
+      <div class="edit-menu-separator"></div>
+      <div
+        class="edit-menu-row"
+        transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+      >
+        <button
+          class="edit-menu-btn red"
+          class:active={activeCropTool === "16-9"}
+          onclick={() => selectCropTool("16-9", 16 / 9)}
+        >
+          <span>16:9</span>
+        </button>
+        <button
+          class="edit-menu-btn red"
+          class:active={activeCropTool === "9-16"}
+          onclick={() => selectCropTool("9-16", 9 / 16)}
+        >
+          <span>9:16</span>
+        </button>
+        <button
+          class="edit-menu-btn red"
+          class:active={activeCropTool === "1-1"}
+          onclick={() => selectCropTool("1-1", 1)}
+        >
+          <span>1:1</span>
+        </button>
+        <button
+          class="edit-menu-btn red"
+          class:active={activeCropTool === "custom"}
+          onclick={() => selectCropTool("custom", null)}
+        >
+          <span>Custom</span>
+        </button>
+      </div>
+    {/if}
 
     {#if colorRowOpen}
       <div class="edit-menu-separator"></div>
