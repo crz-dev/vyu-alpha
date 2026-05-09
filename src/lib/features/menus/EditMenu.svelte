@@ -1,38 +1,20 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
-  import { viewer } from "$lib/features/viewer/viewer.svelte";
+  import { editing } from "$lib/features/editing/editing.svelte";
 
   let {
     visible,
-    onRotate,
-    onFlip,
-    onCrop,
     onApply,
-    cropMode,
-    brightness = 1,
-    onBrightnessChange,
-    contrast = 1,
-    onContrastChange,
-    saturation = 1,
-    onSaturationChange,
-    hue = 0,
-    onHueChange,
+    onExport,
+    onUndo,
+    onReset,
     onClose,
   }: {
     visible: boolean;
-    onRotate: () => void;
-    onFlip: () => void;
-    onCrop: () => void;
     onApply: () => void;
-    cropMode: boolean;
-    brightness?: number;
-    onBrightnessChange?: (value: number) => void;
-    contrast?: number;
-    onContrastChange?: (value: number) => void;
-    saturation?: number;
-    onSaturationChange?: (value: number) => void;
-    hue?: number;
-    onHueChange?: (value: number) => void;
+    onExport: () => void;
+    onUndo: () => void;
+    onReset: () => void;
     onClose: () => void;
   } = $props();
 
@@ -68,19 +50,19 @@
   });
 
   $effect(() => {
-    localBrightness = brightness;
+    localBrightness = editing.snapshot.brightness;
   });
 
   $effect(() => {
-    localContrast = contrast;
+    localContrast = editing.snapshot.contrast;
   });
 
   $effect(() => {
-    localSaturation = saturation;
+    localSaturation = editing.snapshot.saturation;
   });
 
   $effect(() => {
-    localHue = hue;
+    localHue = editing.snapshot.hue;
   });
 
   function toggleColorTool(
@@ -125,25 +107,26 @@
     switch (activeColorTool) {
       case "brightness":
         localBrightness = val;
-        onBrightnessChange?.(snapValue(val));
+        editing.setBrightness(snapValue(val));
         break;
       case "contrast":
         localContrast = val;
-        onContrastChange?.(snapValue(val));
+        editing.setContrast(snapValue(val));
         break;
       case "saturation":
         localSaturation = val;
-        onSaturationChange?.(snapValue(val));
+        editing.setSaturation(snapValue(val));
         break;
       case "hue":
         localHue = val;
-        onHueChange?.(snapHue(val));
+        editing.setHue(snapHue(val));
         break;
     }
   }
 
   function handleTrackPointerDown(e: PointerEvent) {
     if (!trackEl) return;
+    editing.pushUndo();
     isDragging = true;
     trackEl.setPointerCapture(e.pointerId);
     updateValueFromX(e.clientX);
@@ -161,39 +144,32 @@
     trackEl.releasePointerCapture(e.pointerId);
   }
 
-  function closeColorTools() {
-    activeColorTool = null;
-    colorRowOpen = false;
-    localBrightness = 1;
-    localContrast = 1;
-    localSaturation = 1;
-    localHue = 0;
-    onBrightnessChange?.(1);
-    onContrastChange?.(1);
-    onSaturationChange?.(1);
-    onHueChange?.(0);
-  }
-
   function jumpToValue(val: number) {
     if (!activeColorTool) return;
+    editing.pushUndo();
     switch (activeColorTool) {
       case "brightness":
         localBrightness = val;
-        onBrightnessChange?.(snapValue(val));
+        editing.setBrightness(snapValue(val));
         break;
       case "contrast":
         localContrast = val;
-        onContrastChange?.(snapValue(val));
+        editing.setContrast(snapValue(val));
         break;
       case "saturation":
         localSaturation = val;
-        onSaturationChange?.(snapValue(val));
+        editing.setSaturation(snapValue(val));
         break;
       case "hue":
         localHue = val;
-        onHueChange?.(snapHue(val));
+        editing.setHue(snapHue(val));
         break;
     }
+  }
+
+  function closeColorTools() {
+    activeColorTool = null;
+    colorRowOpen = false;
   }
 
   function toggleRotateTool(tool: "90-right" | "90-left" | "180" | "custom") {
@@ -202,7 +178,7 @@
         activeRotateTool = null;
       } else {
         activeRotateTool = "custom";
-        localRotationAngle = viewer.state.rotation;
+        localRotationAngle = editing.snapshot.rotation;
         colorRowOpen = false;
         activeColorTool = null;
         flipRowOpen = false;
@@ -212,12 +188,13 @@
       colorRowOpen = false;
       activeColorTool = null;
       flipRowOpen = false;
+      editing.pushUndo();
       if (tool === "90-right") {
-        viewer.rotate(90);
+        editing.rotate(90);
       } else if (tool === "90-left") {
-        viewer.rotate(-90);
+        editing.rotate(-90);
       } else if (tool === "180") {
-        viewer.rotate(180);
+        editing.rotate(180);
       }
     }
   }
@@ -229,11 +206,12 @@
     const pct = Math.max(0, Math.min(1, x / rect.width));
     const angle = Math.round(-180 + pct * 360);
     localRotationAngle = angle;
-    viewer.setRotation(angle);
+    editing.setRotation(angle);
   }
 
   function handleRotateTrackPointerDown(e: PointerEvent) {
     if (!rotateTrackEl) return;
+    editing.pushUndo();
     isRotateDragging = true;
     rotateTrackEl.setPointerCapture(e.pointerId);
     updateRotationFromX(e.clientX);
@@ -257,10 +235,11 @@
   }
 
   function toggleFlip(direction: "horizontal" | "vertical") {
+    editing.pushUndo();
     if (direction === "horizontal") {
-      viewer.flip();
+      editing.flip();
     } else {
-      viewer.flipVertical();
+      editing.flipVertical();
     }
   }
 
@@ -268,13 +247,29 @@
     flipRowOpen = false;
   }
 
+  function handleCropClick() {
+    if (editing.cropMode) {
+      editing.exitCropMode();
+    } else {
+      colorRowOpen = false;
+      activeColorTool = null;
+      rotateRowOpen = false;
+      activeRotateTool = null;
+      flipRowOpen = false;
+      editing.startCropMode();
+    }
+  }
+
+  const canUndo = $derived(editing.getCanUndo());
+  const hasEdits = $derived(editing.getHasEdits() || editing.getCropBounds() !== null);
+
   const scrubberTooltipVisible = $derived(
     activeColorTool !== null &&
       (sliderHovered ||
-        (activeColorTool === "brightness" && brightness !== 1) ||
-        (activeColorTool === "contrast" && contrast !== 1) ||
-        (activeColorTool === "saturation" && saturation !== 1) ||
-        (activeColorTool === "hue" && hue !== 0)),
+        (activeColorTool === "brightness" && editing.snapshot.brightness !== 1) ||
+        (activeColorTool === "contrast" && editing.snapshot.contrast !== 1) ||
+        (activeColorTool === "saturation" && editing.snapshot.saturation !== 1) ||
+        (activeColorTool === "hue" && editing.snapshot.hue !== 0)),
   );
 
   const scrubberPct = $derived.by(() => {
@@ -431,24 +426,14 @@
         </svg>
       </button>
     </div>
+
     <div class="edit-menu-row">
       <button
         class="edit-menu-btn red"
-        class:active={cropMode}
-        onclick={() => {
-          if (cropMode) {
-            viewer.cancelCrop();
-          } else {
-            onCrop();
-            colorRowOpen = false;
-            activeColorTool = null;
-            rotateRowOpen = false;
-            activeRotateTool = null;
-            flipRowOpen = false;
-          }
-        }}
+        class:active={editing.cropMode}
+        onclick={handleCropClick}
       >
-        {#if cropMode}
+        {#if editing.cropMode}
           <svg
             width="13"
             height="13"
@@ -510,7 +495,7 @@
             if (rotateRowOpen) {
               rotateRowOpen = false;
             } else {
-              if (cropMode) viewer.cancelCrop();
+              if (editing.cropMode) editing.exitCropMode();
               rotateRowOpen = true;
               colorRowOpen = false;
               activeColorTool = null;
@@ -565,7 +550,7 @@
             if (flipRowOpen) {
               flipRowOpen = false;
             } else {
-              if (cropMode) viewer.cancelCrop();
+              if (editing.cropMode) editing.exitCropMode();
               flipRowOpen = true;
               colorRowOpen = false;
               activeColorTool = null;
@@ -620,7 +605,7 @@
             if (colorRowOpen) {
               colorRowOpen = false;
             } else {
-              if (cropMode) viewer.cancelCrop();
+              if (editing.cropMode) editing.exitCropMode();
               colorRowOpen = true;
               rotateRowOpen = false;
               activeRotateTool = null;
@@ -651,6 +636,7 @@
     </div>
 
     {#if colorRowOpen}
+      <div class="edit-menu-separator"></div>
       <div
         class="edit-menu-row"
         transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}
@@ -821,6 +807,7 @@
     {/if}
 
     {#if rotateRowOpen}
+      <div class="edit-menu-separator"></div>
       <div
         class="edit-menu-row"
         transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}
@@ -942,14 +929,16 @@
               style="left: {marker.pct}%"
               onpointerdown={(e) => e.stopPropagation()}
               onclick={() => {
+                editing.pushUndo();
                 localRotationAngle = marker.val;
-                viewer.setRotation(marker.val);
+                editing.setRotation(marker.val);
               }}
               onkeydown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
+                  editing.pushUndo();
                   localRotationAngle = marker.val;
-                  viewer.setRotation(marker.val);
+                  editing.setRotation(marker.val);
                 }
               }}
               role="button"
@@ -983,6 +972,7 @@
     {/if}
 
     {#if flipRowOpen}
+      <div class="edit-menu-separator"></div>
       <div
         class="edit-menu-row"
         transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}
@@ -1030,14 +1020,15 @@
       </div>
     {/if}
 
-    {#if cropMode}
-      <div
-        class="edit-menu-row crop-actions"
-        transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}
-      >
+    <div class="edit-menu-separator"></div>
+
+    <div class="edit-menu-row edit-actions-row">
+      <div class="edit-actions-left">
         <button
-          class="edit-menu-btn crop-btn reset"
-          onclick={() => viewer.resetCrop()}
+          class="edit-menu-btn blue"
+          class:inactive={!canUndo}
+          onclick={onUndo}
+          disabled={!canUndo}
         >
           <svg
             width="13"
@@ -1048,14 +1039,18 @@
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
-            class="speed-mode-icon"
           >
             <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
             <path d="M3 3v5h5" />
           </svg>
-          <span>Reset</span>
+          <span>Undo</span>
         </button>
-        <button class="edit-menu-btn crop-btn apply" onclick={onApply}>
+        <button
+          class="edit-menu-btn red"
+          class:inactive={!hasEdits}
+          onclick={onReset}
+          disabled={!hasEdits}
+        >
           <svg
             width="13"
             height="13"
@@ -1065,13 +1060,57 @@
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
-            class="speed-mode-icon"
+          >
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+          </svg>
+          <span>Reset</span>
+        </button>
+      </div>
+      <div class="edit-actions-right">
+        <button
+          class="edit-menu-btn green"
+          class:inactive={!hasEdits}
+          onclick={onApply}
+          disabled={!hasEdits}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
           >
             <path d="M20 6L9 17l-5-5" />
           </svg>
           <span>Apply</span>
         </button>
+        <button
+          class="edit-menu-btn yellow"
+          class:inactive={!hasEdits}
+          onclick={onExport}
+          disabled={!hasEdits}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17,8 12,3 7,8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          <span>Export</span>
+        </button>
       </div>
-    {/if}
+    </div>
   </div>
 {/if}

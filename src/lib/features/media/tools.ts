@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { MediaProperties, ClipJobResult } from "$lib/shared/types";
 import { getFileExt } from "$lib/services/files";
+import type { EditSnapshot } from "$lib/features/editing/editing.svelte";
 
 export async function exportCroppedImage(
   filePath: string,
@@ -177,5 +178,134 @@ export async function invokeCompressMedia(
     outputDir,
     target,
     preset,
+  });
+}
+
+export async function invokeBackupFile(source: string): Promise<string> {
+  return invoke("backup_file", { source });
+}
+
+export async function exportEditedImage(
+  filePath: string,
+  snapshot: EditSnapshot,
+  outputPath: string,
+) {
+  const { readFile } = await import("@tauri-apps/plugin-fs");
+  const bytes = await readFile(filePath);
+  const blob = new Blob([bytes]);
+  const url = URL.createObjectURL(blob);
+
+  const img = new Image();
+  img.src = url;
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error("Failed to load image"));
+  });
+  URL.revokeObjectURL(url);
+
+  const w = img.naturalWidth;
+  const h = img.naturalHeight;
+
+  const b = snapshot.cropBounds;
+  const cropW = Math.round(w * (1 - b.left - b.right));
+  const cropH = Math.round(h * (1 - b.top - b.bottom));
+  const cropX = Math.round(b.left * w);
+  const cropY = Math.round(b.top * h);
+
+  const isQuarterTurn = Math.abs(snapshot.rotation % 180) === 90;
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Could not create canvas context");
+
+  if (isQuarterTurn) {
+    canvas.width = Math.max(1, cropH);
+    canvas.height = Math.max(1, cropW);
+  } else {
+    canvas.width = Math.max(1, cropW);
+    canvas.height = Math.max(1, cropH);
+  }
+
+  const filterParts: string[] = [];
+  if (snapshot.brightness !== 1)
+    filterParts.push(`brightness(${snapshot.brightness})`);
+  if (snapshot.contrast !== 1)
+    filterParts.push(`contrast(${snapshot.contrast})`);
+  if (snapshot.saturation !== 1)
+    filterParts.push(`saturate(${snapshot.saturation})`);
+  if (snapshot.hue !== 0)
+    filterParts.push(`hue-rotate(${snapshot.hue}deg)`);
+  if (filterParts.length > 0) {
+    ctx.filter = filterParts.join(" ");
+  }
+
+  ctx.save();
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+
+  if (snapshot.rotation !== 0) {
+    ctx.rotate((snapshot.rotation * Math.PI) / 180);
+  }
+
+  if (snapshot.flipped || snapshot.flippedVertical) {
+    ctx.scale(
+      snapshot.flipped ? -1 : 1,
+      snapshot.flippedVertical ? -1 : 1,
+    );
+  }
+
+  ctx.drawImage(
+    img,
+    cropX,
+    cropY,
+    cropW,
+    cropH,
+    -cropW / 2,
+    -cropH / 2,
+    cropW,
+    cropH,
+  );
+
+  ctx.restore();
+
+  const ext = getFileExt(outputPath) || "png";
+  const mimeType =
+    ext === "jpg" || ext === "jpeg"
+      ? "image/jpeg"
+      : ext === "webp"
+        ? "image/webp"
+        : "image/png";
+
+  const outBlob = await new Promise<Blob>((resolve) => {
+    canvas.toBlob((b) => resolve(b!), mimeType, 0.92);
+  });
+
+  const arrayBuffer = await outBlob.arrayBuffer();
+  const { writeFile } = await import("@tauri-apps/plugin-fs");
+  await writeFile(outputPath, new Uint8Array(arrayBuffer));
+}
+
+export async function invokeExportEditedMedia(
+  path: string,
+  outputPath: string,
+  snapshot: EditSnapshot,
+  width: number,
+  height: number,
+): Promise<void> {
+  return invoke("export_edited_media", {
+    path,
+    outputPath,
+    brightness: snapshot.brightness,
+    contrast: snapshot.contrast,
+    saturation: snapshot.saturation,
+    hue: snapshot.hue,
+    rotation: snapshot.rotation,
+    flipped: snapshot.flipped,
+    flippedVertical: snapshot.flippedVertical,
+    cropLeft: snapshot.cropBounds.left,
+    cropTop: snapshot.cropBounds.top,
+    cropRight: snapshot.cropBounds.right,
+    cropBottom: snapshot.cropBounds.bottom,
+    width,
+    height,
   });
 }

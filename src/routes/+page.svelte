@@ -46,6 +46,8 @@ import { invoke } from "@tauri-apps/api/core";
     invokeOpenFolder,
     invokeOpenDirectory,
     invokeCleanupTempFolder,
+    exportEditedImage,
+    invokeExportEditedMedia,
   } from "$lib/features/media/tools";
   import { computeContextMenuPosition } from "$lib/services/session";
   import {
@@ -60,6 +62,7 @@ import { invoke } from "@tauri-apps/api/core";
   } from "$lib/services/files";
   import { createMedia } from "$lib/features/media/media.svelte";
   import { viewer } from "$lib/features/viewer/viewer.svelte";
+  import { editing } from "$lib/features/editing/editing.svelte";
   import { slideshow } from "$lib/features/media/slideshow.svelte";
   import CropOverlay from "$lib/features/editing/CropOverlay.svelte";
   import TimelineMarkers from "$lib/features/timeline/TimelineMarkers.svelte";
@@ -71,7 +74,6 @@ import { invoke } from "@tauri-apps/api/core";
     ctxCopyFrame,
     ctxCopyPath,
     ctxShowInExplorer,
-    handleApplyCrop,
   } from "$lib/features/dialogs/contextActions";
   import {
     loadMediaProperties,
@@ -99,6 +101,8 @@ import { invoke } from "@tauri-apps/api/core";
   let videoEl = $state<HTMLVideoElement | null>(null);
   let audioEl = $state<HTMLAudioElement | null>(null);
   let cropContainerEl = $state<HTMLElement | null>(null);
+  let imageEl = $state<HTMLImageElement | null>(null);
+  let videoInnerEl = $state<HTMLDivElement | null>(null);
   let viewerEl = $state<HTMLElement | null>(null);
   let playing = $state(false);
   let muted = $state(false);
@@ -132,10 +136,6 @@ import { invoke } from "@tauri-apps/api/core";
   let feedbackOpen = $state(false);
   let tsMenuOpen = $state(false);
   let thumbnailBarVisible = $state(false);
-  let brightness = $state(1);
-  let contrast = $state(1);
-  let saturation = $state(1);
-  let hue = $state(0);
   let volumeSliderMode = $state(false);
   let speedSliderMode = $state(false);
   let resumePoint = $state<number | null>(null);
@@ -215,20 +215,21 @@ import { invoke } from "@tauri-apps/api/core";
   // ── Derived ────────────────────────────────────────────
   const imageScale = $derived(viewer.state.zoomLevel / 100);
   const cropClipPath = $derived.by(() => {
-    const bounds = viewer.getCropBounds();
+    const bounds = editing.getCropBounds();
     if (!bounds) return "";
     return `inset(${(bounds.top * 100).toFixed(2)}% ${(bounds.right * 100).toFixed(2)}% ${(bounds.bottom * 100).toFixed(2)}% ${(bounds.left * 100).toFixed(2)}%)`;
   });
   const colorFilter = $derived.by(() => {
     const parts: string[] = [];
-    if (brightness !== 1) parts.push(`brightness(${brightness})`);
-    if (contrast !== 1) parts.push(`contrast(${contrast})`);
-    if (saturation !== 1) parts.push(`saturate(${saturation})`);
-    if (hue !== 0) parts.push(`hue-rotate(${hue}deg)`);
+    const s = editing.snapshot;
+    if (s.brightness !== 1) parts.push(`brightness(${s.brightness})`);
+    if (s.contrast !== 1) parts.push(`contrast(${s.contrast})`);
+    if (s.saturation !== 1) parts.push(`saturate(${s.saturation})`);
+    if (s.hue !== 0) parts.push(`hue-rotate(${s.hue}deg)`);
     return parts.length ? ` filter: ${parts.join(" ")};` : "";
   });
   const imageStyle = $derived(
-    `transform: scale(${imageScale}) translate(${viewer.state.translateX / imageScale}px, ${viewer.state.translateY / imageScale}px) rotate(${viewer.state.rotation}deg) scaleX(${viewer.state.flipped ? -1 : 1}) scaleY(${viewer.state.flippedVertical ? -1 : 1}); transform-origin: center center; display: block;${colorFilter}${cropClipPath ? ` clip-path: ${cropClipPath};` : ""}`,
+    `transform: scale(${imageScale}) translate(${viewer.state.translateX / imageScale}px, ${viewer.state.translateY / imageScale}px) rotate(${editing.snapshot.rotation}deg) scaleX(${editing.snapshot.flipped ? -1 : 1}) scaleY(${editing.snapshot.flippedVertical ? -1 : 1}); transform-origin: center center; display: block;${colorFilter}${cropClipPath ? ` clip-path: ${cropClipPath};` : ""}`,
   );
   const videoWrapperTransform = $derived(viewer.getVideoWrapperTransform());
   const videoInnerTransform = $derived(viewer.getVideoInnerTransform());
@@ -320,7 +321,7 @@ import { invoke } from "@tauri-apps/api/core";
   });
   $effect(() => {
     const _ = thumbnailBarVisible;
-    void viewer.state.rotation;
+    void editing.snapshot.rotation;
     if (
       viewerEl &&
       fileSrc &&
@@ -735,9 +736,9 @@ import { invoke } from "@tauri-apps/api/core";
     if (data.loadingFadingOut !== undefined)
       loadingFadingOut = data.loadingFadingOut;
     if (data.imageRotation !== undefined)
-      viewer.state.rotation = data.imageRotation;
+      editing.setRotation(data.imageRotation);
     if (data.imageFlipped !== undefined)
-      viewer.state.flipped = data.imageFlipped;
+      editing.snapshot.flipped = data.imageFlipped;
     if (data.imageNaturalWidth !== undefined)
       imageNaturalWidth = data.imageNaturalWidth;
     if (data.imageNaturalHeight !== undefined)
@@ -765,6 +766,8 @@ import { invoke } from "@tauri-apps/api/core";
       tsEditMenu = { ...tsEditMenu, visible: false };
       resetZoom();
       viewer.state.baseZoomLevel = 100;
+      editing.cleanup();
+      editMenuVisible = false;
     },
   );
   slideshow.bind(
@@ -819,19 +822,17 @@ import { invoke } from "@tauri-apps/api/core";
   }
   async function loadFile(path: string) {
     slideshow.stop();
-    viewer.state.cropMode = false;
+    editing.exitCropMode();
     await media.loadFile(path, setMediaState, (list, index) => {
       fileList = list;
       currentIndex = index >= 0 ? index : 0;
     });
-    viewer.setCurrentFile(path);
   }
   function navigate(direction: number) {
     if (fileList.length === 0) return;
     slideshow.stop();
-    viewer.state.cropMode = false;
+    editing.exitCropMode();
     const next = (currentIndex + direction + fileList.length) % fileList.length;
-    viewer.setCurrentFile(fileList[next]);
     currentIndex = media.navigate(
       direction,
       fileList,
@@ -842,17 +843,15 @@ import { invoke } from "@tauri-apps/api/core";
   function navigateToIndex(index: number) {
     if (fileList.length === 0 || index === currentIndex) return;
     slideshow.stop();
-    viewer.state.cropMode = false;
+    editing.exitCropMode();
     currentIndex = index;
-    viewer.setCurrentFile(fileList[index]);
     media.displayFile(fileList[index], setMediaState);
   }
   function navigateToEdge(first: boolean) {
     if (fileList.length === 0) return;
     slideshow.stop();
-    viewer.state.cropMode = false;
+    editing.exitCropMode();
     const next = first ? 0 : fileList.length - 1;
-    viewer.setCurrentFile(fileList[next]);
     currentIndex = media.navigateToEdge(first, fileList, setMediaState);
   }
   function toggleThumbnailBar() {
@@ -862,20 +861,12 @@ import { invoke } from "@tauri-apps/api/core";
     slideshow.stop();
     clearTimeout(pendingPlay);
     resumeTooltipVisible = false;
-    viewer.state.rotation = 0;
-    viewer.state.flipped = false;
-    viewer.state.cropMode = false;
-    viewer.state.zoomLevel = 1;
-    viewer.state.baseZoomLevel = 1;
+    editing.cleanup();
+    viewer.state.zoomLevel = 100;
+    viewer.state.baseZoomLevel = 100;
     viewer.state.translateX = 0;
     viewer.state.translateY = 0;
-    viewer.setCurrentFile("");
-    viewer.clearCropCache();
     media.closeFile(setMediaState);
-    brightness = 1;
-    contrast = 1;
-    saturation = 1;
-    hue = 0;
     waveformSrc = "";
     mediaProps = null;
     mediaPropsLoading = false;
@@ -883,9 +874,8 @@ import { invoke } from "@tauri-apps/api/core";
   }
   function advanceSlide(nextIndex: number) {
     if (fileList.length === 0) return;
-    viewer.state.cropMode = false;
+    editing.exitCropMode();
     currentIndex = nextIndex;
-    viewer.setCurrentFile(fileList[nextIndex]);
     media.displayFile(fileList[nextIndex], setMediaState);
   }
   async function openConvertedFile(path: string) {
@@ -1044,6 +1034,7 @@ import { invoke } from "@tauri-apps/api/core";
   // ── Menu toggles ───────────────────────────────────────
   function openEditMenu() {
     closeContextMenu();
+    editing.setFilePath(filePath);
     editMenuVisible = true;
   }
   function closeEditMenu() {
@@ -1092,10 +1083,12 @@ import { invoke } from "@tauri-apps/api/core";
   }
   function ctxRotate() {
     closeContextMenu();
+    editing.pushUndo();
     viewer.rotate();
   }
   function ctxFlip() {
     closeContextMenu();
+    editing.pushUndo();
     viewer.flip();
   }
   function ctxToggleLoop() {
@@ -1138,17 +1131,107 @@ import { invoke } from "@tauri-apps/api/core";
         });
     })();
   }
-  async function handleApplyCropFn() {
-    await handleApplyCrop({
-      filePath,
-      fileName,
-      isVideo,
-      fileExt: () => getFileExt(filePath),
-      videoEl,
-      viewer,
-      showFrameCopyToast: toast.showFrameCopyToast,
-      setExportToast: (v) => (exportToast = v),
-    });
+  async function handleApplyEdits() {
+    if (!editing.getHasEdits() && !editing.getCropBounds()) return;
+    try {
+      editing.isApplying = true;
+      await editing.backupOriginal(filePath);
+
+      const s = editing.snapshot;
+      const ext = getFileExt(filePath);
+
+      if (isVideo) {
+        if (!videoEl || videoEl.videoWidth <= 0 || videoEl.videoHeight <= 0) {
+          throw new Error("Video not ready for export");
+        }
+        await invokeExportEditedMedia(
+          filePath,
+          filePath,
+          s,
+          videoEl.videoWidth,
+          videoEl.videoHeight,
+        );
+      } else {
+        await exportEditedImage(filePath, s, filePath);
+      }
+
+      editing.isApplying = false;
+      editing.isApplied = true;
+      toast.showFrameCopyToast("Edits applied", "success");
+    } catch (err) {
+      editing.isApplying = false;
+      const message =
+        err instanceof Error ? err.message : "Failed to apply edits";
+      toast.showFrameCopyToast(message, "error");
+    }
+  }
+
+  async function handleExportEdits() {
+    if (!editing.getHasEdits() && !editing.getCropBounds()) {
+      toast.showFrameCopyToast("No edits to export", "info");
+      return;
+    }
+    try {
+      const ext = getFileExt(filePath);
+      const defaultName =
+        fileName.replace(/\.[^.]+$/, "") + "_edited." + ext;
+
+      const { save } = await import("@tauri-apps/plugin-dialog");
+      const outputPath = await save({
+        defaultPath: defaultName,
+        filters: isVideo
+          ? [{ name: "Video", extensions: [ext] }]
+          : [{ name: "Image", extensions: [ext] }],
+      });
+
+      if (!outputPath) return;
+
+      editing.isExporting = true;
+      exportToast = {
+        visible: true,
+        phase: "exporting",
+        message: "Exporting...",
+        outputPath,
+      };
+
+      const s = editing.snapshot;
+      if (isVideo) {
+        if (!videoEl || videoEl.videoWidth <= 0 || videoEl.videoHeight <= 0) {
+          throw new Error("Video not ready for export");
+        }
+        await invokeExportEditedMedia(
+          filePath,
+          outputPath,
+          s,
+          videoEl.videoWidth,
+          videoEl.videoHeight,
+        );
+      } else {
+        await exportEditedImage(filePath, s, outputPath);
+      }
+
+      editing.isExporting = false;
+      exportToast = {
+        visible: true,
+        phase: "done",
+        message: "Exported!",
+        outputPath,
+      };
+    } catch (err) {
+      editing.isExporting = false;
+      const message =
+        err instanceof Error ? err.message : "Failed to export file";
+      exportToast = { visible: true, phase: "error", message, outputPath: "" };
+    }
+  }
+
+  function handleUndo() {
+    editing.undo();
+  }
+
+  async function handleReset() {
+    await editing.reset();
+    toast.showFrameCopyToast("Edits reset", "info");
   }
   async function ctxDelete() {
     closeContextMenu();
@@ -1401,19 +1484,10 @@ import { invoke } from "@tauri-apps/api/core";
   {contextMenu}
   onOpenContextMenu={openContextMenu}
   {editMenuVisible}
-  onRotate={ctxRotate}
-  onFlip={ctxFlip}
-  onCrop={() => viewer.startCropMode()}
-  onApplyCrop={handleApplyCropFn}
-  cropMode={viewer.state.cropMode}
-  {brightness}
-  onBrightnessChange={(v: number) => (brightness = v)}
-  {contrast}
-  onContrastChange={(v: number) => (contrast = v)}
-  {saturation}
-  onSaturationChange={(v: number) => (saturation = v)}
-  {hue}
-  onHueChange={(v: number) => (hue = v)}
+  onApply={handleApplyEdits}
+  onExport={handleExportEdits}
+  onUndo={handleUndo}
+  onReset={handleReset}
   {closeEditMenu}
   {processMenuVisible}
   {closeProcessMenu}
@@ -1569,6 +1643,7 @@ import { invoke } from "@tauri-apps/api/core";
                   : ""}
               >
                 <img
+                  bind:this={imageEl}
                   src={fileSrc}
                   alt={fileName}
                   decoding="async"
@@ -1577,7 +1652,7 @@ import { invoke } from "@tauri-apps/api/core";
                 />
               </div>
             {/key}
-            <CropOverlay containerEl={cropContainerEl} />
+            <CropOverlay containerEl={cropContainerEl} mediaEl={imageEl} />
           </div>
         {:else if fileSrc && isVideo}
           <div
@@ -1589,7 +1664,7 @@ import { invoke } from "@tauri-apps/api/core";
             onmousedown={startPan}
             style="{videoWrapperTransform} cursor: {panCursor}"
           >
-            <div class="video-inner" style={videoInnerStyle}>
+            <div class="video-inner" bind:this={videoInnerEl} style={videoInnerStyle}>
               {#key slideshow.active && slideshow.transition !== "none" ? currentIndex : null}
                 <div
                   class={slideshow.active && slideshow.transition !== "none"
@@ -1631,7 +1706,7 @@ import { invoke } from "@tauri-apps/api/core";
                 </div>
               {/key}
             </div>
-            <CropOverlay containerEl={cropContainerEl} />
+            <CropOverlay containerEl={cropContainerEl} mediaEl={videoInnerEl} />
             <div
               class="video-controls"
               class:gif-only={isGifVideo}

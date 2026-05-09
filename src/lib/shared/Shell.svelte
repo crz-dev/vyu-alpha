@@ -87,19 +87,10 @@
     contextMenu,
     onOpenContextMenu,
     editMenuVisible,
-    onRotate,
-    onFlip,
-    onCrop,
-    onApplyCrop,
-    cropMode,
-    brightness,
-    onBrightnessChange,
-    contrast,
-    onContrastChange,
-    saturation,
-    onSaturationChange,
-    hue,
-    onHueChange,
+    onApply,
+    onExport,
+    onUndo,
+    onReset,
     closeEditMenu,
     processMenuVisible,
     closeProcessMenu,
@@ -263,19 +254,10 @@
     contextMenu: ContextMenu;
     onOpenContextMenu: (e: MouseEvent) => void;
     editMenuVisible: boolean;
-    onRotate: () => void;
-    onFlip: () => void;
-    onCrop: () => void;
-    onApplyCrop: () => void;
-    cropMode: boolean;
-    brightness: number;
-    onBrightnessChange: (v: number) => void;
-    contrast: number;
-    onContrastChange: (v: number) => void;
-    saturation: number;
-    onSaturationChange: (v: number) => void;
-    hue: number;
-    onHueChange: (v: number) => void;
+    onApply: () => void;
+    onExport: () => void;
+    onUndo: () => void;
+    onReset: () => void;
     closeEditMenu: () => void;
     processMenuVisible: boolean;
     closeProcessMenu: () => void;
@@ -505,19 +487,10 @@
 
   <EditMenu
     visible={editMenuVisible}
-    {onRotate}
-    {onFlip}
-    {onCrop}
-    onApply={onApplyCrop}
-    {cropMode}
-    {brightness}
-    {onBrightnessChange}
-    {contrast}
-    {onContrastChange}
-    {saturation}
-    {onSaturationChange}
-    {hue}
-    {onHueChange}
+    {onApply}
+    {onExport}
+    {onUndo}
+    {onReset}
     onClose={closeEditMenu}
   />
 

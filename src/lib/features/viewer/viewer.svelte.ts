@@ -1,5 +1,5 @@
-// DATAFLOW: setCurrentFile restores crop from cropMap. fitToScreen called by
-// +page.svelte:onImageLoad. Transform functions drive CSS in template.
+import { editing } from "$lib/features/editing/editing.svelte";
+
 type CropBounds = {
   left: number;
   top: number;
@@ -16,15 +16,7 @@ type ViewerState = {
   translateX: number;
   translateY: number;
   isDragging: boolean;
-  rotation: number;
-  flipped: boolean;
-  flippedVertical: boolean;
-  cropMode: boolean;
-  cropBounds: CropBounds;
 };
-
-const cropMap = $state(new Map<string, CropBounds>());
-let currentFilePath = $state("");
 
 function clampZoom(value: number, min: number): number {
   return Math.max(min, Math.min(1000, value));
@@ -40,11 +32,6 @@ function createViewer() {
     translateX: 0,
     translateY: 0,
     isDragging: false,
-    rotation: 0,
-    flipped: false,
-    flippedVertical: false,
-    cropMode: false,
-    cropBounds: { left: 0, top: 0, right: 0, bottom: 0 },
   });
 
   let fsHideTimer: ReturnType<typeof setTimeout> | undefined;
@@ -90,7 +77,7 @@ function createViewer() {
     )
       return;
 
-    const isQuarterTurn = Math.abs(state.rotation % 180) === 90;
+    const isQuarterTurn = Math.abs(editing.snapshot.rotation % 180) === 90;
     const effectiveWidth = isQuarterTurn ? imageHeight : imageWidth;
     const effectiveHeight = isQuarterTurn ? imageWidth : imageHeight;
 
@@ -112,19 +99,19 @@ function createViewer() {
   }
 
   function rotate(angle: number = 90) {
-    state.rotation = (((state.rotation + angle) % 360) + 360) % 360;
+    editing.rotate(angle);
   }
 
   function setRotation(angle: number) {
-    state.rotation = ((angle % 360) + 360) % 360;
+    editing.setRotation(angle);
   }
 
   function flip() {
-    state.flipped = !state.flipped;
+    editing.flip();
   }
 
   function flipVertical() {
-    state.flippedVertical = !state.flippedVertical;
+    editing.flipVertical();
   }
 
   function getPanCursor(): "default" | "grab" | "grabbing" {
@@ -139,7 +126,7 @@ function createViewer() {
 
   function getVideoInnerTransform(): string {
     const scale = state.zoomLevel / 100;
-    return `transform: scale(${scale}) rotate(${state.rotation}deg) scaleX(${state.flipped ? -1 : 1}) scaleY(${state.flippedVertical ? -1 : 1}); transform-origin: center center;`;
+    return `transform: scale(${scale}) rotate(${editing.snapshot.rotation}deg) scaleX(${editing.snapshot.flipped ? -1 : 1}) scaleY(${editing.snapshot.flippedVertical ? -1 : 1}); transform-origin: center center;`;
   }
 
   function handleViewerScroll(e: WheelEvent, fileSrc: string) {
@@ -194,91 +181,24 @@ function createViewer() {
     lastPinchDist = 0;
   }
 
-  function setCurrentFile(path: string) {
-    currentFilePath = path;
-    const saved = cropMap.get(path);
-    if (saved) {
-      state.cropBounds = { ...saved };
-    } else {
-      state.cropBounds = { left: 0, top: 0, right: 0, bottom: 0 };
-    }
-  }
-
-  function hasCropForCurrentFile(): boolean {
-    return cropMap.has(currentFilePath);
-  }
-
   function startCropMode() {
-    state.cropMode = true;
-    const saved = cropMap.get(currentFilePath);
-    if (saved) {
-      state.cropBounds = { ...saved };
-    } else {
-      state.cropBounds = { left: 0, top: 0, right: 0, bottom: 0 };
-    }
+    editing.startCropMode();
   }
 
   function cancelCrop() {
-    state.cropMode = false;
-    const saved = cropMap.get(currentFilePath);
-    if (saved) {
-      state.cropBounds = { ...saved };
-    } else {
-      state.cropBounds = { left: 0, top: 0, right: 0, bottom: 0 };
-    }
+    editing.exitCropMode();
   }
 
   function resetCrop() {
-    state.cropBounds = { left: 0, top: 0, right: 0, bottom: 0 };
-    cropMap.delete(currentFilePath);
-  }
-
-  function applyCrop() {
-    if (
-      state.cropBounds.left === 0 &&
-      state.cropBounds.top === 0 &&
-      state.cropBounds.right === 0 &&
-      state.cropBounds.bottom === 0
-    ) {
-      cropMap.delete(currentFilePath);
-    } else {
-      cropMap.set(currentFilePath, { ...state.cropBounds });
-    }
-    state.cropMode = false;
+    editing.resetCrop();
   }
 
   function setCropBounds(bounds: Partial<CropBounds>) {
-    if (bounds.left !== undefined) state.cropBounds.left = bounds.left;
-    if (bounds.top !== undefined) state.cropBounds.top = bounds.top;
-    if (bounds.right !== undefined) state.cropBounds.right = bounds.right;
-    if (bounds.bottom !== undefined) state.cropBounds.bottom = bounds.bottom;
-    state.cropBounds.left = Math.max(
-      0,
-      Math.min(1 - state.cropBounds.right - 0.01, state.cropBounds.left),
-    );
-    state.cropBounds.top = Math.max(
-      0,
-      Math.min(1 - state.cropBounds.bottom - 0.01, state.cropBounds.top),
-    );
-    state.cropBounds.right = Math.max(
-      0,
-      Math.min(1 - state.cropBounds.left - 0.01, state.cropBounds.right),
-    );
-    state.cropBounds.bottom = Math.max(
-      0,
-      Math.min(1 - state.cropBounds.top - 0.01, state.cropBounds.bottom),
-    );
+    editing.setCropBounds(bounds);
   }
 
   function getCropBounds(): CropBounds | null {
-    if (state.cropMode) return state.cropBounds;
-    const saved = cropMap.get(currentFilePath);
-    if (saved) return saved;
-    return null;
-  }
-
-  function clearCropCache() {
-    cropMap.clear();
+    return editing.getCropBounds();
   }
 
   return {
@@ -300,15 +220,11 @@ function createViewer() {
     handleViewerScroll,
     handleTouchZoom,
     handleTouchEnd,
-    setCurrentFile,
-    hasCropForCurrentFile,
     startCropMode,
     cancelCrop,
     resetCrop,
-    applyCrop,
     setCropBounds,
     getCropBounds,
-    clearCropCache,
   };
 }
 

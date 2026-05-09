@@ -1,7 +1,11 @@
 <script lang="ts">
-  import { viewer } from "$lib/features/viewer/viewer.svelte";
+  import { editing } from "$lib/features/editing/editing.svelte";
 
-  let { containerEl }: { containerEl: HTMLElement | null } = $props();
+  let {
+    containerEl,
+    mediaEl,
+  }: { containerEl: HTMLElement | null; mediaEl: HTMLElement | null } =
+    $props();
 
   let dragging = $state<
     "tl" | "tr" | "bl" | "br" | "tm" | "bm" | "ml" | "mr" | "move" | null
@@ -9,6 +13,36 @@
   let dragStartX = $state(0);
   let dragStartY = $state(0);
   let dragStartBounds = $state({ left: 0, top: 0, right: 0, bottom: 0 });
+  let overlayRect = $state({ left: 0, top: 0, width: 0, height: 0 });
+  let resizeObs: ResizeObserver | null = $state(null);
+
+  function updateOverlayRect() {
+    if (!containerEl || !mediaEl) return;
+    const cr = containerEl.getBoundingClientRect();
+    const mr = mediaEl.getBoundingClientRect();
+    overlayRect = {
+      left: mr.left - cr.left,
+      top: mr.top - cr.top,
+      width: mr.width,
+      height: mr.height,
+    };
+  }
+
+  $effect(() => {
+    if (editing.cropMode && mediaEl && containerEl) {
+      updateOverlayRect();
+      if (!resizeObs) {
+        resizeObs = new ResizeObserver(() => updateOverlayRect());
+        resizeObs.observe(mediaEl);
+        resizeObs.observe(containerEl);
+      }
+    } else {
+      if (resizeObs) {
+        resizeObs.disconnect();
+        resizeObs = null;
+      }
+    }
+  });
 
   function handleMouseDown(
     e: MouseEvent,
@@ -16,21 +50,21 @@
   ) {
     e.preventDefault();
     e.stopPropagation();
+    editing.pushUndo();
     dragging = handle;
     dragStartX = e.clientX;
     dragStartY = e.clientY;
-    dragStartBounds = { ...viewer.state.cropBounds };
+    dragStartBounds = { ...editing.snapshot.cropBounds };
 
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
   }
 
   function handleMouseMove(e: MouseEvent) {
-    if (!dragging || !containerEl) return;
+    if (!dragging || !mediaEl || overlayRect.width <= 0 || overlayRect.height <= 0) return;
 
-    const rect = containerEl.getBoundingClientRect();
-    const dx = (e.clientX - dragStartX) / rect.width;
-    const dy = (e.clientY - dragStartY) / rect.height;
+    const dx = (e.clientX - dragStartX) / overlayRect.width;
+    const dy = (e.clientY - dragStartY) / overlayRect.height;
 
     const minSize = 0.05;
 
@@ -45,16 +79,16 @@
         0,
         Math.min(dragStartBounds.top + dy, 1 - cropHeight),
       );
-      viewer.state.cropBounds.left = newLeft;
-      viewer.state.cropBounds.top = newTop;
-      viewer.state.cropBounds.right = 1 - newLeft - cropWidth;
-      viewer.state.cropBounds.bottom = 1 - newTop - cropHeight;
+      editing.snapshot.cropBounds.left = newLeft;
+      editing.snapshot.cropBounds.top = newTop;
+      editing.snapshot.cropBounds.right = 1 - newLeft - cropWidth;
+      editing.snapshot.cropBounds.bottom = 1 - newTop - cropHeight;
       return;
     }
 
     switch (dragging) {
       case "tl":
-        viewer.setCropBounds({
+        editing.setCropBounds({
           left: Math.max(
             0,
             Math.min(
@@ -72,7 +106,7 @@
         });
         break;
       case "tr":
-        viewer.setCropBounds({
+        editing.setCropBounds({
           right: Math.max(
             0,
             Math.min(
@@ -90,7 +124,7 @@
         });
         break;
       case "bl":
-        viewer.setCropBounds({
+        editing.setCropBounds({
           left: Math.max(
             0,
             Math.min(
@@ -108,7 +142,7 @@
         });
         break;
       case "br":
-        viewer.setCropBounds({
+        editing.setCropBounds({
           right: Math.max(
             0,
             Math.min(
@@ -126,7 +160,7 @@
         });
         break;
       case "tm":
-        viewer.setCropBounds({
+        editing.setCropBounds({
           top: Math.max(
             0,
             Math.min(
@@ -137,7 +171,7 @@
         });
         break;
       case "bm":
-        viewer.setCropBounds({
+        editing.setCropBounds({
           bottom: Math.max(
             0,
             Math.min(
@@ -148,7 +182,7 @@
         });
         break;
       case "ml":
-        viewer.setCropBounds({
+        editing.setCropBounds({
           left: Math.max(
             0,
             Math.min(
@@ -159,7 +193,7 @@
         });
         break;
       case "mr":
-        viewer.setCropBounds({
+        editing.setCropBounds({
           right: Math.max(
             0,
             Math.min(
@@ -179,39 +213,44 @@
   }
 
   $effect(() => {
-    if (!viewer.state.cropMode && dragging) {
+    if (!editing.cropMode && dragging) {
       dragging = null;
     }
   });
 </script>
 
-{#if viewer.state.cropMode && containerEl}
-  <div class="crop-overlay" role="presentation">
+{#if editing.cropMode && overlayRect.width > 0 && overlayRect.height > 0}
+  <div
+    class="crop-overlay"
+    role="presentation"
+    style="position: absolute; left: {overlayRect.left}px; top: {overlayRect
+      .top}px; width: {overlayRect.width}px; height: {overlayRect.height}px;"
+  >
     <div
       class="crop-dim crop-dim-top"
-      style="height: {viewer.state.cropBounds.top * 100}%"
+      style="height: {editing.snapshot.cropBounds.top * 100}%"
     ></div>
     <div
       class="crop-dim crop-dim-bottom"
-      style="height: {viewer.state.cropBounds.bottom * 100}%"
+      style="height: {editing.snapshot.cropBounds.bottom * 100}%"
     ></div>
     <div
       class="crop-dim crop-dim-left"
-      style="top: {viewer.state.cropBounds.top * 100}%; bottom: {viewer.state
-        .cropBounds.bottom * 100}%; width: {viewer.state.cropBounds.left *
-        100}%"
+      style="top: {editing.snapshot.cropBounds.top * 100}%; bottom: {editing
+        .snapshot.cropBounds.bottom * 100}%; width: {editing.snapshot.cropBounds
+        .left * 100}%"
     ></div>
     <div
       class="crop-dim crop-dim-right"
-      style="top: {viewer.state.cropBounds.top * 100}%; bottom: {viewer.state
-        .cropBounds.bottom * 100}%; width: {viewer.state.cropBounds.right *
-        100}%"
+      style="top: {editing.snapshot.cropBounds.top * 100}%; bottom: {editing
+        .snapshot.cropBounds.bottom * 100}%; width: {editing.snapshot.cropBounds
+        .right * 100}%"
     ></div>
     <div
       class="crop-area"
-      style="left: {viewer.state.cropBounds.left * 100}%; top: {viewer.state
-        .cropBounds.top * 100}%; right: {viewer.state.cropBounds.right *
-        100}%; bottom: {viewer.state.cropBounds.bottom * 100}%;"
+      style="left: {editing.snapshot.cropBounds.left * 100}%; top: {editing
+        .snapshot.cropBounds.top * 100}%; right: {editing.snapshot.cropBounds
+        .right * 100}%; bottom: {editing.snapshot.cropBounds.bottom * 100}%;"
       onmousedown={(e) => handleMouseDown(e, "move")}
       role="button"
       tabindex="0"
