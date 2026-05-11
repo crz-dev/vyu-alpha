@@ -634,7 +634,7 @@
       y: rect.top,
       title: "Resume",
       timeLabel: formatTime(resumePoint ?? 0),
-      tone: "blue",
+      tone: "green",
     };
   }
   function hideResumeTooltip() {
@@ -1796,6 +1796,10 @@
                 startSpeedSliderDrag={playbackUI.startSpeedSliderDrag}
                 handleVolumeSliderChange={playbackUI.handleVolumeSliderChange}
                 handleSpeedSliderChange={playbackUI.handleSpeedSliderChange}
+                showVolumeSliderTooltip={playbackUI.showVolumeSliderTooltip}
+                hideVolumeSliderTooltip={playbackUI.hideVolumeSliderTooltip}
+                showSpeedSliderTooltip={playbackUI.showSpeedSliderTooltip}
+                hideSpeedSliderTooltip={playbackUI.hideSpeedSliderTooltip}
               />
             </div>
           </div>
@@ -1907,6 +1911,10 @@
                 startSpeedSliderDrag={playbackUI.startSpeedSliderDrag}
                 handleVolumeSliderChange={playbackUI.handleVolumeSliderChange}
                 handleSpeedSliderChange={playbackUI.handleSpeedSliderChange}
+                showVolumeSliderTooltip={playbackUI.showVolumeSliderTooltip}
+                hideVolumeSliderTooltip={playbackUI.hideVolumeSliderTooltip}
+                showSpeedSliderTooltip={playbackUI.showSpeedSliderTooltip}
+                hideSpeedSliderTooltip={playbackUI.hideSpeedSliderTooltip}
               />
             </div>
           </div>
@@ -2065,6 +2073,10 @@
               startSpeedSliderDrag={playbackUI.startSpeedSliderDrag}
               handleVolumeSliderChange={playbackUI.handleVolumeSliderChange}
               handleSpeedSliderChange={playbackUI.handleSpeedSliderChange}
+              showVolumeSliderTooltip={playbackUI.showVolumeSliderTooltip}
+              hideVolumeSliderTooltip={playbackUI.hideVolumeSliderTooltip}
+              showSpeedSliderTooltip={playbackUI.showSpeedSliderTooltip}
+              hideSpeedSliderTooltip={playbackUI.hideSpeedSliderTooltip}
             />
           </div>
         {:else}

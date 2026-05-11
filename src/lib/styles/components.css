@@ -1586,18 +1586,12 @@ main.thumbnail-bar-open .video-inner video {
   transform: rotate(-45deg);
 }
 .ts-menu-open .ts-drop-arrow-icon .diamond-shape {
-  transform: rotate(765deg);
+  transform: rotate(360deg);
   opacity: 0;
 }
 .ts-menu-open .ts-drop-arrow-icon .x-shape {
   transform: rotate(0deg);
   opacity: 1;
-}
-.add-ts-btn:not(.ts-menu-open) .ts-drop-arrow-icon .diamond-shape {
-  transform: rotate(0deg);
-}
-.add-ts-btn:not(.ts-menu-open) .ts-drop-arrow-icon .x-shape {
-  transform: rotate(-765deg);
 }
 
 .edit-menu-wrapper {

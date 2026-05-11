@@ -186,6 +186,7 @@
         e.preventDefault();
         e.stopPropagation();
         removeResumePoint();
+        hideResumeTooltip();
       }}
       onmouseenter={showResumeTooltip}
       onmouseleave={hideResumeTooltip}

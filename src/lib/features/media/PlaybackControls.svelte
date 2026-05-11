@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { fly } from "svelte/transition";
+
   let {
     fullscreen = false,
     isGifVideo,
@@ -47,6 +49,10 @@
     startSpeedSliderDrag,
     handleVolumeSliderChange,
     handleSpeedSliderChange,
+    showVolumeSliderTooltip,
+    hideVolumeSliderTooltip,
+    showSpeedSliderTooltip,
+    hideSpeedSliderTooltip,
   }: {
     fullscreen?: boolean;
     isGifVideo: boolean;
@@ -95,6 +101,10 @@
     startSpeedSliderDrag: (e: PointerEvent, track: HTMLDivElement) => void;
     handleVolumeSliderChange: (v: number) => void;
     handleSpeedSliderChange: (v: number) => void;
+    showVolumeSliderTooltip: (trackEl: HTMLDivElement | null) => void;
+    hideVolumeSliderTooltip: () => void;
+    showSpeedSliderTooltip: (trackEl: HTMLDivElement | null) => void;
+    hideSpeedSliderTooltip: () => void;
   } = $props();
   let tsMenuOpen = $state(false);
   let tsDeleteConfirm = $state(false);
@@ -383,6 +393,7 @@
           class="playback-slider-track"
           class:muted={muted || volume === 0}
           style="width: 140px;"
+          transition:fly={{ x: -8, duration: 150, opacity: 0 }}
           bind:this={volumeTrackEl}
           role="slider"
           tabindex="0"
@@ -392,6 +403,8 @@
           aria-label="Volume slider"
           onpointerdown={handleVolumeTrackPointerDown}
           oncontextmenu={handleVolumeRightClick}
+          onmouseenter={() => showVolumeSliderTooltip(volumeTrackEl)}
+          onmouseleave={hideVolumeSliderTooltip}
         >
           <div
             class="playback-slider-fill"
@@ -421,15 +434,7 @@
             class="playback-slider-scrubber"
             style="left: {volumeSliderValue * 100}%"
           ></div>
-          {#if volumeTrackEl}
-            {@const rect = volumeTrackEl.getBoundingClientRect()}
-            <div
-              class="vol-tooltip"
-              style="left: {rect.left + volumeSliderValue * rect.width}px; top: {rect.top - 32}px; position: fixed;"
-            >
-              {Math.round(volumeSliderValue * 100)}%
-            </div>
-          {/if}
+
         </div>
       {:else if volumeHovered}
         <div
@@ -533,6 +538,7 @@
       {#if speedSliderMode && speedHovered}
         <div
           class="playback-slider-track"
+          transition:fly={{ x: 8, duration: 150, opacity: 0 }}
           bind:this={speedTrackEl}
           role="slider"
           tabindex="0"
@@ -542,6 +548,8 @@
           aria-label="Playback speed slider"
           onpointerdown={handleSpeedTrackPointerDown}
           oncontextmenu={handleSpeedRightClick}
+          onmouseenter={() => showSpeedSliderTooltip(speedTrackEl)}
+          onmouseleave={hideSpeedSliderTooltip}
         >
           <div
             class="playback-slider-fill"
@@ -571,15 +579,7 @@
             class="playback-slider-scrubber"
             style="left: {speedSliderValue * 100}%"
           ></div>
-          {#if speedTrackEl}
-            {@const rect = speedTrackEl.getBoundingClientRect()}
-            <div
-              class="vol-tooltip"
-              style="left: {rect.left + speedSliderValue * rect.width}px; top: {rect.top - 32}px; position: fixed;"
-            >
-              {speedDisplayValue}
-            </div>
-          {/if}
+
         </div>
       {:else if speedHovered}
         <div
@@ -1073,6 +1073,7 @@
           class="playback-slider-track"
           class:muted={muted || volume === 0}
           style="width: 140px;"
+          transition:fly={{ x: -8, duration: 150, opacity: 0 }}
           bind:this={volumeTrackEl}
           role="slider"
           tabindex="0"
@@ -1082,6 +1083,8 @@
           aria-label="Volume slider"
           onpointerdown={handleVolumeTrackPointerDown}
           oncontextmenu={handleVolumeRightClick}
+          onmouseenter={() => showVolumeSliderTooltip(volumeTrackEl)}
+          onmouseleave={hideVolumeSliderTooltip}
         >
           <div
             class="playback-slider-fill"
@@ -1111,15 +1114,7 @@
             class="playback-slider-scrubber"
             style="left: {volumeSliderValue * 100}%"
           ></div>
-          {#if volumeTrackEl}
-            {@const rect = volumeTrackEl.getBoundingClientRect()}
-            <div
-              class="vol-tooltip"
-              style="left: {rect.left + volumeSliderValue * rect.width}px; top: {rect.top - 32}px; position: fixed;"
-            >
-              {Math.round(volumeSliderValue * 100)}%
-            </div>
-          {/if}
+
         </div>
       {:else if volumeHovered}
         <div
@@ -1223,6 +1218,7 @@
       {#if speedSliderMode && speedHovered}
         <div
           class="playback-slider-track"
+          transition:fly={{ x: 8, duration: 150, opacity: 0 }}
           bind:this={speedTrackEl}
           role="slider"
           tabindex="0"
@@ -1232,6 +1228,8 @@
           aria-label="Playback speed slider"
           onpointerdown={handleSpeedTrackPointerDown}
           oncontextmenu={handleSpeedRightClick}
+          onmouseenter={() => showSpeedSliderTooltip(speedTrackEl)}
+          onmouseleave={hideSpeedSliderTooltip}
         >
           <div
             class="playback-slider-fill"
@@ -1261,15 +1259,7 @@
             class="playback-slider-scrubber"
             style="left: {speedSliderValue * 100}%"
           ></div>
-          {#if speedTrackEl}
-            {@const rect = speedTrackEl.getBoundingClientRect()}
-            <div
-              class="vol-tooltip"
-              style="left: {rect.left + speedSliderValue * rect.width}px; top: {rect.top - 32}px; position: fixed;"
-            >
-              {speedDisplayValue}
-            </div>
-          {/if}
+
         </div>
       {:else if speedHovered}
         <div

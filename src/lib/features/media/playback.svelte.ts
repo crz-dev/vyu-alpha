@@ -277,6 +277,29 @@ export function createPlaybackUI(
     if (mediaEl) mediaEl.playbackRate = speed;
   }
 
+  // ── Continuous slider tooltip helpers ──────────────────
+
+  function showVolumeSliderTooltip(trackEl: HTMLDivElement | null) {
+    if (!trackEl) return;
+    const rect = trackEl.getBoundingClientRect();
+    volumeTooltipX = rect.left + volumeSliderValue * rect.width;
+    volumeTooltipY = rect.top;
+    volumeTooltipVisible = true;
+  }
+  function hideVolumeSliderTooltip() {
+    volumeTooltipVisible = false;
+  }
+  function showSpeedSliderTooltip(trackEl: HTMLDivElement | null) {
+    if (!trackEl) return;
+    const rect = trackEl.getBoundingClientRect();
+    speedTooltipX = rect.left + speedSliderValue * rect.width;
+    speedTooltipY = rect.top;
+    speedTooltipVisible = true;
+  }
+  function hideSpeedSliderTooltip() {
+    speedTooltipVisible = false;
+  }
+
   function initSliderMode(volume: boolean, speed: boolean) {
     volumeSliderMode = volume;
     speedSliderMode = speed;
@@ -286,10 +309,14 @@ export function createPlaybackUI(
     e.preventDefault();
     track.setPointerCapture(e.pointerId);
 
+    volumeTooltipVisible = true;
+
     function update(clientX: number) {
       const rect = track.getBoundingClientRect();
       const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
       handleVolumeSliderChange(pct);
+      volumeTooltipX = rect.left + volumeSliderValue * rect.width;
+      volumeTooltipY = rect.top;
     }
 
     update(e.clientX);
@@ -301,6 +328,7 @@ export function createPlaybackUI(
       track.releasePointerCapture(ev.pointerId);
       track.removeEventListener("pointermove", onMove);
       track.removeEventListener("pointerup", onUp);
+      volumeTooltipVisible = false;
     }
 
     track.addEventListener("pointermove", onMove);
@@ -311,10 +339,14 @@ export function createPlaybackUI(
     e.preventDefault();
     track.setPointerCapture(e.pointerId);
 
+    speedTooltipVisible = true;
+
     function update(clientX: number) {
       const rect = track.getBoundingClientRect();
       const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
       handleSpeedSliderChange(pct);
+      speedTooltipX = rect.left + speedSliderValue * rect.width;
+      speedTooltipY = rect.top;
     }
 
     update(e.clientX);
@@ -326,6 +358,7 @@ export function createPlaybackUI(
       track.releasePointerCapture(ev.pointerId);
       track.removeEventListener("pointermove", onMove);
       track.removeEventListener("pointerup", onUp);
+      speedTooltipVisible = false;
     }
 
     track.addEventListener("pointermove", onMove);
@@ -391,6 +424,10 @@ export function createPlaybackUI(
     handleSpeedSliderChange,
     speedToSliderVal,
     initSliderMode,
+    showVolumeSliderTooltip,
+    hideVolumeSliderTooltip,
+    showSpeedSliderTooltip,
+    hideSpeedSliderTooltip,
   };
 }
 
