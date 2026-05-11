@@ -1794,7 +1794,7 @@
                 {toggleSpeedSliderMode}
                 startVolumeSliderDrag={playbackUI.startVolumeSliderDrag}
                 startSpeedSliderDrag={playbackUI.startSpeedSliderDrag}
-                handleVolumeSliderChange={setVolume}
+                handleVolumeSliderChange={playbackUI.handleVolumeSliderChange}
                 handleSpeedSliderChange={playbackUI.handleSpeedSliderChange}
               />
             </div>
@@ -1905,7 +1905,7 @@
                 {toggleSpeedSliderMode}
                 startVolumeSliderDrag={playbackUI.startVolumeSliderDrag}
                 startSpeedSliderDrag={playbackUI.startSpeedSliderDrag}
-                handleVolumeSliderChange={setVolume}
+                handleVolumeSliderChange={playbackUI.handleVolumeSliderChange}
                 handleSpeedSliderChange={playbackUI.handleSpeedSliderChange}
               />
             </div>
@@ -2063,7 +2063,7 @@
               {toggleSpeedSliderMode}
               startVolumeSliderDrag={playbackUI.startVolumeSliderDrag}
               startSpeedSliderDrag={playbackUI.startSpeedSliderDrag}
-              handleVolumeSliderChange={setVolume}
+              handleVolumeSliderChange={playbackUI.handleVolumeSliderChange}
               handleSpeedSliderChange={playbackUI.handleSpeedSliderChange}
             />
           </div>

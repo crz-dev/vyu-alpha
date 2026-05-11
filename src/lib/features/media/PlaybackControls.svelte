@@ -159,12 +159,8 @@
   });
 
   const speedStepMarkers = [
-    { step: 0.25, pct: 8.33 },
-    { step: 0.5, pct: 22.22 },
-    { step: 0.75, pct: 36.11 },
+    { step: 0.1, pct: 0 },
     { step: 1, pct: 50 },
-    { step: 1.25, pct: 56.25 },
-    { step: 2, pct: 75 },
     { step: 3, pct: 100 },
   ];
 </script>
@@ -389,6 +385,8 @@
       {#if volumeSliderMode}
         <div
           class="playback-slider-track"
+          class:muted={muted || volume === 0}
+          style="width: 140px;"
           bind:this={volumeTrackEl}
           role="slider"
           tabindex="0"
@@ -405,15 +403,18 @@
             class="playback-slider-fill"
             style="width: {volumeSliderValue * 100}%"
           ></div>
-          {#each [25, 50, 75, 100] as pct}
+          {#each [0, 50, 100] as pct}
             <div
               class="playback-slider-marker"
               style="left: {pct}%"
-              onclick={() => setVolume(pct / 100)}
+              onclick={(e) => {
+                e.stopPropagation();
+                handleVolumeSliderChange(pct / 100);
+              }}
               onkeydown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  setVolume(pct / 100);
+                  handleVolumeSliderChange(pct / 100);
                 }
               }}
               role="button"
@@ -556,7 +557,10 @@
             <div
               class="playback-slider-marker"
               style="left: {marker.pct}%"
-              onclick={() => setPlaybackSpeed(marker.step)}
+              onclick={(e) => {
+                e.stopPropagation();
+                setPlaybackSpeed(marker.step);
+              }}
               onkeydown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
@@ -1071,6 +1075,8 @@
       {#if volumeSliderMode}
         <div
           class="playback-slider-track"
+          class:muted={muted || volume === 0}
+          style="width: 140px;"
           bind:this={volumeTrackEl}
           role="slider"
           tabindex="0"
@@ -1087,15 +1093,18 @@
             class="playback-slider-fill"
             style="width: {volumeSliderValue * 100}%"
           ></div>
-          {#each [25, 50, 75, 100] as pct}
+          {#each [0, 50, 100] as pct}
             <div
               class="playback-slider-marker"
               style="left: {pct}%"
-              onclick={() => setVolume(pct / 100)}
+              onclick={(e) => {
+                e.stopPropagation();
+                handleVolumeSliderChange(pct / 100);
+              }}
               onkeydown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  setVolume(pct / 100);
+                  handleVolumeSliderChange(pct / 100);
                 }
               }}
               role="button"
@@ -1238,7 +1247,10 @@
             <div
               class="playback-slider-marker"
               style="left: {marker.pct}%"
-              onclick={() => setPlaybackSpeed(marker.step)}
+              onclick={(e) => {
+                e.stopPropagation();
+                setPlaybackSpeed(marker.step);
+              }}
               onkeydown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
