@@ -1217,23 +1217,6 @@ main.thumbnail-bar-open .video-inner video {
   pointer-events: none;
 }
 
-.playback-slider-tooltip {
-  position: absolute;
-  transform: translateX(-50%);
-  top: -28px;
-  background: #1a1a1a;
-  color: #ffffff;
-  font-size: 11px;
-  font-family: Inter, sans-serif;
-  padding: 3px 8px;
-  border-radius: 4px;
-  border: 0.5px solid #2a2a2a;
-  pointer-events: none;
-  z-index: 10;
-  white-space: nowrap;
-  animation: tsTooltipPopInAbove 120ms ease-out both;
-}
-
 .thumbnail-bar {
   position: fixed;
   left: 0;

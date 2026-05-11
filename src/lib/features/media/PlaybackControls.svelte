@@ -100,8 +100,6 @@
   let tsDeleteConfirm = $state(false);
   let volumeTrackEl: HTMLDivElement | null = $state(null);
   let speedTrackEl: HTMLDivElement | null = $state(null);
-  let volumeSliderHovered = $state(false);
-  let speedSliderHovered = $state(false);
 
   $effect(() => {
     onTsMenuChange?.(tsMenuOpen);
@@ -126,12 +124,14 @@
   function handleVolumeRightClick(e: MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    volumeTrackEl = null;
     toggleVolumeSliderMode();
   }
 
   function handleSpeedRightClick(e: MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    speedTrackEl = null;
     toggleSpeedSliderMode();
   }
 
@@ -144,10 +144,6 @@
     if (!speedTrackEl) return;
     startSpeedSliderDrag(e, speedTrackEl);
   }
-
-  const volumeDisplayValue = $derived(
-    volumeSliderMode ? Math.round(volumeSliderValue * 100) + "%" : "",
-  );
 
   const speedDisplayValue = $derived.by(() => {
     if (!speedSliderMode) return "";
@@ -382,7 +378,7 @@
           {/if}
         {/key}
       </button>
-      {#if volumeSliderMode}
+      {#if volumeSliderMode && volumeHovered}
         <div
           class="playback-slider-track"
           class:muted={muted || volume === 0}
@@ -395,8 +391,6 @@
           aria-valuenow={Math.round(volumeSliderValue * 100)}
           aria-label="Volume slider"
           onpointerdown={handleVolumeTrackPointerDown}
-          onmouseenter={() => (volumeSliderHovered = true)}
-          onmouseleave={() => (volumeSliderHovered = false)}
           oncontextmenu={handleVolumeRightClick}
         >
           <div
@@ -427,12 +421,13 @@
             class="playback-slider-scrubber"
             style="left: {volumeSliderValue * 100}%"
           ></div>
-          {#if volumeSliderHovered || volumeSliderValue !== 1}
+          {#if volumeTrackEl}
+            {@const rect = volumeTrackEl.getBoundingClientRect()}
             <div
-              class="playback-slider-tooltip"
-              style="left: {volumeSliderValue * 100}%"
+              class="vol-tooltip"
+              style="left: {rect.left + volumeSliderValue * rect.width}px; top: {rect.top - 32}px; position: fixed;"
             >
-              <span>{volumeDisplayValue}</span>
+              {Math.round(volumeSliderValue * 100)}%
             </div>
           {/if}
         </div>
@@ -535,7 +530,7 @@
           </svg>
         {/if}
       </button>
-      {#if speedSliderMode}
+      {#if speedSliderMode && speedHovered}
         <div
           class="playback-slider-track"
           bind:this={speedTrackEl}
@@ -546,8 +541,6 @@
           aria-valuenow={Math.round(speedSliderValue * 100)}
           aria-label="Playback speed slider"
           onpointerdown={handleSpeedTrackPointerDown}
-          onmouseenter={() => (speedSliderHovered = true)}
-          onmouseleave={() => (speedSliderHovered = false)}
           oncontextmenu={handleSpeedRightClick}
         >
           <div
@@ -578,12 +571,13 @@
             class="playback-slider-scrubber"
             style="left: {speedSliderValue * 100}%"
           ></div>
-          {#if speedSliderHovered || speedSliderValue !== 0.5}
+          {#if speedTrackEl}
+            {@const rect = speedTrackEl.getBoundingClientRect()}
             <div
-              class="playback-slider-tooltip"
-              style="left: {speedSliderValue * 100}%"
+              class="vol-tooltip"
+              style="left: {rect.left + speedSliderValue * rect.width}px; top: {rect.top - 32}px; position: fixed;"
             >
-              <span>{speedDisplayValue}</span>
+              {speedDisplayValue}
             </div>
           {/if}
         </div>
@@ -1074,7 +1068,7 @@
           {/if}
         {/key}
       </button>
-      {#if volumeSliderMode}
+      {#if volumeSliderMode && volumeHovered}
         <div
           class="playback-slider-track"
           class:muted={muted || volume === 0}
@@ -1087,8 +1081,6 @@
           aria-valuenow={Math.round(volumeSliderValue * 100)}
           aria-label="Volume slider"
           onpointerdown={handleVolumeTrackPointerDown}
-          onmouseenter={() => (volumeSliderHovered = true)}
-          onmouseleave={() => (volumeSliderHovered = false)}
           oncontextmenu={handleVolumeRightClick}
         >
           <div
@@ -1119,12 +1111,13 @@
             class="playback-slider-scrubber"
             style="left: {volumeSliderValue * 100}%"
           ></div>
-          {#if volumeSliderHovered || volumeSliderValue !== 1}
+          {#if volumeTrackEl}
+            {@const rect = volumeTrackEl.getBoundingClientRect()}
             <div
-              class="playback-slider-tooltip"
-              style="left: {volumeSliderValue * 100}%"
+              class="vol-tooltip"
+              style="left: {rect.left + volumeSliderValue * rect.width}px; top: {rect.top - 32}px; position: fixed;"
             >
-              <span>{volumeDisplayValue}</span>
+              {Math.round(volumeSliderValue * 100)}%
             </div>
           {/if}
         </div>
@@ -1227,7 +1220,7 @@
           </svg>
         {/if}
       </button>
-      {#if speedSliderMode}
+      {#if speedSliderMode && speedHovered}
         <div
           class="playback-slider-track"
           bind:this={speedTrackEl}
@@ -1238,8 +1231,6 @@
           aria-valuenow={Math.round(speedSliderValue * 100)}
           aria-label="Playback speed slider"
           onpointerdown={handleSpeedTrackPointerDown}
-          onmouseenter={() => (speedSliderHovered = true)}
-          onmouseleave={() => (speedSliderHovered = false)}
           oncontextmenu={handleSpeedRightClick}
         >
           <div
@@ -1270,12 +1261,13 @@
             class="playback-slider-scrubber"
             style="left: {speedSliderValue * 100}%"
           ></div>
-          {#if speedSliderHovered || speedSliderValue !== 0.5}
+          {#if speedTrackEl}
+            {@const rect = speedTrackEl.getBoundingClientRect()}
             <div
-              class="playback-slider-tooltip"
-              style="left: {speedSliderValue * 100}%"
+              class="vol-tooltip"
+              style="left: {rect.left + speedSliderValue * rect.width}px; top: {rect.top - 32}px; position: fixed;"
             >
-              <span>{speedDisplayValue}</span>
+              {speedDisplayValue}
             </div>
           {/if}
         </div>

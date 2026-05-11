@@ -115,17 +115,23 @@ export function createPlaybackUI(
   }
 
   function handleVolumeDiamondHover(e: MouseEvent) {
-    volumeTooltipX = e.clientX;
-    volumeTooltipY = e.clientY;
+    const container = e.currentTarget as HTMLElement;
+    const containerRect = container.getBoundingClientRect();
+    const diamonds = container.querySelectorAll(".volume-diamond");
+    const first = diamonds[0].getBoundingClientRect();
+    const last = diamonds[diamonds.length - 1].getBoundingClientRect();
+    const ratio = getVolume();
+    volumeTooltipX = first.left + ratio * (last.right - first.left);
+    volumeTooltipY = containerRect.top;
     volumeTooltipVisible = true;
   }
 
   function startVolumeDrag(e: MouseEvent) {
     if (e.button !== 0) return;
     e.preventDefault();
-    const diamonds = (e.currentTarget as HTMLElement).querySelectorAll(
-      ".volume-diamond",
-    );
+    const container = e.currentTarget as HTMLElement;
+    const containerRect = container.getBoundingClientRect();
+    const diamonds = container.querySelectorAll(".volume-diamond");
 
     function dragTo(clientX: number, clientY: number) {
       const first = diamonds[0].getBoundingClientRect();
@@ -135,8 +141,9 @@ export function createPlaybackUI(
         Math.min(1, (clientX - first.left) / (last.right - first.left)),
       );
       setVolume(Math.ceil(ratio * VOLUME_SEGMENTS) / VOLUME_SEGMENTS);
-      volumeTooltipX = clientX;
-      volumeTooltipY = clientY;
+      const valRatio = getVolume();
+      volumeTooltipX = first.left + valRatio * (last.right - first.left);
+      volumeTooltipY = containerRect.top;
       volumeTooltipVisible = true;
     }
 
@@ -177,17 +184,25 @@ export function createPlaybackUI(
   }
 
   function handleSpeedDiamondHover(e: MouseEvent) {
-    speedTooltipX = e.clientX;
-    speedTooltipY = e.clientY;
+    const container = e.currentTarget as HTMLElement;
+    const containerRect = container.getBoundingClientRect();
+    const diamonds = container.querySelectorAll(".speed-diamond");
+    const first = diamonds[0].getBoundingClientRect();
+    const last = diamonds[diamonds.length - 1].getBoundingClientRect();
+    const steps = SPEED_STEPS;
+    const idx = steps.indexOf(playbackSpeed);
+    const ratio = idx / (steps.length - 1);
+    speedTooltipX = first.left + ratio * (last.right - first.left);
+    speedTooltipY = containerRect.top;
     speedTooltipVisible = true;
   }
 
   function startSpeedDrag(e: MouseEvent) {
     if (e.button !== 0) return;
     e.preventDefault();
-    const diamonds = (e.currentTarget as HTMLElement).querySelectorAll(
-      ".speed-diamond",
-    );
+    const container = e.currentTarget as HTMLElement;
+    const containerRect = container.getBoundingClientRect();
+    const diamonds = container.querySelectorAll(".speed-diamond");
 
     function dragTo(clientX: number, clientY: number) {
       const first = diamonds[0].getBoundingClientRect();
@@ -199,8 +214,10 @@ export function createPlaybackUI(
       );
       const idx = Math.round(ratio * (steps.length - 1));
       setPlaybackSpeed(steps[idx]);
-      speedTooltipX = clientX;
-      speedTooltipY = clientY;
+      const currentIdx = steps.indexOf(playbackSpeed);
+      const valRatio = currentIdx / (steps.length - 1);
+      speedTooltipX = first.left + valRatio * (last.right - first.left);
+      speedTooltipY = containerRect.top;
       speedTooltipVisible = true;
     }
 
@@ -232,6 +249,7 @@ export function createPlaybackUI(
   }
 
   function toggleVolumeSliderMode() {
+    volumeTooltipVisible = false;
     volumeSliderMode = !volumeSliderMode;
     if (volumeSliderMode) {
       volumeSliderValue = getVolume();
@@ -239,6 +257,7 @@ export function createPlaybackUI(
   }
 
   function toggleSpeedSliderMode() {
+    speedTooltipVisible = false;
     speedSliderMode = !speedSliderMode;
     if (speedSliderMode) {
       speedSliderValue = speedToSliderVal(playbackSpeed);
