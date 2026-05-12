@@ -32,11 +32,11 @@
 				});
 			});
 
-			// After expand duration (200ms), swap theme and fade
+			// After expand duration (400ms), swap theme and fade
 			if (expandTimer) clearTimeout(expandTimer);
 			expandTimer = setTimeout(() => {
 				theme.onExpandComplete();
-			}, 200);
+			}, 400);
 		}
 
 		if (t.phase === "fading") {
@@ -44,11 +44,11 @@
 			el.classList.remove("expanding");
 			el.classList.add("fading");
 
-			// After fade duration (250ms), cleanup
+			// After fade duration (500ms), cleanup
 			setTimeout(() => {
 				el.classList.remove("animating", "expanding", "fading");
 				theme.onTransitionComplete();
-			}, 250);
+			}, 500);
 		}
 
 		return () => {

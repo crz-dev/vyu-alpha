@@ -12,7 +12,7 @@ export interface TransitionState {
 }
 
 function getThemeBg(t: ResolvedTheme): string {
-	return t === "light" ? "#f5f5f5" : "#000000";
+	return t === "light" ? "#c0c0c0" : "#000000";
 }
 
 function createTheme() {
