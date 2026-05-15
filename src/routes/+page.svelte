@@ -597,6 +597,7 @@
     clips.addClipBoundary(kind, Math.max(0, Math.min(time, rawDurationSecs)));
   }
   function removeClipBoundary(id: string) {
+    tsTooltip = { ...tsTooltip, visible: false };
     clips.removeClipBoundary(id);
   }
   function showClipBoundaryTooltip(e: MouseEvent, marker: ClipBoundary) {
@@ -607,7 +608,7 @@
       y: rect.top,
       title: marker.title,
       timeLabel: formatTime(marker.time),
-      tone: marker.kind === "start" ? "green" : "red",
+      tone: "blue",
     };
   }
   function clearAllSegments() {
