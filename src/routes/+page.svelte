@@ -172,6 +172,7 @@
     title?: string;
     timeLabel: string;
     tone?: "yellow" | "blue" | "green" | "red";
+    targetId?: string;
   }>({ visible: false, x: 0, y: 0, title: "", timeLabel: "", tone: "yellow" });
   let tsEditMenu = $state<{
     visible: boolean;
@@ -501,6 +502,9 @@
       (v) => (timestamps = v),
     );
     saveTimestamps();
+    if (tsTooltip.visible && tsTooltip.targetId === id) {
+      tsTooltip = { ...tsTooltip, title: title.trim() };
+    }
   }
   function getTimestampById(id: string): VideoMarker | undefined {
     return timeline.getTimestampById(id, timestamps);
@@ -517,6 +521,7 @@
       title: ts.title,
       timeLabel: formatTime(ts.time),
       tone: "yellow",
+      targetId: ts.id,
     };
   }
   function openTimestampEditor(e: MouseEvent, id: string) {
@@ -545,6 +550,7 @@
   }
   function closeTimestampEditor() {
     tsEditMenu = { ...tsEditMenu, visible: false };
+    hideTsTooltip();
   }
   function getActiveEditorTimestamp(): VideoMarker | undefined {
     return tsEditMenu.targetType === "timestamp"
@@ -565,8 +571,12 @@
   function updateEditorTitle(v: string) {
     if (tsEditMenu.targetType === "timestamp")
       updateTimestampTitle(tsEditMenu.targetId, v);
-    else if (tsEditMenu.targetType === "segment")
+    else if (tsEditMenu.targetType === "segment") {
       clips.updateBoundaryTitle(tsEditMenu.targetId, v);
+      if (tsTooltip.visible && tsTooltip.targetId === tsEditMenu.targetId) {
+        tsTooltip = { ...tsTooltip, title: v.trim() };
+      }
+    }
   }
   function onEditorScissor(kind: "start" | "end") {
     const seg = getActiveEditorSegment();
@@ -614,6 +624,7 @@
       title: marker.title,
       timeLabel: formatTime(marker.time),
       tone: "blue",
+      targetId: marker.id,
     };
   }
   function clearAllSegments() {

@@ -30,6 +30,7 @@
       title?: string;
       timeLabel: string;
       tone?: "yellow" | "blue" | "green";
+      targetId?: string;
     };
     tsEditMenuVisible: boolean;
     volumeTooltipVisible: boolean;
