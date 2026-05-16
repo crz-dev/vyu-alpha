@@ -121,6 +121,22 @@ export async function invokeCopyImageToClipboard(path: string): Promise<void> {
   return invoke("copy_image_to_clipboard", { path });
 }
 
+/** Convert a browser-unsupported image (TIFF, PSD, JXL, HEIC) to a cached PNG for display.
+ *  Returns the PNG path on success, or null if the format doesn't need conversion. */
+export async function invokePrepareDisplayImage(
+  path: string,
+): Promise<string | null> {
+  return invoke("prepare_display_image", { path });
+}
+
+/** Remux a browser-unsupported video (TS, M2TS) to a cached MP4 for playback.
+ *  Returns the MP4 path on success, or null if the format doesn't need remuxing. */
+export async function invokePrepareVideoDisplay(
+  path: string,
+): Promise<string | null> {
+  return invoke("prepare_video_display", { path });
+}
+
 export async function invokeCleanupTempFolder(): Promise<void> {
   return invoke("cleanup_temp_folder");
 }

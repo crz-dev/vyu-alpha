@@ -1,17 +1,33 @@
-export const IMAGE_EXTS = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"];
-export const VIDEO_EXTS = ["mp4", "webm", "mkv", "avi", "mov", "wmv"];
+export const IMAGE_EXTS = [
+  "jpg", "jpeg", "png", "gif", "webp", "bmp", "svg",
+  "avif", "tiff", "tif", "psd", "jxl",
+  "heic", "heif",
+];
+export const VIDEO_EXTS = [
+  "mp4", "webm", "mkv", "avi", "mov", "wmv",
+  "mpeg", "mpg",
+  "ts", "m2ts",
+];
 export const AUDIO_EXTS = [
-  "mp3",
-  "wav",
-  "flac",
-  "ogg",
-  "aac",
-  "wma",
-  "m4a",
-  "opus",
+  "mp3", "wav", "flac", "ogg", "aac", "wma", "m4a", "opus",
+  "aiff", "alac",
 ];
 export const DOCUMENT_EXTS = ["pdf"];
 export const ALL_EXTS = [...IMAGE_EXTS, ...VIDEO_EXTS, ...AUDIO_EXTS, ...DOCUMENT_EXTS];
+
+/** Image formats that browsers cannot render natively in &lt;img&gt; tags.
+ *  These need to be decoded server-side (Rust image crate / ffmpeg) and served as PNG. */
+export const BROWSER_UNSUPPORTED_IMAGE_EXTS = new Set([
+  "tiff", "tif", "psd", "jxl",
+  "heic", "heif",
+]);
+
+/** Video formats that browsers cannot play natively.
+ *  These need to be remuxed server-side (ffmpeg -c copy → MP4) for playback. */
+export const REMUX_VIDEO_EXTS = new Set([
+  "ts", "m2ts",
+]);
+
 export const VOLUME_SEGMENTS = 8;
 export const LOOP_MODES = ["loop", "stop", "next", "shuffle"] as const;
 export type LoopMode = (typeof LOOP_MODES)[number];

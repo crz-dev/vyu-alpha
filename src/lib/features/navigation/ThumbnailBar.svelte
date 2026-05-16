@@ -2,7 +2,7 @@
   import { convertFileSrc } from "@tauri-apps/api/core";
   import { invoke } from "@tauri-apps/api/core";
   import { tick } from "svelte";
-  import { VIDEO_EXTS, IMAGE_EXTS, DOCUMENT_EXTS } from "$lib/shared/constants";
+  import { VIDEO_EXTS, IMAGE_EXTS, DOCUMENT_EXTS, BROWSER_UNSUPPORTED_IMAGE_EXTS, REMUX_VIDEO_EXTS } from "$lib/shared/constants";
   import { getFileExt } from "$lib/services/files";
 
   let {
@@ -34,6 +34,15 @@
   const MAX_CONCURRENT = 6;
 
   const IMAGE_EXTS_SET = new Set(IMAGE_EXTS);
+
+  function needsServerThumbnail(path: string): boolean {
+    const ext = getFileExt(path);
+    return VIDEO_EXTS.includes(ext) || BROWSER_UNSUPPORTED_IMAGE_EXTS.has(ext);
+  }
+
+  function isRemuxVideo(path: string): boolean {
+    return REMUX_VIDEO_EXTS.has(getFileExt(path));
+  }
 
   let thumbnailUrls = $state<Record<string, string>>({});
   let fetchingPaths = $state(new Set<string>());
@@ -162,11 +171,11 @@
       } else if (isPdfFile(path)) {
         // PDFs use their own icon in template — mark as resolved
         thumbnailUrls = { ...thumbnailUrls, [path]: path };
-      } else if (!isVideo(path)) {
+      } else if (!isVideo(path) && !BROWSER_UNSUPPORTED_IMAGE_EXTS.has(getFileExt(path))) {
         thumbnailUrls = { ...thumbnailUrls, [path]: path };
       }
     } catch {
-      if (inSlotWindow(path) && !isVideo(path) && !isPdfFile(path)) {
+      if (inSlotWindow(path) && !isVideo(path) && !isPdfFile(path) && !BROWSER_UNSUPPORTED_IMAGE_EXTS.has(getFileExt(path))) {
         thumbnailUrls = { ...thumbnailUrls, [path]: path };
       } else if (inSlotWindow(path) && isPdfFile(path)) {
         thumbnailUrls = { ...thumbnailUrls, [path]: path };
@@ -182,14 +191,14 @@
     if (!visible || fileList.length === 0) return;
 
     const uncachedImages: string[] = [];
-    const uncachedVideos: string[] = [];
+    const uncachedServer: string[] = [];
     for (const slot of slots) {
       if (!slot) continue;
       if (!isImage(slot.path) && !isVideo(slot.path) && !isPdfFile(slot.path)) continue;
       if (slot.path in thumbnailUrls) continue;
       if (fetchingPaths.has(slot.path)) continue;
-      if (isVideo(slot.path)) {
-        uncachedVideos.push(slot.path);
+      if (needsServerThumbnail(slot.path)) {
+        uncachedServer.push(slot.path);
       } else {
         uncachedImages.push(slot.path);
       }
@@ -199,9 +208,9 @@
       thumbnailUrls = { ...thumbnailUrls, [path]: path };
     }
 
-    if (uncachedVideos.length === 0) return;
+    if (uncachedServer.length === 0) return;
 
-    uncachedVideos.sort((a, b) => {
+    uncachedServer.sort((a, b) => {
       const ia = fileList.indexOf(a);
       const ib = fileList.indexOf(b);
       const distA = Math.abs(ia - centerIdx);
@@ -212,8 +221,8 @@
     });
 
     const remaining = MAX_CONCURRENT - fetchingPaths.size;
-    for (let j = 0; j < remaining && j < uncachedVideos.length; j++) {
-      fetchOneThumbnail(uncachedVideos[j]);
+    for (let j = 0; j < remaining && j < uncachedServer.length; j++) {
+      fetchOneThumbnail(uncachedServer[j]);
     }
   });
 
@@ -348,7 +357,7 @@
                   decoding="async"
                   draggable="false"
                 />
-              {:else}
+              {:else if !isRemuxVideo(slot.path)}
                 <video
                   src={inView ? getSrc(slot.path) : undefined}
                   muted

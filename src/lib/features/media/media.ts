@@ -2,7 +2,13 @@
 // navigate → displayFile (no folder rescan). closeFile → releaseMediaResources + reset state.
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { stat } from "@tauri-apps/plugin-fs";
-import { VIDEO_EXTS, AUDIO_EXTS, DOCUMENT_EXTS } from "$lib/shared/constants";
+import {
+  VIDEO_EXTS,
+  AUDIO_EXTS,
+  DOCUMENT_EXTS,
+  BROWSER_UNSUPPORTED_IMAGE_EXTS,
+  REMUX_VIDEO_EXTS,
+} from "$lib/shared/constants";
 import {
   readMediaFilesInFolder,
   getFileName,
@@ -154,7 +160,42 @@ export function createMedia(
 
     await new Promise((resolve) => requestAnimationFrame(resolve));
 
-    set({ fileSrc: convertFileSrc(path) });
+    // For browser-unsupported image formats (TIFF, PSD, JXL, HEIC),
+    // decode server-side and serve a cached PNG for display.
+    if (BROWSER_UNSUPPORTED_IMAGE_EXTS.has(ext)) {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const displayPath = await invoke<string | null>(
+          "prepare_display_image",
+          { path },
+        );
+        if (displayPath) {
+          set({ fileSrc: convertFileSrc(displayPath) });
+        } else {
+          set({ fileSrc: convertFileSrc(path) });
+        }
+      } catch (e) {
+        console.error("prepare_display_image failed:", e);
+        set({ fileSrc: convertFileSrc(path) });
+      }
+    }
+    // For remux-needed video formats (TS, M2TS),
+    // remux to MP4 server-side for browser playback.
+    else if (REMUX_VIDEO_EXTS.has(ext)) {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const displayPath = await invoke<string | null>(
+          "prepare_video_display",
+          { path },
+        );
+        set({ fileSrc: displayPath ? convertFileSrc(displayPath) : convertFileSrc(path) });
+      } catch (e) {
+        console.error("prepare_video_display failed:", e);
+        set({ fileSrc: convertFileSrc(path) });
+      }
+    } else {
+      set({ fileSrc: convertFileSrc(path) });
+    }
 
     try {
       let info = statCache.get(path);

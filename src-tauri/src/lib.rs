@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use image::GenericImageView;
+use image::ImageEncoder;
 use tauri::{Listener, Manager, PhysicalPosition, PhysicalSize, Position, Size, WindowEvent};
 
 #[derive(serde::Serialize)]
@@ -266,10 +267,13 @@ fn hash_path(path: &str) -> String {
     format!("{:016x}", hasher.finish())
 }
 
-const IMAGE_EXTS_RUST: &[&str] = &["jpg", "jpeg", "png", "gif", "webp", "bmp"];
-const VIDEO_EXTS_RUST: &[&str] = &["mp4", "webm", "mkv", "avi", "mov", "wmv"];
-const AUDIO_EXTS_RUST: &[&str] = &["mp3", "wav", "flac", "ogg", "aac", "wma", "m4a", "opus"];
+const IMAGE_EXTS_RUST: &[&str] = &["jpg", "jpeg", "png", "gif", "webp", "bmp", "avif", "tiff", "tif", "psd", "jxl", "heic", "heif"];
+const VIDEO_EXTS_RUST: &[&str] = &["mp4", "webm", "mkv", "avi", "mov", "wmv", "mpeg", "mpg", "ts", "m2ts"];
+const AUDIO_EXTS_RUST: &[&str] = &["mp3", "wav", "flac", "ogg", "aac", "wma", "m4a", "opus", "aiff", "alac"];
 const DOCUMENT_EXTS_RUST: &[&str] = &["pdf"];
+
+/// Image formats that need ffmpeg for decoding (not supported by the image crate).
+const FFMPEG_IMAGE_EXTS_RUST: &[&str] = &["psd", "jxl", "heic", "heif"];
 const FFMPEG_THUMB_TIMEOUT: Duration = Duration::from_secs(8);
 
 fn generate_video_frame(path: &str, thumb_path: &Path) -> Result<Option<String>, String> {
@@ -277,6 +281,49 @@ fn generate_video_frame(path: &str, thumb_path: &Path) -> Result<Option<String>,
         .args([
             "-y", "-hide_banner", "-loglevel", "error",
             "-ss", "1",
+            "-i", path,
+            "-vframes", "1",
+            "-vf", "scale=200:200:force_original_aspect_ratio=decrease",
+            "-q:v", "4",
+            &thumb_path.to_string_lossy(),
+        ])
+        .spawn()
+        .map_err(|e| format!("Failed to spawn ffmpeg: {e}"))?;
+
+    let start = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) if status.success() => {
+                return Ok(Some(thumb_path.to_string_lossy().to_string()));
+            }
+            Ok(Some(_)) => {
+                let _ = fs::remove_file(thumb_path);
+                return Ok(None);
+            }
+            Ok(None) => {
+                if start.elapsed() > FFMPEG_THUMB_TIMEOUT {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    let _ = fs::remove_file(thumb_path);
+                    return Ok(None);
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            Err(e) => {
+                let _ = fs::remove_file(thumb_path);
+                return Err(format!("ffmpeg error: {e}"));
+            }
+        }
+    }
+}
+
+/// Thumbnail for single-frame ffmpeg-based images (PSD, JXL, etc.).
+/// Unlike generate_video_frame this does NOT seek (-ss), since
+/// single-frame images have only frame at position 0.
+fn generate_ffmpeg_image_frame(path: &str, thumb_path: &Path) -> Result<Option<String>, String> {
+    let mut child = Command::new("ffmpeg")
+        .args([
+            "-y", "-hide_banner", "-loglevel", "error",
             "-i", path,
             "-vframes", "1",
             "-vf", "scale=200:200:force_original_aspect_ratio=decrease",
@@ -397,6 +444,7 @@ async fn generate_thumbnail(
     let is_video = VIDEO_EXTS_RUST.contains(&ext.as_str());
     let is_audio = AUDIO_EXTS_RUST.contains(&ext.as_str());
     let is_document = DOCUMENT_EXTS_RUST.contains(&ext.as_str());
+    let is_ffmpeg_image = FFMPEG_IMAGE_EXTS_RUST.contains(&ext.as_str());
 
     if !is_image && !is_video && !is_audio && !is_document {
         return Ok(None);
@@ -434,11 +482,182 @@ async fn generate_thumbnail(
     tauri::async_runtime::spawn_blocking(move || {
         if is_video {
             generate_video_frame(&path, &thumb_path)
+        } else if is_ffmpeg_image {
+            // ffmpeg-based image: extract first (and only) frame, no seek
+            generate_ffmpeg_image_frame(&path, &thumb_path)
         } else if is_audio {
             generate_audio_waveform(&path, &thumb_path)
         } else {
             generate_image_thumb(&path, &thumb_path)
         }
+    })
+    .await
+    .map_err(|e| format!("Thread join error: {e}"))?
+}
+
+/// Image formats that browsers (WebView2/Edge) cannot render natively.
+/// These must be decoded server-side and served as PNG for display.
+const BROWSER_UNSUPPORTED_IMAGE_EXTS_RUST: &[&str] = &["tiff", "tif", "psd", "jxl", "heic", "heif"];
+
+/// Video formats that browsers cannot play natively.
+/// These must be remuxed server-side (ffmpeg -c copy → MP4) for playback.
+const REMUX_VIDEO_EXTS_RUST: &[&str] = &["ts", "m2ts"];
+
+/// Decodes a browser-unsupported image and returns a cached PNG path for display.
+/// Uses the image crate for formats it supports (TIFF), ffmpeg for PSD/JXL.
+/// For browser-supported formats, returns None (frontend uses the original file).
+#[tauri::command]
+async fn prepare_display_image(
+    app: tauri::AppHandle,
+    path: String,
+) -> Result<Option<String>, String> {
+    let ext = path
+        .rsplit('.')
+        .next()
+        .unwrap_or("")
+        .to_lowercase();
+
+    if !BROWSER_UNSUPPORTED_IMAGE_EXTS_RUST.contains(&ext.as_str()) {
+        return Ok(None);
+    }
+
+    let display_dir = app
+        .path()
+        .app_cache_dir()
+        .unwrap_or_else(|_| std::env::temp_dir())
+        .join("displays");
+    let _ = fs::create_dir_all(&display_dir);
+
+    let hash = hash_path(&path);
+    let cached_png = display_dir.join(format!("{hash}.png"));
+
+    // Check if cached PNG is up-to-date
+    if cached_png.exists() {
+        if let (Ok(src_meta), Ok(cached_meta)) =
+            (fs::metadata(&path), fs::metadata(&cached_png))
+        {
+            if let (Ok(src_time), Ok(cached_time)) =
+                (src_meta.modified(), cached_meta.modified())
+            {
+                if cached_time >= src_time {
+                    return Ok(Some(cached_png.to_string_lossy().to_string()));
+                }
+            }
+        }
+    }
+
+    let path_clone = path.clone();
+    let cached_clone = cached_png.clone();
+    let ext_clone = ext.clone();
+    let is_ffmpeg = FFMPEG_IMAGE_EXTS_RUST.contains(&ext.as_str());
+
+    tauri::async_runtime::spawn_blocking(move || {
+        if is_ffmpeg {
+            // Use ffmpeg to decode PSD, JXL, etc. to PNG
+            let status = Command::new("ffmpeg")
+                .args([
+                    "-y", "-hide_banner", "-loglevel", "error",
+                    "-i", &path_clone,
+                    &cached_clone.to_string_lossy(),
+                ])
+                .status()
+                .map_err(|e| format!("Failed to run ffmpeg for {} display: {e}", ext_clone))?;
+
+            if !status.success() {
+                let _ = fs::remove_file(&cached_clone);
+                return Err(format!("ffmpeg failed to convert {} for display", ext_clone));
+            }
+            Ok(Some(cached_clone.to_string_lossy().to_string()))
+        } else {
+            let img = image::open(&path_clone)
+                .map_err(|e| format!("Failed to decode {} for display: {e}", ext_clone))?;
+
+            // Encode to PNG at native resolution
+            let mut png_bytes: Vec<u8> = Vec::new();
+            let encoder = image::codecs::png::PngEncoder::new(&mut png_bytes);
+            encoder
+                .write_image(
+                    img.as_bytes(),
+                    img.width(),
+                    img.height(),
+                    img.color().into(),
+                )
+                .map_err(|e| format!("Failed to encode display PNG: {e}"))?;
+
+            fs::write(&cached_clone, &png_bytes)
+                .map_err(|e| format!("Failed to write display cache: {e}"))?;
+
+            Ok(Some(cached_clone.to_string_lossy().to_string()))
+        }
+    })
+    .await
+    .map_err(|e| format!("Thread join error: {e}"))?
+}
+
+/// Remuxes a browser-unsupported video (TS, M2TS) to MP4 for playback.
+/// Uses ffmpeg -c copy (no re-encode) so it's fast and lossless.
+/// Returns the cached MP4 path, or None if the format doesn't need remuxing.
+#[tauri::command]
+async fn prepare_video_display(
+    app: tauri::AppHandle,
+    path: String,
+) -> Result<Option<String>, String> {
+    let ext = path
+        .rsplit('.')
+        .next()
+        .unwrap_or("")
+        .to_lowercase();
+
+    if !REMUX_VIDEO_EXTS_RUST.contains(&ext.as_str()) {
+        return Ok(None);
+    }
+
+    let remux_dir = app
+        .path()
+        .app_cache_dir()
+        .unwrap_or_else(|_| std::env::temp_dir())
+        .join("displays");
+    let _ = fs::create_dir_all(&remux_dir);
+
+    let hash = hash_path(&path);
+    let cached_mp4 = remux_dir.join(format!("{hash}.mp4"));
+
+    // Check if cached MP4 is up-to-date
+    if cached_mp4.exists() {
+        if let (Ok(src_meta), Ok(cached_meta)) =
+            (fs::metadata(&path), fs::metadata(&cached_mp4))
+        {
+            if let (Ok(src_time), Ok(cached_time)) =
+                (src_meta.modified(), cached_meta.modified())
+            {
+                if cached_time >= src_time {
+                    return Ok(Some(cached_mp4.to_string_lossy().to_string()));
+                }
+            }
+        }
+    }
+
+    let path_clone = path.clone();
+    let cached_clone = cached_mp4.clone();
+
+    tauri::async_runtime::spawn_blocking(move || {
+        // Remux TS/M2TS → MP4 (no re-encode, just container swap)
+        let status = Command::new("ffmpeg")
+            .args([
+                "-y", "-hide_banner", "-loglevel", "error",
+                "-i", &path_clone,
+                "-c", "copy",
+                "-movflags", "+faststart",
+                &cached_clone.to_string_lossy(),
+            ])
+            .status()
+            .map_err(|e| format!("Failed to run ffmpeg for remux: {e}"))?;
+
+        if !status.success() {
+            let _ = fs::remove_file(&cached_clone);
+            return Err("ffmpeg remux failed".into());
+        }
+        Ok(Some(cached_clone.to_string_lossy().to_string()))
     })
     .await
     .map_err(|e| format!("Thread join error: {e}"))?
@@ -827,6 +1046,7 @@ fn check_media_integrity(path: String) -> Result<MediaIntegrity, String> {
     let is_video = VIDEO_EXTS_RUST.contains(&ext.as_str());
     let is_audio = AUDIO_EXTS_RUST.contains(&ext.as_str());
     let is_document = DOCUMENT_EXTS_RUST.contains(&ext.as_str());
+    let is_ffmpeg_image = FFMPEG_IMAGE_EXTS_RUST.contains(&ext.as_str());
 
     if is_document {
         // For PDF, check magic bytes (%PDF-)
@@ -843,7 +1063,7 @@ fn check_media_integrity(path: String) -> Result<MediaIntegrity, String> {
         });
     }
 
-    if is_image {
+    if is_image && !is_ffmpeg_image {
         match image::open(&path) {
             Ok(img) => {
                 let (w, h) = img.dimensions();
@@ -863,7 +1083,7 @@ fn check_media_integrity(path: String) -> Result<MediaIntegrity, String> {
                 reason: format!("Image decode failed: {e}"),
             }),
         }
-    } else if is_video || is_audio {
+    } else if is_video || is_audio || is_ffmpeg_image {
         let output = Command::new("ffprobe")
             .args([
                 "-v",
@@ -952,6 +1172,7 @@ fn fix_media(
     let is_video = VIDEO_EXTS_RUST.contains(&ext.as_str());
     let is_audio = AUDIO_EXTS_RUST.contains(&ext.as_str());
     let is_document = DOCUMENT_EXTS_RUST.contains(&ext.as_str());
+    let is_ffmpeg_image = FFMPEG_IMAGE_EXTS_RUST.contains(&ext.as_str());
 
     let parent = input.parent().unwrap_or_else(|| Path::new(".")).to_path_buf();
     let stem = input
@@ -978,9 +1199,9 @@ fn fix_media(
         tmp
     };
 
-    let fix_result: Result<(), String> = if is_image {
+    let fix_result: Result<(), String> = if is_image && !is_ffmpeg_image {
         fix_image(&input, &output_path)
-    } else if is_video || is_audio {
+    } else if is_video || is_audio || is_ffmpeg_image {
         fix_video_audio(&input, &output_path)
     } else if is_document {
         fix_document(&input, &output_path)
@@ -1117,6 +1338,8 @@ pub fn run() {
             convert_media,
             compress_media,
             generate_thumbnail,
+            prepare_display_image,
+            prepare_video_display,
             copy_image_to_clipboard,
             check_media_integrity,
             fix_media,
@@ -1435,7 +1658,11 @@ fn process_video_clips(
     if !out_dir.exists() {
         fs::create_dir_all(&out_dir).map_err(|e| format!("Failed to create output folder: {e}"))?;
     }
-    let ext = input.extension().and_then(|e| e.to_str()).unwrap_or("mp4").to_string();
+    let mut ext = input.extension().and_then(|e| e.to_str()).unwrap_or("mp4").to_string();
+    // Remux-needed formats (TS, M2TS) get MP4 output so clips are playable
+    if REMUX_VIDEO_EXTS_RUST.contains(&ext.as_str()) {
+        ext = "mp4".to_string();
+    }
     let base_name = input.file_stem().and_then(|s| s.to_str()).unwrap_or("video").to_string();
     let mut outputs: Vec<String> = Vec::new();
 

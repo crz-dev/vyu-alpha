@@ -43,19 +43,19 @@
     ],
     "fileAssociations": [
       {
-        "ext": ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"],
+        "ext": ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "avif", "tiff", "tif", "psd", "jxl", "heic", "heif"],
         "name": "Image",
         "description": "Image files",
         "role": "Viewer"
       },
       {
-        "ext": ["mp4", "webm", "mkv", "avi", "mov", "wmv"],
+        "ext": ["mp4", "webm", "mkv", "avi", "mov", "wmv", "mpeg", "mpg", "ts", "m2ts"],
         "name": "Video",
         "description": "Video files",
         "role": "Viewer"
       },
       {
-        "ext": ["mp3", "wav", "flac", "ogg", "aac", "wma", "m4a", "opus"],
+        "ext": ["mp3", "wav", "flac", "ogg", "aac", "wma", "m4a", "opus", "aiff", "alac"],
         "name": "Audio",
         "description": "Audio files",
         "role": "Viewer"
