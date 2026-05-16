@@ -62,6 +62,7 @@
   let compressError = $state("");
   let compressOutputPath = $state<string | null>(null);
   let pinned = $state(false);
+  let openTimeout: ReturnType<typeof setTimeout> | null = $state(null);
 
   const videoFormats = ["MP4", "WebM", "MKV", "GIF"];
   const imageFormats = ["PNG", "JPG", "WebP", "GIF"];
@@ -99,6 +100,8 @@
 
   $effect(() => {
     if (!visible) {
+      if (openTimeout) clearTimeout(openTimeout);
+      openTimeout = null;
       convertOpen = false;
       activeConvertTool = null;
       activeFormat = null;
@@ -120,18 +123,30 @@
   });
 
   function toggleConvert() {
-    convertOpen = !convertOpen;
-    compressOpen = false;
-    if (!convertOpen) {
+    if (convertOpen) {
+      convertOpen = false;
       activeConvertTool = null;
+    } else {
+      if (openTimeout) clearTimeout(openTimeout);
+      compressOpen = false;
+      openTimeout = setTimeout(() => {
+        convertOpen = true;
+        openTimeout = null;
+      }, 100);
     }
   }
 
   function toggleCompress() {
-    compressOpen = !compressOpen;
-    convertOpen = false;
-    if (!compressOpen) {
+    if (compressOpen) {
+      compressOpen = false;
       activeCompressTool = null;
+    } else {
+      if (openTimeout) clearTimeout(openTimeout);
+      convertOpen = false;
+      openTimeout = setTimeout(() => {
+        compressOpen = true;
+        openTimeout = null;
+      }, 100);
     }
   }
 
@@ -139,7 +154,12 @@
     if (activeConvertTool === tool) {
       activeConvertTool = null;
     } else {
-      activeConvertTool = tool;
+      if (openTimeout) clearTimeout(openTimeout);
+      activeConvertTool = null;
+      openTimeout = setTimeout(() => {
+        activeConvertTool = tool;
+        openTimeout = null;
+      }, 100);
     }
   }
 
@@ -147,7 +167,12 @@
     if (activeCompressTool === tool) {
       activeCompressTool = null;
     } else {
-      activeCompressTool = tool;
+      if (openTimeout) clearTimeout(openTimeout);
+      activeCompressTool = null;
+      openTimeout = setTimeout(() => {
+        activeCompressTool = tool;
+        openTimeout = null;
+      }, 100);
     }
   }
 
@@ -439,7 +464,8 @@
         <div class="edit-menu-separator"></div>
         <div
           class="edit-menu-row"
-          transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+          in:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+          out:fly={{ y: -10, duration: 100, opacity: 0.05 }}
         >
           <button
             class="edit-menu-btn sub"
@@ -547,7 +573,8 @@
           <div class="edit-menu-separator"></div>
           <div
             class="edit-menu-row"
-            transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+            in:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+            out:fly={{ y: -10, duration: 100, opacity: 0.05 }}
           >
             {#each formatOptions as opt}
               <button
@@ -568,7 +595,8 @@
           <div class="edit-menu-separator"></div>
           <div
             class="edit-menu-row"
-            transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+            in:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+            out:fly={{ y: -10, duration: 100, opacity: 0.05 }}
           >
             {#each presetOptions as opt}
               <button
@@ -660,7 +688,8 @@
       <div class="edit-menu-separator"></div>
       <div
         class="edit-menu-row"
-        transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+        in:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+        out:fly={{ y: -10, duration: 100, opacity: 0.05 }}
       >
         <button
           class="edit-menu-btn sub"
@@ -769,7 +798,8 @@
         <div class="edit-menu-separator"></div>
         <div
           class="edit-menu-row"
-          transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+          in:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+          out:fly={{ y: -10, duration: 100, opacity: 0.05 }}
         >
           {#each targetOptions as opt}
             <button
@@ -790,7 +820,8 @@
         <div class="edit-menu-separator"></div>
         <div
           class="edit-menu-row"
-          transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+          in:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+          out:fly={{ y: -10, duration: 100, opacity: 0.05 }}
         >
           {#each presetOptions as opt}
             <button

@@ -42,9 +42,12 @@
   let flipRowOpen = $state(false);
   let cropRowOpen = $state(false);
   let activeCropTool: "16-9" | "9-16" | "1-1" | "custom" | null = $state(null);
+  let openTimeout: ReturnType<typeof setTimeout> | null = $state(null);
 
   $effect(() => {
     if (!visible) {
+      if (openTimeout) clearTimeout(openTimeout);
+      openTimeout = null;
       colorRowOpen = false;
       activeColorTool = null;
       pinned = false;
@@ -237,13 +240,17 @@
       activeCropTool = null;
       if (editing.cropMode) editing.exitCropMode();
     } else {
-      cropRowOpen = true;
-      activeCropTool = null;
+      if (openTimeout) clearTimeout(openTimeout);
       colorRowOpen = false;
       activeColorTool = null;
       rotateRowOpen = false;
       activeRotateTool = null;
       flipRowOpen = false;
+      openTimeout = setTimeout(() => {
+        cropRowOpen = true;
+        activeCropTool = null;
+        openTimeout = null;
+      }, 100);
     }
   }
 
@@ -519,13 +526,17 @@
               rotateRowOpen = false;
               activeRotateTool = null;
             } else {
+              if (openTimeout) clearTimeout(openTimeout);
               if (editing.cropMode) editing.exitCropMode();
-              rotateRowOpen = true;
               colorRowOpen = false;
               activeColorTool = null;
               flipRowOpen = false;
               cropRowOpen = false;
               activeCropTool = null;
+              openTimeout = setTimeout(() => {
+                rotateRowOpen = true;
+                openTimeout = null;
+              }, 100);
             }
           }}
         >
@@ -553,14 +564,18 @@
             if (flipRowOpen) {
               flipRowOpen = false;
             } else {
+              if (openTimeout) clearTimeout(openTimeout);
               if (editing.cropMode) editing.exitCropMode();
-              flipRowOpen = true;
               colorRowOpen = false;
               activeColorTool = null;
               rotateRowOpen = false;
               activeRotateTool = null;
               cropRowOpen = false;
               activeCropTool = null;
+              openTimeout = setTimeout(() => {
+                flipRowOpen = true;
+                openTimeout = null;
+              }, 100);
             }
           }}
         >
@@ -588,13 +603,17 @@
               colorRowOpen = false;
               activeColorTool = null;
             } else {
+              if (openTimeout) clearTimeout(openTimeout);
               if (editing.cropMode) editing.exitCropMode();
-              colorRowOpen = true;
               rotateRowOpen = false;
               activeRotateTool = null;
               flipRowOpen = false;
               cropRowOpen = false;
               activeCropTool = null;
+              openTimeout = setTimeout(() => {
+                colorRowOpen = true;
+                openTimeout = null;
+              }, 100);
             }
           }}
         >
@@ -623,7 +642,8 @@
         <div class="edit-menu-separator"></div>
         <div
           class="edit-menu-row"
-          transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+          in:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+          out:fly={{ y: -10, duration: 100, opacity: 0.05 }}
         >
           <button
             class="edit-menu-btn red sub"
@@ -660,7 +680,8 @@
         <div class="edit-menu-separator"></div>
         <div
           class="edit-menu-row"
-          transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+          in:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+          out:fly={{ y: -10, duration: 100, opacity: 0.05 }}
         >
           <button
             class="edit-menu-btn white sub"
@@ -759,7 +780,8 @@
       {#if activeColorTool}
         <div
           class="color-slider-panel"
-          transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+          in:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+          out:fly={{ y: -10, duration: 100, opacity: 0.05 }}
         >
           <div
             class="color-slider-track"
@@ -832,7 +854,8 @@
         <div class="edit-menu-separator"></div>
         <div
           class="edit-menu-row"
-          transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+          in:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+          out:fly={{ y: -10, duration: 100, opacity: 0.05 }}
         >
           <button
             class="edit-menu-btn yellow sub"
@@ -922,7 +945,8 @@
       {#if activeRotateTool === "custom"}
         <div
           class="color-slider-panel"
-          transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+          in:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+          out:fly={{ y: -10, duration: 100, opacity: 0.05 }}
         >
           <div
             class="color-slider-track"
@@ -995,7 +1019,8 @@
         <div class="edit-menu-separator"></div>
         <div
           class="edit-menu-row"
-          transition:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+          in:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+          out:fly={{ y: -10, duration: 100, opacity: 0.05 }}
         >
           <button
             class="edit-menu-btn green sub"
