@@ -46,6 +46,7 @@
     invokeExportEditedMedia,
     invokeCheckMediaIntegrity,
     invokeFixMedia,
+    invokeProcessVideoClips,
   } from "$lib/features/media/tools";
   import { computeContextMenuPosition } from "$lib/services/session";
   import {
@@ -779,7 +780,46 @@
 
   // ── Clip marker drag ───────────────────────────────────
   function startClipMarkerDrag(e: MouseEvent, id: string) {
-    // planned feature — not yet implemented
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const mediaEl = isVideo ? videoEl : audioEl;
+    if (!mediaEl || rawDurationSecs <= 0) return;
+
+    const boundary = clips.getBoundaryById(id);
+    if (!boundary) return;
+
+    const bar =
+      document.querySelector(".fs-progress") ??
+      document.querySelector(".progress-bar");
+    if (!bar) return;
+
+    function timeFromClientX(clientX: number): number {
+      const rect = bar!.getBoundingClientRect();
+      const ratio = Math.max(
+        0,
+        Math.min(1, (clientX - rect.left) / rect.width),
+      );
+      return ratio * rawDurationSecs;
+    }
+
+    function onMouseMove(ev: MouseEvent) {
+      const time = timeFromClientX(ev.clientX);
+      clips.setBoundaryTime(id, Math.max(0, Math.min(time, rawDurationSecs)));
+    }
+
+    function onMouseUp() {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      clips.clipMarkerJustDragged = true;
+      setTimeout(() => {
+        clips.clipMarkerJustDragged = false;
+      }, 50);
+    }
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
   }
 
   // ── Clip jobs ──────────────────────────────────────────
@@ -826,7 +866,10 @@
     // planned feature — not yet implemented
   }
   async function toggleClipPathSelection() {
-    // planned feature — not yet implemented
+    const dir = await open({ directory: true });
+    if (dir) {
+      clipOutputDir = dir as string;
+    }
   }
   function toggleClipDeleteOriginal() {
     clipDeleteOriginal = !clipDeleteOriginal;
@@ -836,8 +879,58 @@
     clipMergeSegments = !clipMergeSegments;
     persistClipPrefs();
   }
-  function triggerClipSegments() {
-    // planned feature — not yet implemented
+  async function triggerClipSegments() {
+    if (!ffprobeChecked) {
+      await refreshFfprobeAvailability({
+        setFfprobeChecked: (v) => (ffprobeChecked = v),
+        setFfprobeAvailable: (v) => (ffprobeAvailable = v),
+      });
+    }
+    if (!ffprobeAvailable) {
+      await installFfmpegAndWait({
+        setFfmpegInstallError: (v) => (ffmpegInstallError = v),
+        setFfmpegInstalling: (v) => (ffmpegInstalling = v),
+        setFfprobeAvailable: (v) => (ffprobeAvailable = v),
+        setFfprobeChecked: (v) => (ffprobeChecked = v),
+        loadMediaProperties: () =>
+          loadMediaProperties({
+            filePath,
+            setMediaProps: (v) => (mediaProps = v),
+            setMediaPropsLoading: (v) => (mediaPropsLoading = v),
+          }),
+      });
+      if (!ffprobeAvailable) return;
+    }
+
+    const segments = sanitizeClipPairs();
+    if (segments.length === 0) {
+      showClipToast("No clip segments defined. Add clip markers first.", "error");
+      return;
+    }
+
+    const mode = clipMergeSegments ? "merge" : "separate";
+    clipJobRunning = true;
+    clipJobLabel = `Clipping ${segments.length} segment${segments.length > 1 ? "s" : ""}...`;
+
+    try {
+      const result = await invokeProcessVideoClips(
+        filePath,
+        getClipTargetDir(),
+        segments,
+        mode,
+        clipDeleteOriginal,
+      );
+      showClipToast(
+        `${result.outputs.length} clip${result.outputs.length > 1 ? "s" : ""} saved`,
+        "success",
+        result.output_dir,
+      );
+    } catch (err) {
+      showClipToast(extractInvokeErrorMessage(err), "error");
+    } finally {
+      clipJobRunning = false;
+      clipJobLabel = "";
+    }
   }
 
   // ── File loading / navigation ──────────────────────────

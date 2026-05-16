@@ -64,6 +64,13 @@ export function createClips(getFilePath: () => string) {
     return clipBoundaries.find((marker) => marker.id === id);
   }
 
+  function setBoundaryTime(id: string, time: number) {
+    clipBoundaries = clipBoundaries
+      .map((m) => (m.id === id ? { ...m, time } : m))
+      .sort((a, b) => a.time - b.time);
+    _save();
+  }
+
   function setBoundaryKind(id: string, kind: "start" | "end") {
     clipBoundaries = clipBoundaries
       .map((m) => (m.id === id ? { ...m, kind } : m))
@@ -106,6 +113,7 @@ export function createClips(getFilePath: () => string) {
     clearBoundaries,
     updateBoundaryTitle,
     getBoundaryById,
+    setBoundaryTime,
     setBoundaryKind,
     findTouchTarget,
   };
