@@ -129,6 +129,7 @@
     volume,
     timestamps,
     clipBoundaries,
+    resumePoint,
     frameCopyToast,
     imageCopyToast,
     clipToast,
@@ -290,6 +291,7 @@
     volume: number;
     timestamps: any[];
     clipBoundaries: any[];
+    resumePoint: number | null;
     frameCopyToast: any;
     imageCopyToast: any;
     clipToast: any;
@@ -522,6 +524,7 @@
     {isPdf}
     {timestamps}
     {clipBoundaries}
+    {resumePoint}
     {frameCopyToast}
     {imageCopyToast}
     {clipToast}

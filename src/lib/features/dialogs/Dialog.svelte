@@ -12,6 +12,7 @@
     isPdf,
     timestamps,
     clipBoundaries,
+    resumePoint,
     frameCopyToast,
     imageCopyToast,
     clipToast,
@@ -82,6 +83,7 @@
     isPdf: boolean;
     timestamps: VideoMarker[];
     clipBoundaries: ClipBoundary[];
+    resumePoint: number | null;
     frameCopyToast: {
       visible: boolean;
       message: string;
@@ -748,7 +750,7 @@
         Properties
       </button>
       <div class="ctx-sep"></div>
-      {#if timestamps.length > 0 || clipBoundaries.length > 0}
+      {#if timestamps.length > 0 || clipBoundaries.length > 0 || resumePoint !== null}
         <button
           class="ctx-item red"
           class:delete-confirm={deleteMarkersConfirm}

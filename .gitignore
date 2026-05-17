@@ -21,6 +21,7 @@ node_modules/
 *.swp
 *.swo
 *.code-workspace
+*.local
 
 # OS
 .DS_Store

@@ -1452,6 +1452,7 @@
     closeContextMenu();
     clearAllTimestamps();
     clearAllSegments();
+    removeResumePoint();
   }
   async function ctxShowInExplorerFn() {
     await ctxShowInExplorer({ filePath, closeContextMenu });
@@ -1910,6 +1911,7 @@
   {volume}
   {timestamps}
   clipBoundaries={clips.clipBoundaries}
+  {resumePoint}
   {frameCopyToast}
   {imageCopyToast}
   {clipToast}
@@ -2137,10 +2139,12 @@
                 addClipEnd5s={() =>
                   addClipBoundaryAt("end", rawCurrentSecs + 5)}
                 hasMarkers={timestamps.length > 0 ||
-                  clips.clipBoundaries.length > 0}
+                  clips.clipBoundaries.length > 0 ||
+                  resumePoint !== null}
                 deleteAllMarkers={() => {
                   clearAllTimestamps();
                   clearAllSegments();
+                  removeResumePoint();
                 }}
                 {toggleTimer}
                 {currentTimeDisplay}
@@ -2466,10 +2470,12 @@
               addClipEnd={() => addClipBoundary("end")}
               addClipEnd5s={() => addClipBoundaryAt("end", rawCurrentSecs + 5)}
               hasMarkers={timestamps.length > 0 ||
-                clips.clipBoundaries.length > 0}
+                clips.clipBoundaries.length > 0 ||
+                resumePoint !== null}
               deleteAllMarkers={() => {
                 clearAllTimestamps();
                 clearAllSegments();
+                removeResumePoint();
               }}
               {toggleTimer}
               {currentTimeDisplay}
