@@ -895,7 +895,7 @@
       {/key}
     </button>
     <button
-      class="ctrl-btn loop-btn tooltip-ctrl"
+      class="fs-ctrl-btn loop-btn tooltip-ctrl"
       class:active={looping !== "stop"}
       data-tooltip={looping === "loop"
         ? "Loop"
@@ -1010,8 +1010,6 @@
           {#if muted || volume === 0}
             <svg
               class="loop-mode-icon"
-              width="19"
-              height="19"
               viewBox="0 0 18 18"
               fill="none"
               ><path d="M9 4L5 7H2V11H5L9 14V4Z" fill="currentColor" /><line
@@ -1035,8 +1033,6 @@
           {:else if volume < 0.5}
             <svg
               class="loop-mode-icon"
-              width="19"
-              height="19"
               viewBox="0 0 18 18"
               fill="none"
               ><path d="M9 4L5 7H2V11H5L9 14V4Z" fill="currentColor" /><path
@@ -1049,8 +1045,6 @@
           {:else}
             <svg
               class="loop-mode-icon"
-              width="19"
-              height="19"
               viewBox="0 0 18 18"
               fill="none"
               ><path d="M9 4L5 7H2V11H5L9 14V4Z" fill="currentColor" /><path
@@ -1151,15 +1145,12 @@
         class:active={playbackSpeed !== 1}
         data-tooltip="Playback speed"
         aria-label="playback speed"
-        style="color: var(--text-primary);"
         onclick={() => setPlaybackSpeed(1)}
         oncontextmenu={handleSpeedRightClick}
       >
         {#if playbackSpeed < 1}
           <svg
             class="speed-mode-icon"
-            width="20"
-            height="20"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -1177,8 +1168,6 @@
         {:else if playbackSpeed > 1}
           <svg
             class="speed-mode-icon"
-            width="20"
-            height="20"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -1191,8 +1180,6 @@
         {:else}
           <svg
             class="speed-mode-icon"
-            width="25"
-            height="25"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -1500,7 +1487,8 @@
     </button>
     <div class="fs-right">
       <button
-        class="fs-ctrl-btn"
+        class="fs-ctrl-btn tooltip-ctrl"
+        data-tooltip="Unfullscreen"
         onclick={toggleFullscreen}
         aria-label="exit fullscreen"
       >

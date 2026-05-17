@@ -138,6 +138,7 @@
   }
 
   import { theme as themeStore } from "$lib/features/theme/theme.svelte";
+  import { font as fontStore } from "$lib/features/font/font.svelte";
   let uiMode = $state<"simple" | "advanced">("advanced");
   let transition = $state<"none" | "fade" | "slide">("fade");
   let allowZoomOut = $state(false);
@@ -787,6 +788,50 @@
                     ><span class="toggle-thumb"></span></span
                   >
                 </label>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-label-col">
+                <svg
+                  class="settings-row-icon"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  ><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" y1="20" x2="15" y2="20" /><line x1="12" y1="4" x2="12" y2="20"
+                /></svg>
+                <div class="settings-label-text">
+                  <span class="settings-label">Font</span>
+                  <span class="settings-hint"
+                    >Typeface used across the app</span
+                  >
+                </div>
+              </div>
+              <div class="settings-control">
+                <div class="pill-group pill-group-3">
+                  <button
+                    class="pill-btn"
+                    class:active={fontStore.family === "geist"}
+                    onclick={() => fontStore.setFont("geist")}
+                  >Geist</button
+                  >
+                  <button
+                    class="pill-btn"
+                    class:active={fontStore.family === "satoshi"}
+                    onclick={() => fontStore.setFont("satoshi")}
+                  >Satoshi</button
+                  >
+                  <button
+                    class="pill-btn"
+                    class:active={fontStore.family === "system"}
+                    onclick={() => fontStore.setFont("system")}
+                  >System</button
+                  >
+                </div>
               </div>
             </div>
           </div>

@@ -25,6 +25,7 @@
     toggleFullscreen,
     isVideo,
     isPdf = false,
+    fullscreen = false,
     clipCount,
     triggerClipSegments,
     clipJobRunning,
@@ -65,6 +66,7 @@
     toggleFullscreen: () => void;
     isVideo: boolean;
     isPdf?: boolean;
+    fullscreen?: boolean;
     clipCount: number;
     triggerClipSegments: () => void;
     clipJobRunning: boolean;
@@ -155,18 +157,29 @@
     >
     <button
       class="fs-btn tooltip-above-shift-left"
-      data-tooltip="Fullscreen"
+      data-tooltip={fullscreen ? "Unfullscreen" : "Fullscreen"}
       onclick={toggleFullscreen}
-      aria-label="toggle fullscreen"
+      aria-label={fullscreen ? "exit fullscreen" : "toggle fullscreen"}
     >
-      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
-        ><path
-          d="M1 4V1H4M8 1H11V4M11 8V11H8M4 11H1V8"
-          stroke="currentColor"
-          stroke-width="0.6"
-          stroke-linecap="round"
-        /></svg
-      >
+      {#if fullscreen}
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+          ><path
+            d="M1 1H4V4M8 1H11V4M11 8V11H8M4 11H1V8"
+            stroke="currentColor"
+            stroke-width="0.6"
+            stroke-linecap="round"
+          /></svg
+        >
+      {:else}
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+          ><path
+            d="M1 4V1H4M8 1H11V4M11 8V11H8M4 11H1V8"
+            stroke="currentColor"
+            stroke-width="0.6"
+            stroke-linecap="round"
+          /></svg
+        >
+      {/if}
     </button>
   </div>
 </div>

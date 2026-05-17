@@ -200,3 +200,13 @@ export function saveSliderMode(mode: {
 }): void {
   localStorage.setItem("vyu-slider-mode", JSON.stringify(mode));
 }
+
+export function loadFont(): "geist" | "satoshi" | "system" {
+  const v = localStorage.getItem("vyu-font");
+  if (v === "satoshi" || v === "system") return v;
+  return "geist";
+}
+
+export function saveFont(f: "geist" | "satoshi" | "system"): void {
+  localStorage.setItem("vyu-font", f);
+}

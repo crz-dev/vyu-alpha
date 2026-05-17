@@ -504,6 +504,7 @@
     editMenuStyleOverride={editMenuStyle}
     processMenuStyleOverride={processMenuStyle}
     clipMenuStyleOverride={clipMenuStyle}
+    fullscreen={viewerStateIsFullscreen}
   />
 
   <ThumbnailBar
