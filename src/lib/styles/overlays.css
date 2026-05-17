@@ -2256,12 +2256,18 @@
   gap: 6px;
 }
 
-.about-logo-diamond-wrap {
-  position: relative;
-  width: 52px;
-  height: 52px;
-  transform: rotate(45deg);
-  margin: 4px;
+.about-logo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.about-logo {
+  transform: translateY(4px); /* adjust translateY value to move up/down */
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 4px;
 }
 
 .about-logo-diamond {
@@ -2302,7 +2308,7 @@
 
 .about-logo-diamond-content {
   position: absolute;
-  inset: 2px;
+  inset: 0px;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.06);
   border: 0.5px solid rgba(255, 255, 255, 0.14);
@@ -2314,13 +2320,10 @@
 }
 
 .about-logo {
-  transform: rotate(-45deg);
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--text-mid);
-  font-family: var(--font-family);
-  letter-spacing: -0.5px;
-  line-height: 1;
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  border-radius: 0px;
 }
 
 .about-version {
