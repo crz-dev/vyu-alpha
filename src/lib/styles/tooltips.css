@@ -10,7 +10,7 @@
   background: var(--bg-elevated);
   color: var(--text-muted);
   font-size: 11px;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   white-space: nowrap;
   padding: 4px 8px;
   border-radius: 4px;
@@ -55,7 +55,7 @@
   background: var(--bg-elevated);
   color: var(--text-muted);
   font-size: 11px;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   white-space: nowrap;
   padding: 4px 8px;
   border-radius: 4px;
@@ -82,7 +82,7 @@
   background: var(--bg-elevated);
   color: var(--text-mid);
   font-size: 11px;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   white-space: nowrap;
   padding: 4px 8px;
   border-radius: 4px;

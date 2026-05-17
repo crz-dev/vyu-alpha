@@ -313,7 +313,7 @@ main.thumbnail-bar-open .video-inner video {
 .time-display {
   font-size: 13px;
   color: var(--text-secondary);
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   background: none;
   border: none;
   cursor: pointer;
@@ -642,7 +642,7 @@ main.thumbnail-bar-open .video-inner video {
 .fs-time {
   font-size: 16px;
   color: var(--text-secondary);
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   background: none;
   border: none;
   cursor: pointer;
@@ -695,7 +695,7 @@ main.thumbnail-bar-open .video-inner video {
   background: var(--blue-bg-hover);
   color: #bfdbfe;
   border-radius: 7px;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   font-size: 11px;
   font-weight: 600;
   padding: 7px 9px;
@@ -726,7 +726,7 @@ main.thumbnail-bar-open .video-inner video {
   border: 0.5px solid var(--border-subtle);
   background: rgba(255, 255, 255, 0.055);
   color: var(--text-muted);
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   font-size: 11px;
   padding: 5px 5px;
   display: inline-flex;
@@ -774,7 +774,7 @@ main.thumbnail-bar-open .video-inner video {
 .clip-job-progress > span {
   font-size: 11px;
   color: var(--text-muted);
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
 }
 .clip-job-bar {
   width: 100%;
@@ -816,7 +816,7 @@ main.thumbnail-bar-open .video-inner video {
 .convert-success-text {
   font-size: 11px;
   color: var(--text-primary);
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -904,7 +904,7 @@ main.thumbnail-bar-open .video-inner video {
   min-width: 0;
   border-radius: 6px;
   border: 0.5px solid;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   font-size: 11px;
   padding: 6px 4px;
   display: inline-flex;
@@ -1018,7 +1018,7 @@ main.thumbnail-bar-open .video-inner video {
   align-items: center;
   gap: 5px;
   font-size: 10px;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -1045,7 +1045,7 @@ main.thumbnail-bar-open .video-inner video {
   border: 0.5px solid var(--border-subtle);
   background: rgba(255, 255, 255, 0.055);
   color: var(--text-muted);
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   font-size: 11px;
   padding: 5px 4px;
   display: inline-flex;
@@ -1077,7 +1077,7 @@ main.thumbnail-bar-open .video-inner video {
   background: var(--bg-elevated);
   color: var(--text-primary);
   font-size: 11px;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   padding: 2px 6px;
   border-radius: 4px;
   border: 0.5px solid var(--bg-border);
@@ -1096,7 +1096,7 @@ main.thumbnail-bar-open .video-inner video {
 }
 .speed-btn {
   font-size: 16px;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   font-weight: 600;
   color: var(--text-primary);
   width: 34px;
@@ -1471,7 +1471,7 @@ main.thumbnail-bar-open .video-inner video {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-muted);
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
 }
 
 .app-dropdown-separator {
@@ -1488,7 +1488,7 @@ main.thumbnail-bar-open .video-inner video {
   border: none;
   background: none;
   font-size: 12px;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   color: var(--text-secondary);
   cursor: pointer;
   text-align: left;
@@ -1542,7 +1542,7 @@ main.thumbnail-bar-open .video-inner video {
   border-radius: 6px;
   border: 0.5px solid transparent;
   font-size: 11px;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   cursor: pointer;
   text-align: center;
   transition: background 0.13s;
@@ -1566,7 +1566,7 @@ main.thumbnail-bar-open .video-inner video {
   border-radius: 6px;
   border: 0.5px solid transparent;
   font-size: 11px;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   cursor: pointer;
   transition: background 0.13s;
 }
@@ -1610,7 +1610,7 @@ main.thumbnail-bar-open .video-inner video {
   padding: 6px 9px;
   border-radius: 6px;
   font-size: 11px;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   cursor: pointer;
   transition: background 0.13s;
 }
@@ -1706,7 +1706,7 @@ main.thumbnail-bar-open .video-inner video {
   border: 0.5px solid var(--border-subtle);
   background: rgba(255, 255, 255, 0.055);
   color: var(--text-muted);
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   font-size: 11px;
   padding: 7px 8px;
   display: inline-flex;
@@ -1801,7 +1801,7 @@ main.thumbnail-bar-open .video-inner video {
   flex: 1;
   min-width: 0;
   border-radius: 7px;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   font-size: 11px;
   padding: 7px 8px;
   display: inline-flex;
@@ -1916,7 +1916,7 @@ main.thumbnail-bar-open .video-inner video {
 }
 
 .edit-action-label {
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   font-size: 9px;
   font-weight: 500;
   line-height: 1;
@@ -2084,7 +2084,7 @@ main.thumbnail-bar-open .video-inner video {
   background: var(--bg-elevated);
   color: var(--text-primary);
   font-size: 11px;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   padding: 2px 6px;
   border-radius: 4px;
   border: 0.5px solid var(--bg-border);

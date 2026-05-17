@@ -24,17 +24,17 @@ main {
 .app-name {
   font-size: 16px;
   color: var(--text-muted);
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
 }
 .divider {
   font-size: 14px;
   color: var(--text-dim);
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
 }
 .filename {
   font-size: 12px;
   color: var(--text-secondary);
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -58,7 +58,7 @@ main {
 .filename-input {
   font-size: 12px;
   color: var(--text-primary);
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   background: rgba(255, 255, 255, 0.07);
   border: 0.5px solid var(--text-dim);
   border-radius: 4px;
@@ -216,7 +216,7 @@ main.thumbnail-bar-open.fullscreen .viewer {
 .empty-text {
   font-size: 13px;
   color: var(--text-dim);
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
 }
 
 .bottombar {
@@ -233,7 +233,7 @@ main.thumbnail-bar-open.fullscreen .viewer {
 .file-info {
   font-size: 12px;
   color: var(--text-dim);
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   height: 36px;
   display: inline-flex;
   align-items: center;
@@ -269,7 +269,7 @@ main.thumbnail-bar-open.fullscreen .viewer {
 .zoom {
   font-size: 12px;
   color: var(--text-dim);
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   cursor: pointer;
   padding: 0 4px;
   border-radius: 3px;
@@ -363,7 +363,7 @@ main.fullscreen .media-container {
 .fs-filename {
   font-size: 12px;
   color: var(--text-muted);
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
 }
 .fs-window-controls {
   display: flex;
@@ -443,7 +443,7 @@ main.fullscreen .media-container {
   padding: 4px 14px;
   font-size: 12px;
   color: var(--text-muted);
-  font-family: Inter, sans-serif;
+  font-family: var(--font-family);
   cursor: pointer;
   transition:
     color 0.2s,
