@@ -8,6 +8,8 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use image::GenericImageView;
 use image::ImageEncoder;
 use tauri::{Listener, Manager, PhysicalPosition, PhysicalSize, Position, Size, WindowEvent};
+use windows::core::w;
+use windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID;
 
 #[derive(serde::Serialize)]
 struct MediaProperties {
@@ -1401,6 +1403,11 @@ pub fn run() {
             fix_media,
         ])
         .setup(|app| {
+            // Set AppUserModelID so Task Manager groups all WebView2 children under "Vyu"
+            unsafe {
+                let _ = SetCurrentProcessExplicitAppUserModelID(w!("com.vyu.app"));
+            }
+
             cleanup_vyu_temp();
 
             let mut args: Vec<String> = std::env::args().collect();
