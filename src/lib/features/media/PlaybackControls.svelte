@@ -30,7 +30,6 @@
     addTimestamp,
     addClipStart,
     addClipEnd,
-    addClipEnd5s,
     hasMarkers,
     deleteAllMarkers,
     toggleTimer,
@@ -84,7 +83,6 @@
     addTimestamp: () => void;
     addClipStart: () => void;
     addClipEnd: () => void;
-    addClipEnd5s: () => void;
     hasMarkers: boolean;
     deleteAllMarkers: () => void;
     toggleTimer: () => void;
@@ -118,11 +116,6 @@
   $effect(() => {
     onTsMenuChange?.(tsMenuOpen);
   });
-
-  function addClip() {
-    addClipStart();
-    addClipEnd5s();
-  }
 
   function closeTsMenu() {
     tsMenuOpen = false;
@@ -438,7 +431,6 @@
             class="playback-slider-scrubber"
             style="left: {volumeSliderValue * 100}%"
           ></div>
-
         </div>
       {:else if volumeHovered || volumeDragging}
         <div
@@ -583,7 +575,6 @@
             class="playback-slider-scrubber"
             style="left: {speedSliderValue * 100}%"
           ></div>
-
         </div>
       {:else if speedHovered || speedDragging}
         <div
@@ -729,35 +720,7 @@
                   stroke-width="1.8"
                 /></svg
               >
-              Start
-            </button>
-            <button
-              class="ts-drop-half ts-drop-blue ts-drop-clip-mid"
-              onclick={() => {
-                addClip();
-                closeTsMenu();
-              }}
-              role="menuitem"
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
-                ><path
-                  d="M15 6L9 12L15 18"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                /></svg
-              >
-              Clip
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
-                ><path
-                  d="M9 6L15 12L9 18"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                /></svg
-              >
+              Clip start
             </button>
             <button
               class="ts-drop-half ts-drop-blue"
@@ -786,7 +749,7 @@
                   stroke-width="1.8"
                 /></svg
               >
-              End
+              Clip end
             </button>
           </div>
           <button
@@ -1012,10 +975,7 @@
       >
         {#key muted || volume === 0 ? 0 : volume < 0.5 ? 1 : 2}
           {#if muted || volume === 0}
-            <svg
-              class="loop-mode-icon"
-              viewBox="0 0 18 18"
-              fill="none"
+            <svg class="loop-mode-icon" viewBox="0 0 18 18" fill="none"
               ><path d="M9 4L5 7H2V11H5L9 14V4Z" fill="currentColor" /><line
                 x1="12"
                 y1="6"
@@ -1035,10 +995,7 @@
               /></svg
             >
           {:else if volume < 0.5}
-            <svg
-              class="loop-mode-icon"
-              viewBox="0 0 18 18"
-              fill="none"
+            <svg class="loop-mode-icon" viewBox="0 0 18 18" fill="none"
               ><path d="M9 4L5 7H2V11H5L9 14V4Z" fill="currentColor" /><path
                 d="M11.5 7C12.5 7.8 13 8.4 13 9C13 9.6 12.5 10.2 11.5 11"
                 stroke="currentColor"
@@ -1047,10 +1004,7 @@
               /></svg
             >
           {:else}
-            <svg
-              class="loop-mode-icon"
-              viewBox="0 0 18 18"
-              fill="none"
+            <svg class="loop-mode-icon" viewBox="0 0 18 18" fill="none"
               ><path d="M9 4L5 7H2V11H5L9 14V4Z" fill="currentColor" /><path
                 d="M11.5 7C12.5 7.8 13 8.4 13 9C13 9.6 12.5 10.2 11.5 11"
                 stroke="currentColor"
@@ -1112,7 +1066,6 @@
             class="playback-slider-scrubber"
             style="left: {volumeSliderValue * 100}%"
           ></div>
-
         </div>
       {:else if volumeHovered || volumeDragging}
         <div
@@ -1250,7 +1203,6 @@
             class="playback-slider-scrubber"
             style="left: {speedSliderValue * 100}%"
           ></div>
-
         </div>
       {:else if speedHovered || speedDragging}
         <div
@@ -1396,35 +1348,7 @@
                   stroke-width="1.8"
                 /></svg
               >
-              Start
-            </button>
-            <button
-              class="ts-drop-half ts-drop-blue ts-drop-clip-mid"
-              onclick={() => {
-                addClip();
-                closeTsMenu();
-              }}
-              role="menuitem"
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
-                ><path
-                  d="M15 6L9 12L15 18"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                /></svg
-              >
-              Clip
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
-                ><path
-                  d="M9 6L15 12L9 18"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                /></svg
-              >
+              Clip start
             </button>
             <button
               class="ts-drop-half ts-drop-blue"
@@ -1453,7 +1377,7 @@
                   stroke-width="1.8"
                 /></svg
               >
-              End
+              Clip end
             </button>
           </div>
           <button

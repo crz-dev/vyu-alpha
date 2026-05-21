@@ -1537,7 +1537,7 @@ main.thumbnail-bar-open .video-inner video {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  min-width: 160px;
+  min-width: 150px;
   z-index: 9999;
   box-shadow:
     0 12px 32px rgba(0, 0, 0, 0.7),
@@ -1549,7 +1549,7 @@ main.thumbnail-bar-open .video-inner video {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  padding: 6px 9px;
+  padding: 5px 9px;
   border-radius: 6px;
   border: 0.5px solid transparent;
   font-size: 11px;
@@ -1565,7 +1565,7 @@ main.thumbnail-bar-open .video-inner video {
 }
 .ts-drop-split {
   display: flex;
-  gap: 4px;
+  gap: 0;
 }
 .ts-drop-half {
   flex: 1;
@@ -1573,13 +1573,22 @@ main.thumbnail-bar-open .video-inner video {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  padding: 6px 4px;
+  padding: 5px 6px;
   border-radius: 6px;
   border: 0.5px solid transparent;
   font-size: 11px;
   font-family: var(--font-family);
   cursor: pointer;
   transition: background 0.13s;
+  white-space: nowrap;
+}
+.ts-drop-half:first-child {
+  border-radius: 6px 0 0 6px;
+  border-right: 0.5px solid var(--blue-light-border-subtle);
+}
+.ts-drop-half:last-child {
+  border-radius: 0 6px 6px 0;
+  border-left: 0.5px solid var(--blue-light-border-subtle);
 }
 .ts-drop-yellow {
   background: var(--yellow-bg);
@@ -1602,10 +1611,6 @@ main.thumbnail-bar-open .video-inner video {
   border-color: var(--red-border-subtle);
   color: var(--red);
 }
-.ts-drop-clip-mid {
-  border-left: 0.5px solid var(--blue-light-border-subtle);
-  border-right: 0.5px solid var(--blue-light-border-subtle);
-}
 .ts-drop-red:hover:not(:disabled) {
   background: var(--red-bg-hover);
 }
@@ -1618,7 +1623,7 @@ main.thumbnail-bar-open .video-inner video {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 9px;
+  padding: 5px 9px;
   border-radius: 6px;
   font-size: 11px;
   font-family: var(--font-family);

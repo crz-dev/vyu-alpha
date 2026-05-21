@@ -2137,8 +2137,6 @@
                 {addTimestamp}
                 addClipStart={() => addClipBoundary("start")}
                 addClipEnd={() => addClipBoundary("end")}
-                addClipEnd5s={() =>
-                  addClipBoundaryAt("end", rawCurrentSecs + 5)}
                 hasMarkers={timestamps.length > 0 ||
                   clips.clipBoundaries.length > 0 ||
                   resumePoint !== null}
@@ -2262,7 +2260,6 @@
                 addTimestamp={() => {}}
                 addClipStart={() => {}}
                 addClipEnd={() => {}}
-                addClipEnd5s={() => {}}
                 hasMarkers={false}
                 deleteAllMarkers={() => {}}
                 {toggleTimer}
@@ -2474,7 +2471,6 @@
               {addTimestamp}
               addClipStart={() => addClipBoundary("start")}
               addClipEnd={() => addClipBoundary("end")}
-              addClipEnd5s={() => addClipBoundaryAt("end", rawCurrentSecs + 5)}
               hasMarkers={timestamps.length > 0 ||
                 clips.clipBoundaries.length > 0 ||
                 resumePoint !== null}
