@@ -12,6 +12,7 @@
     volumeSegments,
     togglePlay,
     toggleLoop,
+    setLoopMode,
     toggleMute,
     showVolumeOverlay,
     handleVolumeAreaLeave,
@@ -68,7 +69,8 @@
     volumeHovered: boolean;
     volumeSegments: number;
     togglePlay: () => void;
-    toggleLoop: () => void;
+    toggleLoop?: () => void;
+    setLoopMode: (mode: "loop" | "stop" | "next" | "shuffle") => void;
     toggleMute: () => void;
     showVolumeOverlay: () => void;
     handleVolumeAreaLeave: () => void;
@@ -118,6 +120,7 @@
   } = $props();
   let tsMenuOpen = $state(false);
   let tsDeleteConfirm = $state(false);
+  let loopMenuOpen = $state(false);
   let volumeTrackEl: HTMLDivElement | null = $state(null);
   let speedTrackEl: HTMLDivElement | null = $state(null);
 
@@ -212,102 +215,266 @@
         {/if}
       {/key}
     </button>
-    <button
-      class="ctrl-btn loop-btn tooltip-ctrl"
-      class:active={looping !== "stop"}
-      data-tooltip={looping === "loop"
-        ? "Loop"
-        : looping === "stop"
-          ? "Stop at end"
-          : looping === "next"
-            ? "Play next"
-            : "Shuffle"}
-      onclick={toggleLoop}
-      aria-label="loop mode"
-    >
-      {#if looping === "loop"}
-        <svg
-          class="loop-mode-icon"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-        >
-          <path
-            d="M17 2L21 6L17 10"
+    <div class="loop-menu-anchor" style="position:relative;">
+      <button
+        class="ctrl-btn loop-btn tooltip-ctrl"
+        class:loop-menu-open={loopMenuOpen}
+        data-tooltip={loopMenuOpen
+          ? undefined
+          : looping === "loop"
+            ? "Loop"
+            : looping === "stop"
+              ? "Stop at end"
+              : looping === "next"
+                ? "Play next"
+                : "Shuffle"}
+        onclick={() => {
+          loopMenuOpen = !loopMenuOpen;
+        }}
+        aria-label="loop mode menu"
+      >
+        {#if looping === "loop"}
+          <svg
+            class="loop-mode-icon"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <path
+              d="M17 2L21 6L17 10"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M3 11V9C3 7.9 3.9 7 5 7H21"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+            <path
+              d="M7 22L3 18L7 14"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M21 13V15C21 16.1 20.1 17 19 17H3"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
+        {:else if looping === "stop"}
+          <svg
+            class="loop-mode-icon"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <rect
+              x="4"
+              y="4"
+              width="16"
+              height="16"
+              rx="2"
+              stroke="currentColor"
+              stroke-width="2"
+            />
+          </svg>
+        {:else if looping === "next"}
+          <svg
+            class="loop-mode-icon"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <path d="M5 4l10 8-10 8V4z" fill="currentColor" />
+            <rect
+              x="19"
+              y="4"
+              width="2"
+              height="16"
+              rx="1"
+              fill="currentColor"
+            />
+          </svg>
+        {:else}
+          <svg
+            class="loop-mode-icon"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
-          />
-          <path
-            d="M3 11V9C3 7.9 3.9 7 5 7H21"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          />
-          <path
-            d="M7 22L3 18L7 14"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-          <path
-            d="M21 13V15C21 16.1 20.1 17 19 17H3"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          />
-        </svg>
-      {:else if looping === "stop"}
-        <svg
-          class="loop-mode-icon"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-        >
-          <rect
-            x="4"
-            y="4"
-            width="16"
-            height="16"
-            rx="2"
-            stroke="currentColor"
-            stroke-width="2"
-          />
-        </svg>
-      {:else if looping === "next"}
-        <svg
-          class="loop-mode-icon"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-        >
-          <path d="M5 4l10 8-10 8V4z" fill="currentColor" />
-          <rect x="19" y="4" width="2" height="16" rx="1" fill="currentColor" />
-        </svg>
-      {:else}
-        <svg
-          class="loop-mode-icon"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M3 7h5l9 10h4" />
-          <path d="M3 17h5l2-2.2" />
-          <path d="M17 5l4 4-4 4" />
-          <path d="M17 13l4 4-4 4" />
-        </svg>
+          >
+            <path d="M3 7h5l9 10h4" />
+            <path d="M3 17h5l2-2.2" />
+            <path d="M17 5l4 4-4 4" />
+            <path d="M17 13l4 4-4 4" />
+          </svg>
+        {/if}
+      </button>
+      {#if loopMenuOpen}
+        <div class="loop-drop-menu" role="menu">
+          <div
+            class="loop-drop-header"
+            style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 0ms"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+              <rect
+                x="4"
+                y="4"
+                width="16"
+                height="16"
+                rx="2"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span>On video end</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+              <rect
+                x="4"
+                y="4"
+                width="16"
+                height="16"
+                rx="2"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <div class="loop-drop-grid">
+            <button
+              class="loop-drop-btn"
+              class:active={looping === "loop"}
+              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 55ms"
+              onclick={() => {
+                setLoopMode("loop");
+                loopMenuOpen = false;
+              }}
+              role="menuitem"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M17 2L21 6L17 10"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M3 11V9C3 7.9 3.9 7 5 7H21"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M7 22L3 18L7 14"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M21 13V15C21 16.1 20.1 17 19 17H3"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+              Loop
+            </button>
+            <button
+              class="loop-drop-btn"
+              class:active={looping === "stop"}
+              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 110ms"
+              onclick={() => {
+                setLoopMode("stop");
+                loopMenuOpen = false;
+              }}
+              role="menuitem"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                <rect
+                  x="4"
+                  y="4"
+                  width="16"
+                  height="16"
+                  rx="2"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+              </svg>
+              Stop
+            </button>
+            <button
+              class="loop-drop-btn"
+              class:active={looping === "next"}
+              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 165ms"
+              onclick={() => {
+                setLoopMode("next");
+                loopMenuOpen = false;
+              }}
+              role="menuitem"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                <path d="M5 4l10 8-10 8V4z" fill="currentColor" />
+                <rect
+                  x="19"
+                  y="4"
+                  width="2"
+                  height="16"
+                  rx="1"
+                  fill="currentColor"
+                />
+              </svg>
+              Play next
+            </button>
+            <button
+              class="loop-drop-btn"
+              class:active={looping === "shuffle"}
+              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 220ms"
+              onclick={() => {
+                setLoopMode("shuffle");
+                loopMenuOpen = false;
+              }}
+              role="menuitem"
+            >
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M3 7h5l9 10h4" />
+                <path d="M3 17h5l2-2.2" />
+                <path d="M17 5l4 4-4 4" />
+                <path d="M17 13l4 4-4 4" />
+              </svg>
+              Shuffle
+            </button>
+          </div>
+        </div>
       {/if}
-    </button>
+    </div>
     <div
       class="volume-control"
       class:audio-off={muted || volume === 0}
@@ -326,12 +493,7 @@
       >
         {#key muted || volume === 0 ? 0 : volume < 0.5 ? 1 : 2}
           {#if muted || volume === 0}
-            <svg
-              class="loop-mode-icon"
-              width="15"
-              height="15"
-              viewBox="0 0 18 18"
-              fill="none"
+            <svg class="loop-mode-icon" viewBox="0 0 18 18" fill="none"
               ><path d="M9 4L5 7H2V11H5L9 14V4Z" fill="currentColor" /><line
                 x1="12"
                 y1="6"
@@ -351,12 +513,7 @@
               /></svg
             >
           {:else if volume < 0.5}
-            <svg
-              class="loop-mode-icon"
-              width="15"
-              height="15"
-              viewBox="0 0 18 18"
-              fill="none"
+            <svg class="loop-mode-icon" viewBox="0 0 18 18" fill="none"
               ><path d="M9 4L5 7H2V11H5L9 14V4Z" fill="currentColor" /><path
                 d="M11.5 7C12.5 7.8 13 8.4 13 9C13 9.6 12.5 10.2 11.5 11"
                 stroke="currentColor"
@@ -365,12 +522,7 @@
               /></svg
             >
           {:else}
-            <svg
-              class="loop-mode-icon"
-              width="15"
-              height="15"
-              viewBox="0 0 18 18"
-              fill="none"
+            <svg class="loop-mode-icon" viewBox="0 0 18 18" fill="none"
               ><path d="M9 4L5 7H2V11H5L9 14V4Z" fill="currentColor" /><path
                 d="M11.5 7C12.5 7.8 13 8.4 13 9C13 9.6 12.5 10.2 11.5 11"
                 stroke="currentColor"
@@ -468,15 +620,12 @@
         class:active={playbackSpeed !== 1}
         data-tooltip="Playback speed"
         aria-label="playback speed"
-        style="color: var(--text-primary);"
         onclick={() => setPlaybackSpeed(1)}
         oncontextmenu={handleSpeedRightClick}
       >
         {#if playbackSpeed < 1}
           <svg
             class="speed-mode-icon"
-            width="19"
-            height="19"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -494,8 +643,6 @@
         {:else if playbackSpeed > 1}
           <svg
             class="speed-mode-icon"
-            width="19"
-            height="19"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -508,8 +655,6 @@
         {:else}
           <svg
             class="speed-mode-icon"
-            width="23"
-            height="23"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -711,7 +856,6 @@
                 style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 55ms"
                 onclick={() => {
                   deleteAllMarkers();
-  
                 }}
                 role="menuitem"
               >
@@ -719,36 +863,12 @@
               </button>
             {/if}
           {/if}
-          <button
-            class="ts-drop-item ts-drop-yellow"
-            style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 110ms"
-            onclick={() => {
-              addTimestamp();
-
-            }}
-            role="menuitem"
-          >
-            <svg
-              width="11"
-              height="11"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.7"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" />
-            </svg>
-            Add Timestamp
-          </button>
           <div class="ts-drop-split">
             <button
               class="ts-drop-half ts-drop-green"
-              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 165ms"
+              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 110ms"
               onclick={() => {
                 addLoopStart();
-
               }}
               role="menuitem"
             >
@@ -768,17 +888,16 @@
                   font-size="11"
                   font-weight="700"
                   fill="currentColor"
-                  font-family="var(--font-family)"
-                >A</text>
+                  font-family="var(--font-family)">A</text
+                >
               </svg>
               Loop start
             </button>
             <button
               class="ts-drop-half ts-drop-green"
-              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 165ms"
+              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 110ms"
               onclick={() => {
                 addLoopEnd();
-
               }}
               role="menuitem"
             >
@@ -798,8 +917,8 @@
                   font-size="11"
                   font-weight="700"
                   fill="currentColor"
-                  font-family="var(--font-family)"
-                >B</text>
+                  font-family="var(--font-family)">B</text
+                >
               </svg>
               Loop end
             </button>
@@ -807,10 +926,9 @@
           <div class="ts-drop-split">
             <button
               class="ts-drop-half ts-drop-blue"
-              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 220ms"
+              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 165ms"
               onclick={() => {
                 addClipStart();
-
               }}
               role="menuitem"
             >
@@ -837,10 +955,9 @@
             </button>
             <button
               class="ts-drop-half ts-drop-blue"
-              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 220ms"
+              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 165ms"
               onclick={() => {
                 addClipEnd();
-
               }}
               role="menuitem"
             >
@@ -866,6 +983,28 @@
               Clip end
             </button>
           </div>
+          <button
+            class="ts-drop-item ts-drop-yellow"
+            style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 220ms"
+            onclick={() => {
+              addTimestamp();
+            }}
+            role="menuitem"
+          >
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" />
+            </svg>
+            Add Timestamp
+          </button>
         </div>
       {/if}
     </div>
@@ -953,102 +1092,266 @@
         {/if}
       {/key}
     </button>
-    <button
-      class="fs-ctrl-btn loop-btn tooltip-ctrl"
-      class:active={looping !== "stop"}
-      data-tooltip={looping === "loop"
-        ? "Loop"
-        : looping === "stop"
-          ? "Stop at end"
-          : looping === "next"
-            ? "Play next"
-            : "Shuffle"}
-      onclick={toggleLoop}
-      aria-label="loop mode"
-    >
-      {#if looping === "loop"}
-        <svg
-          class="loop-mode-icon"
-          width="15"
-          height="15"
-          viewBox="0 0 24 24"
-          fill="none"
-        >
-          <path
-            d="M17 2L21 6L17 10"
+    <div class="loop-menu-anchor" style="position:relative;">
+      <button
+        class="fs-ctrl-btn loop-btn tooltip-ctrl"
+        class:loop-menu-open={loopMenuOpen}
+        data-tooltip={loopMenuOpen
+          ? undefined
+          : looping === "loop"
+            ? "Loop"
+            : looping === "stop"
+              ? "Stop at end"
+              : looping === "next"
+                ? "Play next"
+                : "Shuffle"}
+        onclick={() => {
+          loopMenuOpen = !loopMenuOpen;
+        }}
+        aria-label="loop mode menu"
+      >
+        {#if looping === "loop"}
+          <svg
+            class="loop-mode-icon"
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <path
+              d="M17 2L21 6L17 10"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M3 11V9C3 7.9 3.9 7 5 7H21"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+            <path
+              d="M7 22L3 18L7 14"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M21 13V15C21 16.1 20.1 17 19 17H3"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
+        {:else if looping === "stop"}
+          <svg
+            class="loop-mode-icon"
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <rect
+              x="4"
+              y="4"
+              width="16"
+              height="16"
+              rx="2"
+              stroke="currentColor"
+              stroke-width="2"
+            />
+          </svg>
+        {:else if looping === "next"}
+          <svg
+            class="loop-mode-icon"
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <path d="M5 4l10 8-10 8V4z" fill="currentColor" />
+            <rect
+              x="19"
+              y="4"
+              width="2"
+              height="16"
+              rx="1"
+              fill="currentColor"
+            />
+          </svg>
+        {:else}
+          <svg
+            class="loop-mode-icon"
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
-          />
-          <path
-            d="M3 11V9C3 7.9 3.9 7 5 7H21"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          />
-          <path
-            d="M7 22L3 18L7 14"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-          <path
-            d="M21 13V15C21 16.1 20.1 17 19 17H3"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          />
-        </svg>
-      {:else if looping === "stop"}
-        <svg
-          class="loop-mode-icon"
-          width="15"
-          height="15"
-          viewBox="0 0 24 24"
-          fill="none"
-        >
-          <rect
-            x="4"
-            y="4"
-            width="16"
-            height="16"
-            rx="2"
-            stroke="currentColor"
-            stroke-width="2"
-          />
-        </svg>
-      {:else if looping === "next"}
-        <svg
-          class="loop-mode-icon"
-          width="15"
-          height="15"
-          viewBox="0 0 24 24"
-          fill="none"
-        >
-          <path d="M5 4l10 8-10 8V4z" fill="currentColor" />
-          <rect x="19" y="4" width="2" height="16" rx="1" fill="currentColor" />
-        </svg>
-      {:else}
-        <svg
-          class="loop-mode-icon"
-          width="15"
-          height="15"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M3 7h5l9 10h4" />
-          <path d="M3 17h5l2-2.2" />
-          <path d="M17 5l4 4-4 4" />
-          <path d="M17 13l4 4-4 4" />
-        </svg>
+          >
+            <path d="M3 7h5l9 10h4" />
+            <path d="M3 17h5l2-2.2" />
+            <path d="M17 5l4 4-4 4" />
+            <path d="M17 13l4 4-4 4" />
+          </svg>
+        {/if}
+      </button>
+      {#if loopMenuOpen}
+        <div class="loop-drop-menu" role="menu">
+          <div
+            class="loop-drop-header"
+            style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 0ms"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+              <rect
+                x="4"
+                y="4"
+                width="16"
+                height="16"
+                rx="2"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span>On video end</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+              <rect
+                x="4"
+                y="4"
+                width="16"
+                height="16"
+                rx="2"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <div class="loop-drop-grid">
+            <button
+              class="loop-drop-btn"
+              class:active={looping === "loop"}
+              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 55ms"
+              onclick={() => {
+                setLoopMode("loop");
+                loopMenuOpen = false;
+              }}
+              role="menuitem"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M17 2L21 6L17 10"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M3 11V9C3 7.9 3.9 7 5 7H21"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M7 22L3 18L7 14"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M21 13V15C21 16.1 20.1 17 19 17H3"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+              Loop
+            </button>
+            <button
+              class="loop-drop-btn"
+              class:active={looping === "stop"}
+              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 110ms"
+              onclick={() => {
+                setLoopMode("stop");
+                loopMenuOpen = false;
+              }}
+              role="menuitem"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                <rect
+                  x="4"
+                  y="4"
+                  width="16"
+                  height="16"
+                  rx="2"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+              </svg>
+              Stop
+            </button>
+            <button
+              class="loop-drop-btn"
+              class:active={looping === "next"}
+              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 165ms"
+              onclick={() => {
+                setLoopMode("next");
+                loopMenuOpen = false;
+              }}
+              role="menuitem"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                <path d="M5 4l10 8-10 8V4z" fill="currentColor" />
+                <rect
+                  x="19"
+                  y="4"
+                  width="2"
+                  height="16"
+                  rx="1"
+                  fill="currentColor"
+                />
+              </svg>
+              Play next
+            </button>
+            <button
+              class="loop-drop-btn"
+              class:active={looping === "shuffle"}
+              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 220ms"
+              onclick={() => {
+                setLoopMode("shuffle");
+                loopMenuOpen = false;
+              }}
+              role="menuitem"
+            >
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M3 7h5l9 10h4" />
+                <path d="M3 17h5l2-2.2" />
+                <path d="M17 5l4 4-4 4" />
+                <path d="M17 13l4 4-4 4" />
+              </svg>
+              Shuffle
+            </button>
+          </div>
+        </div>
       {/if}
-    </button>
+    </div>
     <div
       class="volume-control"
       class:audio-off={muted || volume === 0}
@@ -1430,7 +1733,6 @@
                 style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 55ms"
                 onclick={() => {
                   deleteAllMarkers();
-  
                 }}
                 role="menuitem"
               >
@@ -1438,36 +1740,12 @@
               </button>
             {/if}
           {/if}
-          <button
-            class="ts-drop-item ts-drop-yellow"
-            style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 110ms"
-            onclick={() => {
-              addTimestamp();
-
-            }}
-            role="menuitem"
-          >
-            <svg
-              width="11"
-              height="11"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.7"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" />
-            </svg>
-            Add Timestamp
-          </button>
           <div class="ts-drop-split">
             <button
               class="ts-drop-half ts-drop-green"
-              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 165ms"
+              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 110ms"
               onclick={() => {
                 addLoopStart();
-
               }}
               role="menuitem"
             >
@@ -1487,17 +1765,16 @@
                   font-size="11"
                   font-weight="700"
                   fill="currentColor"
-                  font-family="var(--font-family)"
-                >A</text>
+                  font-family="var(--font-family)">A</text
+                >
               </svg>
               Loop start
             </button>
             <button
               class="ts-drop-half ts-drop-green"
-              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 165ms"
+              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 110ms"
               onclick={() => {
                 addLoopEnd();
-
               }}
               role="menuitem"
             >
@@ -1517,8 +1794,8 @@
                   font-size="11"
                   font-weight="700"
                   fill="currentColor"
-                  font-family="var(--font-family)"
-                >B</text>
+                  font-family="var(--font-family)">B</text
+                >
               </svg>
               Loop end
             </button>
@@ -1526,10 +1803,9 @@
           <div class="ts-drop-split">
             <button
               class="ts-drop-half ts-drop-blue"
-              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 220ms"
+              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 165ms"
               onclick={() => {
                 addClipStart();
-
               }}
               role="menuitem"
             >
@@ -1556,10 +1832,9 @@
             </button>
             <button
               class="ts-drop-half ts-drop-blue"
-              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 220ms"
+              style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 165ms"
               onclick={() => {
                 addClipEnd();
-
               }}
               role="menuitem"
             >
@@ -1585,6 +1860,28 @@
               Clip end
             </button>
           </div>
+          <button
+            class="ts-drop-item ts-drop-yellow"
+            style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 220ms"
+            onclick={() => {
+              addTimestamp();
+            }}
+            role="menuitem"
+          >
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" />
+            </svg>
+            Add Timestamp
+          </button>
         </div>
       {/if}
     </div>

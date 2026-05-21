@@ -1825,6 +1825,91 @@ main.thumbnail-bar-open .video-inner video {
   opacity: 1;
 }
 
+/* Loop mode dropdown menu */
+.loop-drop-menu {
+  position: absolute;
+  bottom: calc(100% + 14px);
+  left: 50%;
+  transform: translateX(-50%);
+  transform-origin: bottom center;
+  background: var(--bg-secondary);
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9px;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 150px;
+  z-index: 9999;
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.7),
+    0 0 0 0.5px rgba(255, 255, 255, 0.04) inset;
+  animation: tsDropMenuPopIn 380ms cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+.loop-drop-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px 9px 6px;
+  width: 100%;
+  box-sizing: border-box;
+  border-bottom: 0.5px solid var(--bg-elevated);
+}
+.loop-drop-header svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.loop-drop-header span {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: var(--font-family);
+  text-rendering: geometricPrecision;
+  letter-spacing: 0.2px;
+}
+.loop-drop-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+}
+.loop-drop-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 6px;
+  min-height: 28px;
+  border-radius: 6px;
+  border: 0.5px solid transparent;
+  font-size: 11px;
+  font-family: var(--font-family);
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.13s;
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+.loop-drop-btn svg {
+  flex-shrink: 0;
+}
+.loop-drop-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+.loop-drop-btn.active {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
+}
+.loop-btn.loop-menu-open {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .edit-menu-wrapper {
   position: fixed;
   left: 50%;

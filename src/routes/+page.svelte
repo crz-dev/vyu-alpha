@@ -400,6 +400,12 @@
     if (videoEl) videoEl.loop = loopMode === "loop";
     if (audioEl) audioEl.loop = loopMode === "loop";
   }
+  function setLoopMode(mode: LoopMode) {
+    loopMode = mode;
+    saveLoopMode(loopMode);
+    if (videoEl) videoEl.loop = loopMode === "loop";
+    if (audioEl) audioEl.loop = loopMode === "loop";
+  }
   function toggleTimer() {
     timerShowRemaining = !timerShowRemaining;
   }
@@ -2161,7 +2167,7 @@
                 volumeHovered={playbackUI.volumeHovered}
                 volumeSegments={VOLUME_SEGMENTS}
                 {togglePlay}
-                toggleLoop={cycleLoopMode}
+                setLoopMode={setLoopMode}
                 {toggleMute}
                 showVolumeOverlay={playbackUI.showVolumeOverlay}
                 handleVolumeAreaLeave={playbackUI.handleVolumeAreaLeave}
@@ -2291,7 +2297,7 @@
                 volumeHovered={playbackUI.volumeHovered}
                 volumeSegments={VOLUME_SEGMENTS}
                 {togglePlay}
-                toggleLoop={cycleLoopMode}
+                setLoopMode={setLoopMode}
                 {toggleMute}
                 showVolumeOverlay={playbackUI.showVolumeOverlay}
                 handleVolumeAreaLeave={playbackUI.handleVolumeAreaLeave}
@@ -2508,7 +2514,7 @@
               volumeHovered={playbackUI.volumeHovered}
               volumeSegments={VOLUME_SEGMENTS}
               {togglePlay}
-              toggleLoop={cycleLoopMode}
+              setLoopMode={setLoopMode}
               {toggleMute}
               showVolumeOverlay={playbackUI.showVolumeOverlay}
               handleVolumeAreaLeave={playbackUI.handleVolumeAreaLeave}
