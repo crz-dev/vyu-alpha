@@ -129,16 +129,6 @@
     tsDeleteConfirm = true;
   }
 
-  function tsDropMenu(node: HTMLElement) {
-    return {
-      duration: 380,
-      css: (t: number) => {
-        const opacity = t < 0.55 ? t / 0.55 : 1;
-        return `transform: translateX(-50%) scaleY(${t}); opacity: ${opacity};`;
-      },
-    };
-  }
-
   function handleVolumeRightClick(e: MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
@@ -654,7 +644,7 @@
         </svg>
       </button>
       {#if tsMenuOpen}
-        <div class="ts-drop-menu" role="menu" transition:tsDropMenu>
+        <div class="ts-drop-menu" role="menu">
           <div
             class="ts-drop-header"
             style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 0ms"
@@ -1373,7 +1363,7 @@
         </svg>
       </button>
       {#if tsMenuOpen}
-        <div class="ts-drop-menu" role="menu" transition:tsDropMenu>
+        <div class="ts-drop-menu" role="menu">
           <div
             class="ts-drop-header"
             style="animation: tsDropItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards; animation-delay: 0ms"

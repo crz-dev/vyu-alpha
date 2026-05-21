@@ -1637,6 +1637,7 @@ main.thumbnail-bar-open .video-inner video {
   box-shadow:
     0 12px 32px rgba(0, 0, 0, 0.7),
     0 0 0 0.5px rgba(255, 255, 255, 0.04) inset;
+  animation: tsDropMenuPopIn 380ms cubic-bezier(0.22, 0.8, 0.3, 1) both;
 }
 .ts-drop-item {
   display: flex;
