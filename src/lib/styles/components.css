@@ -1490,9 +1490,10 @@ main.thumbnail-bar-open .video-inner video {
 }
 
 .app-dropdown-toggle .app-icon {
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
   object-fit: contain;
+  transform: translate(0px, 0px);
 }
 
 .app-dropdown-toggle:hover {

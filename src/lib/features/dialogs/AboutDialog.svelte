@@ -188,7 +188,7 @@
         <div class="about-credits">
           <span>Made by <strong>crz-dev</strong></span>
           <span class="about-credits-sep">|</span>
-          <span>Art design by <strong>wamu</strong></span>
+          <span>Icon design by <strong>wamu</strong></span>
         </div>
       </div>
 
