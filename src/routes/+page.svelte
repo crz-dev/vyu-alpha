@@ -436,46 +436,76 @@
     e.preventDefault();
     e.stopPropagation();
     const mediaEl = isVideo ? videoEl : audioEl;
-    if (!mediaEl) return;
+    if (!mediaEl || !mediaEl.duration) return;
     const bar = e.currentTarget as HTMLElement;
     const wasPlaying = !mediaEl.paused;
     mediaEl.pause();
     isScrubbing = true;
-    let rafId = 0;
-    let pendingX = e.clientX;
-    let pending = false;
-    function scrubTo(clientX: number) {
-      const rect = bar.getBoundingClientRect();
+
+    // Cache rect at drag start to avoid forced layouts on every mousemove
+    const barRect = bar.getBoundingClientRect();
+    let pendingTime: number | null = null;
+    let seekInProgress = false;
+
+    const computeTime = (clientX: number): number => {
       const ratio = Math.max(
         0,
-        Math.min(1, (clientX - rect.left) / rect.width),
+        Math.min(1, (clientX - barRect.left) / barRect.width),
       );
-      mediaEl!.currentTime = ratio * mediaEl!.duration;
-      rawCurrentSecs = mediaEl!.currentTime;
-      progress = ratio * 100;
-    }
-    function scheduleScrub(clientX: number) {
-      pendingX = clientX;
-      if (!pending) {
-        pending = true;
-        rafId = requestAnimationFrame(() => {
-          scrubTo(pendingX);
-          pending = false;
-        });
+      return ratio * mediaEl!.duration;
+    };
+
+    const doSeek = (time: number) => {
+      seekInProgress = true;
+      mediaEl!.currentTime = time;
+      // Update UI immediately from intended position — don't read back
+      // currentTime (may lag behind the synchronous setter on some engines).
+      rawCurrentSecs = time;
+      progress = (time / mediaEl!.duration) * 100;
+    };
+
+    const onSeeked = () => {
+      seekInProgress = false;
+      if (pendingTime !== null) {
+        const t = pendingTime;
+        pendingTime = null;
+        doSeek(t);
+      }
+    };
+
+    mediaEl.addEventListener("seeked", onSeeked);
+    doSeek(computeTime(e.clientX));
+
+    function onMouseMove(ev: MouseEvent) {
+      const time = computeTime(ev.clientX);
+      if (!seekInProgress) {
+        doSeek(time);
+      } else {
+        // A seek is in flight — store the latest position; the seeked
+        // handler will pick it up. Still update the UI so the progress
+        // bar tracks the mouse responsively.
+        pendingTime = time;
+        rawCurrentSecs = time;
+        progress = (time / mediaEl!.duration) * 100;
       }
     }
-    scrubTo(e.clientX);
-    function onMouseMove(ev: MouseEvent) {
-      scheduleScrub(ev.clientX);
-    }
+
     function onMouseUp() {
-      cancelAnimationFrame(rafId);
       isScrubbing = false;
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
-      scrubTo(pendingX);
+      mediaEl!.removeEventListener("seeked", onSeeked);
+      // Final seek to the last pending position.
+      // Cancels any in-flight seek — the browser will decode the new target.
+      if (pendingTime !== null) {
+        seekInProgress = true;
+        mediaEl!.currentTime = pendingTime;
+        rawCurrentSecs = pendingTime;
+        progress = (pendingTime / mediaEl!.duration) * 100;
+      }
       if (wasPlaying) mediaEl!.play();
     }
+
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
   }
