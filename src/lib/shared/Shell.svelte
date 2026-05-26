@@ -30,6 +30,7 @@
     loadingFadingOut,
     anyMenuOpen,
     viewerStateIsFullscreen,
+    viewerFsControlsVisible,
     viewerResetFsTimer,
     viewerToggleFullscreen,
     thumbnailBarVisible,
@@ -193,6 +194,7 @@
     loadingFadingOut: boolean;
     anyMenuOpen: boolean;
     viewerStateIsFullscreen: boolean;
+    viewerFsControlsVisible: boolean;
     viewerResetFsTimer: () => void;
     viewerToggleFullscreen: () => void;
     thumbnailBarVisible: boolean;
@@ -444,6 +446,7 @@
   class:fullscreen={viewerStateIsFullscreen}
   class:menu-open={anyMenuOpen}
   class:thumbnail-bar-open={thumbnailBarVisible}
+  class:fs-controls-hidden={viewerStateIsFullscreen && thumbnailBarVisible && !viewerFsControlsVisible}
   onmousemove={viewerStateIsFullscreen ? viewerResetFsTimer : undefined}
   ondrop={(e) => e.preventDefault()}
   ondragover={(e) => e.preventDefault()}

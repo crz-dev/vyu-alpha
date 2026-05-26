@@ -2025,6 +2025,7 @@
   {loadingFadingOut}
   {anyMenuOpen}
   viewerStateIsFullscreen={viewer.state.isFullscreen}
+  viewerFsControlsVisible={viewer.state.fsControlsVisible}
   viewerResetFsTimer={viewer.resetFsTimer}
   viewerToggleFullscreen={toggleFullscreen}
   {thumbnailBarVisible}

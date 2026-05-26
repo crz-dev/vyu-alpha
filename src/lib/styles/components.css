@@ -1325,15 +1325,20 @@ main:not(.fullscreen).thumbnail-bar-open .video-inner video {
 .thumbnail-bar.fullscreen {
   bottom: 0;
   z-index: 101;
-  background: var(--bg-secondary);
-  border-top: 0.5px solid var(--bg-elevated);
+  background: rgba(0, 0, 0, 0.55);
   pointer-events: auto;
+  transition: opacity 0.3s ease;
 }
 
 .thumbnail-bar.fullscreen .thumbnail-track {
   background: transparent;
   border-radius: 0;
   border-top: none;
+}
+
+main.fs-controls-hidden .thumbnail-bar.fullscreen {
+  opacity: 0;
+  pointer-events: none;
 }
 
 @keyframes thumbnailBarIn {
