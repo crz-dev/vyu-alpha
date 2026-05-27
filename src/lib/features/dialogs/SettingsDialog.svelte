@@ -1853,7 +1853,8 @@
                   width="20"
                   height="8"
                   rx="2"
-                  ry="2" /><circle cx="6" cy="6" r="2" /><circle
+                  ry="2"
+                /><circle cx="6" cy="6" r="2" /><circle
                   cx="6"
                   cy="18"
                   r="2"
