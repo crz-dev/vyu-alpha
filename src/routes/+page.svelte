@@ -1483,7 +1483,7 @@
     if (e.button !== 0) return;
     if (
       (e.target as HTMLElement).closest(
-        ".video-controls, .fs-controls, .fs-topbar, .fs-nav-left, .fs-nav-right, .context-menu, .delete-overlay",
+        ".video-controls, .fs-controls, .fs-topbar, .fs-nav-left, .fs-nav-right, .fs-file-count-pill, .context-menu, .delete-overlay",
       )
     )
       return;
