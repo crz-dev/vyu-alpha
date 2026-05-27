@@ -157,19 +157,14 @@
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
         <path
-          d="M8 3h7l5 5v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"
-          stroke="currentColor"
-          stroke-width="2"
-        />
-        <path d="M15 3v5h5" stroke="currentColor" stroke-width="2" />
-        <path
-          d="M11 12H4"
+          d="M3 10h13a4 4 0 010 8H7"
           stroke="currentColor"
           stroke-width="2"
           stroke-linecap="round"
+          stroke-linejoin="round"
         />
         <path
-          d="M7 9l-3 3 3 3"
+          d="M7 6l-4 4 4 4"
           stroke="currentColor"
           stroke-width="2"
           stroke-linecap="round"
@@ -185,10 +180,23 @@
       aria-label="open file"
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-        <path
-          d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
+        <line
+          x1="12"
+          y1="5"
+          x2="12"
+          y2="19"
           stroke="currentColor"
           stroke-width="2"
+          stroke-linecap="round"
+        />
+        <line
+          x1="5"
+          y1="12"
+          x2="19"
+          y2="12"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
         />
       </svg>
     </button>
