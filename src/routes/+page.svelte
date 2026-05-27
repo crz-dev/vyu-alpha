@@ -124,6 +124,10 @@
   let deleteConfirm = $state(false);
   let deletePermanently = $state(false);
   let deleteNoAsk = $state(false);
+  let editApplyConfirm = $state(false);
+  let editTransparencyConfirm = $state(false);
+  let pendingEditAction = $state<"apply" | "export" | null>(null);
+  let exportFormatOverride = $state<"png" | null>(null);
   let propertiesOpen = $state(false);
   let editMenuVisible = $state(false);
   let processMenuVisible = $state(false);
@@ -264,6 +268,8 @@
       propertiesOpen ||
       clipDeleteConfirm.visible ||
       tsMenuOpen ||
+      editApplyConfirm ||
+      editTransparencyConfirm ||
       corruptionWarning,
   );
   function currentTimeDisplay(): string {
@@ -1590,6 +1596,10 @@
       tsEditMenu.visible = false;
       tsMenuOpen = false;
       clipDeleteConfirm.visible = false;
+      editApplyConfirm = false;
+      editTransparencyConfirm = false;
+      pendingEditAction = null;
+      exportFormatOverride = null;
       corruptionWarning = false;
     },
     navigateToEdge,
@@ -1746,16 +1756,20 @@
         });
     })();
   }
-  async function handleApplyEdits() {
-    if (!editing.getHasEdits() && !editing.getCropBounds()) return;
-    editMenuVisible = false;
-    editing.exitCropMode();
+  function needsTransparencyDialog(): boolean {
+    if (isVideo) return false;
+    const ext = getFileExt(filePath);
+    return (
+      ["jpg", "jpeg"].includes(ext) && editing.snapshot.rotation % 90 !== 0
+    );
+  }
+
+  async function performApply() {
     try {
       editing.isApplying = true;
       await editing.backupOriginal(filePath);
 
       const s = editing.snapshot;
-      const ext = getFileExt(filePath);
 
       if (isVideo) {
         if (!videoEl || videoEl.videoWidth <= 0 || videoEl.videoHeight <= 0) {
@@ -1768,39 +1782,45 @@
           videoEl.videoWidth,
           videoEl.videoHeight,
         );
+      } else if (exportFormatOverride === "png") {
+        const pngPath = filePath.replace(/\.\w+$/, ".png");
+        await exportEditedImage(filePath, s, pngPath);
+        await loadFile(pngPath);
       } else {
         await exportEditedImage(filePath, s, filePath);
       }
 
       editing.isApplying = false;
       editing.isApplied = true;
+      exportFormatOverride = null;
       toast.showFrameCopyToast("Edits applied", "success");
     } catch (err) {
       editing.isApplying = false;
+      exportFormatOverride = null;
       const message =
         err instanceof Error ? err.message : "Failed to apply edits";
       toast.showFrameCopyToast(message, "error");
     }
   }
 
-  async function handleExportEdits() {
-    if (!editing.getHasEdits() && !editing.getCropBounds()) {
-      toast.showFrameCopyToast("No edits to export", "info");
-      return;
-    }
+  async function performExport() {
     try {
       const ext = getFileExt(filePath);
-      const defaultName = fileName.replace(/\.[^.]+$/, "") + "_edited." + ext;
+      const overrideExt = exportFormatOverride === "png" ? "png" : ext;
+      const defaultName =
+        fileName.replace(/\.[^.]+$/, "") + "_edited." + overrideExt;
 
       const { save } = await import("@tauri-apps/plugin-dialog");
       const outputPath = await save({
         defaultPath: defaultName,
         filters: isVideo
           ? [{ name: "Video", extensions: [ext] }]
-          : [{ name: "Image", extensions: [ext] }],
+          : [{ name: "Image", extensions: [overrideExt] }],
       });
 
       if (!outputPath) return;
+
+      exportFormatOverride = null;
 
       editing.isExporting = true;
       exportToast = {
@@ -1839,6 +1859,76 @@
         err instanceof Error ? err.message : "Failed to export file";
       exportToast = { visible: true, phase: "error", message, outputPath: "" };
     }
+  }
+
+  async function handleApplyEdits() {
+    if (!editing.getHasEdits() && !editing.getCropBounds()) return;
+    editMenuVisible = false;
+    editing.exitCropMode();
+
+    if (needsTransparencyDialog()) {
+      pendingEditAction = "apply";
+      editTransparencyConfirm = true;
+      return;
+    }
+
+    editApplyConfirm = true;
+  }
+
+  async function handleExportEdits() {
+    if (!editing.getHasEdits() && !editing.getCropBounds()) {
+      toast.showFrameCopyToast("No edits to export", "info");
+      return;
+    }
+
+    if (needsTransparencyDialog()) {
+      pendingEditAction = "export";
+      editTransparencyConfirm = true;
+      return;
+    }
+
+    await performExport();
+  }
+
+  async function handleTransparencyChoice(choice: "png" | "keep") {
+    editTransparencyConfirm = false;
+    const action = pendingEditAction;
+    pendingEditAction = null;
+
+    if (choice === "png") {
+      exportFormatOverride = "png";
+    } else {
+      exportFormatOverride = null;
+    }
+
+    if (action === "apply") {
+      editApplyConfirm = true;
+    } else if (action === "export") {
+      await performExport();
+      exportFormatOverride = null;
+    }
+  }
+
+  async function handleApplyConfirm() {
+    editApplyConfirm = false;
+    await performApply();
+  }
+
+  async function handleApplyExportInstead() {
+    editApplyConfirm = false;
+    exportFormatOverride = null;
+    await performExport();
+  }
+
+  function closeEditApplyConfirm() {
+    editApplyConfirm = false;
+    exportFormatOverride = null;
+  }
+
+  function closeEditTransparencyConfirm() {
+    editTransparencyConfirm = false;
+    pendingEditAction = null;
+    exportFormatOverride = null;
   }
 
   function handleUndo() {
@@ -3139,3 +3229,201 @@
     {/if}
   {/snippet}
 </Shell>
+
+{#if editTransparencyConfirm}
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div
+    class="delete-overlay"
+    role="presentation"
+    onmousedown={(e) => e.stopPropagation()}
+  >
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+      class="delete-dialog edit-confirm-dialog"
+      role="dialog"
+      aria-modal="true"
+      tabindex="-1"
+      onmousedown={(e) => e.stopPropagation()}
+    >
+      <div class="edit-confirm-header">
+        <div class="edit-confirm-header-left">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 16v-4" />
+            <path d="M12 8h.01" />
+          </svg>
+          <div>
+            <p class="delete-title">Transparency Warning</p>
+            <p class="delete-subtitle">{fileName}</p>
+          </div>
+        </div>
+        <button
+          class="edit-confirm-header-close"
+          onclick={closeEditTransparencyConfirm}
+          aria-label="Cancel"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="edit-confirm-body-box">
+        JPEG and some image formats do not support transparent backgrounds.
+        Custom rotation will create transparent areas around the image.
+      </div>
+      <div class="edit-confirm-actions edit-confirm-actions-vertical">
+        <button
+          class="edit-confirm-btn-blue edit-confirm-btn-full"
+          onclick={() => handleTransparencyChoice("keep")}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+          Keep as {getFileExt(filePath).toUpperCase()} (black background)
+        </button>
+        <button
+          class="edit-confirm-btn-primary edit-confirm-btn-full"
+          onclick={() => handleTransparencyChoice("png")}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="12" y1="18" x2="12" y2="12" />
+            <line x1="9" y1="15" x2="15" y2="15" />
+          </svg>
+          Convert to PNG (transparent background)
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if editApplyConfirm}
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div
+    class="delete-overlay"
+    role="presentation"
+    onmousedown={(e) => e.stopPropagation()}
+  >
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+      class="delete-dialog edit-confirm-dialog"
+      role="dialog"
+      aria-modal="true"
+      tabindex="-1"
+      onmousedown={(e) => e.stopPropagation()}
+    >
+      <div class="edit-confirm-header">
+        <div class="edit-confirm-header-left">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            style="color: var(--blue)"
+          >
+            <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+          </svg>
+          <div>
+            <p class="delete-title">Apply Edits?</p>
+            <p class="delete-subtitle">{fileName}</p>
+          </div>
+        </div>
+        <button
+          class="edit-confirm-header-close"
+          onclick={closeEditApplyConfirm}
+          aria-label="Cancel"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="edit-confirm-body-box">
+        Applying edits will overwrite the current image. A temporary backup is
+        created, but you cannot undo after closing the file or app.
+      </div>
+      <div class="edit-confirm-actions edit-confirm-actions-horizontal">
+        <button class="edit-confirm-btn-export" onclick={handleApplyExportInstead}>
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17,8 12,3 7,8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          Export instead
+        </button>
+        <button class="edit-confirm-btn-primary" onclick={handleApplyConfirm}>
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+          Apply
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}

@@ -280,6 +280,9 @@ export async function exportEditedImage(
     canvas.height = Math.max(1, cropH);
   }
 
+  // Ensure the expanded canvas is transparent, not black
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
   const filterParts: string[] = [];
   if (snapshot.brightness !== 1)
     filterParts.push(`brightness(${snapshot.brightness})`);

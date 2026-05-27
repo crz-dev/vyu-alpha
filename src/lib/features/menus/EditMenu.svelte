@@ -101,6 +101,30 @@
     return val;
   }
 
+  function normalizeAngle(angle: number): number {
+    angle = ((angle % 360) + 360) % 360;
+    return angle > 180 ? angle - 360 : angle;
+  }
+
+  function getPresetAngle(tool: "90-right" | "90-left" | "180"): number {
+    switch (tool) {
+      case "90-right":
+        return 90;
+      case "90-left":
+        return -90;
+      case "180":
+        return 180;
+    }
+  }
+
+  function applyPresetRotation(angle: number) {
+    editing.pushUndo();
+    editing.rotate(angle);
+    if (activeRotateTool === "custom") {
+      localRotationAngle = normalizeAngle(localRotationAngle + angle);
+    }
+  }
+
   function updateValueFromX(clientX: number) {
     if (!trackEl || !activeColorTool) return;
     const rect = trackEl.getBoundingClientRect();
@@ -186,24 +210,21 @@
         activeRotateTool = null;
       } else {
         activeRotateTool = "custom";
-        localRotationAngle = editing.snapshot.rotation;
+        localRotationAngle = normalizeAngle(editing.snapshot.rotation);
         colorRowOpen = false;
         activeColorTool = null;
         flipRowOpen = false;
       }
+    } else if (activeRotateTool === "custom") {
+      // Don't close the slider — just add the preset rotation
+      applyPresetRotation(getPresetAngle(tool));
     } else {
       activeRotateTool = tool;
       colorRowOpen = false;
       activeColorTool = null;
       flipRowOpen = false;
       editing.pushUndo();
-      if (tool === "90-right") {
-        editing.rotate(90);
-      } else if (tool === "90-left") {
-        editing.rotate(-90);
-      } else if (tool === "180") {
-        editing.rotate(180);
-      }
+      editing.rotate(getPresetAngle(tool));
     }
   }
 
