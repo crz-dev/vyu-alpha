@@ -227,7 +227,10 @@
     sortMenuVisible: boolean;
     toggleSortMenu: () => void;
     closeSortMenu: () => void;
-    onSortChange: (mode: "name" | "date-modified" | "date-created" | "size" | "type", desc: boolean) => void;
+    onSortChange: (
+      mode: "name" | "date-modified" | "date-created" | "size" | "type",
+      desc: boolean,
+    ) => void;
     onRenamed: any;
     navigate: (dir: number) => void;
     startDrag: (e: MouseEvent) => void;

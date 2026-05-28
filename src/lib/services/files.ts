@@ -30,7 +30,9 @@ async function sortFileList(
   desc: boolean,
 ): Promise<string[]> {
   if (mode === "name") {
-    const sorted = [...list].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+    const sorted = [...list].sort((a, b) =>
+      a.localeCompare(b, undefined, { sensitivity: "base" }),
+    );
     return desc ? sorted.reverse() : sorted;
   }
 
@@ -70,7 +72,9 @@ async function sortFileList(
       case "type": {
         const aExt = getExt(a.path);
         const bExt = getExt(b.path);
-        cmp = aExt.localeCompare(bExt) || getFileName(a.path).localeCompare(getFileName(b.path));
+        cmp =
+          aExt.localeCompare(bExt) ||
+          getFileName(a.path).localeCompare(getFileName(b.path));
         break;
       }
     }
@@ -82,7 +86,15 @@ async function sortFileList(
 }
 
 function getStatTime(
-  s: { size: number; birthtime?: unknown; mtime?: unknown; birthtimeMs?: unknown; mtimeMs?: unknown; createdAt?: unknown; modifiedAt?: unknown } | null,
+  s: {
+    size: number;
+    birthtime?: unknown;
+    mtime?: unknown;
+    birthtimeMs?: unknown;
+    mtimeMs?: unknown;
+    createdAt?: unknown;
+    modifiedAt?: unknown;
+  } | null,
   kind: "mtime" | "birthtime",
 ): number {
   if (!s) return 0;

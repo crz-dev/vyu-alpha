@@ -499,58 +499,67 @@ main.fullscreen.thumbnail-bar-open .fs-file-count-pill {
 }
 
 /* ── Sort menu ─────────────────────────────────────── */
-.sort-anchor {
-  position: relative;
-}
 
 .sort-menu {
   position: fixed;
+  z-index: 1200;
+  min-width: 190px;
   background: var(--bg-secondary);
   border: 0.5px solid var(--bg-border);
-  border-radius: 10px;
-  padding: 3px 5px 5px;
-  z-index: 1000;
-  min-width: 185px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+  border-radius: 9px;
+  padding: 5px;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  transform-origin: top center;
-  animation: uiMenuPopIn 380ms cubic-bezier(0.22, 0.8, 0.3, 1) both;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.5);
+  transform-origin: bottom center;
+  animation: tsDropMenuPopIn 380ms cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+
+.sort-menu-header {
+  display: flex;
+  align-items: center;
+  padding: 5px 10px;
+}
+
+.sort-menu-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: var(--font-family);
 }
 
 .sort-menu-item {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 7px 10px;
-  border-radius: 7px;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
   border: none;
   background: none;
-  color: var(--text-dim);
   font-size: 12px;
   font-family: var(--font-family);
-  text-align: left;
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: filter 0.12s;
-  animation: ctxItemPopIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1) backwards;
+  text-align: left;
+  transition:
+    background 0.13s,
+    color 0.13s;
+  width: 100%;
 }
 
 .sort-menu-item:hover {
-  background: var(--bg-hover);
-  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
 }
 
 .sort-menu-item.active {
-  color: var(--text-secondary);
-}
-
-.sort-menu-item.active .sort-menu-label {
-  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
 }
 
 .sort-menu-separator {
-  height: 0.5px;
+  height: 1px;
   background: var(--bg-border);
   margin: 2px 4px;
 }

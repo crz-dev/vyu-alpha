@@ -230,9 +230,20 @@ export function deleteCdColor(filePath: string): void {
   if (filePath) localStorage.removeItem(`vyu-cd-color-${filePath}`);
 }
 
-const VALID_SORT_MODES = ["name", "date-modified", "date-created", "size", "type"] as const;
+const VALID_SORT_MODES = [
+  "name",
+  "date-modified",
+  "date-created",
+  "size",
+  "type",
+] as const;
 
-export function loadSortMode(): "name" | "date-modified" | "date-created" | "size" | "type" {
+export function loadSortMode():
+  | "name"
+  | "date-modified"
+  | "date-created"
+  | "size"
+  | "type" {
   const v = localStorage.getItem("vyu-sort-mode");
   if (v && (VALID_SORT_MODES as readonly string[]).includes(v)) {
     return v as "name" | "date-modified" | "date-created" | "size" | "type";

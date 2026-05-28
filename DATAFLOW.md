@@ -243,13 +243,13 @@ The app watches the parent directory of the currently open file using `watchImme
 
 Five global sort modes are available, exposed via a Sort button in the bottom bar (when the thumbnail bar is open):
 
-| Mode | Sort key | Requires stat() |
-|------|----------|-----------------|
-| Name | Filename (locale-aware) | No |
-| Date modified | `mtime` | Yes |
-| Date created | `birthtime` | Yes |
-| Size | File size in bytes | Yes |
-| Type | Extension, then filename | No |
+| Mode          | Sort key                 | Requires stat() |
+| ------------- | ------------------------ | --------------- |
+| Name          | Filename (locale-aware)  | No              |
+| Date modified | `mtime`                  | Yes             |
+| Date created  | `birthtime`              | Yes             |
+| Size          | File size in bytes       | Yes             |
+| Type          | Extension, then filename | No              |
 
 Each mode can be ascending or descending. The default is Name ascending.
 
@@ -257,10 +257,10 @@ Each mode can be ascending or descending. The default is Name ascending.
 
 Sort preferences are stored in localStorage:
 
-| Key | Values | Default |
-|-----|--------|---------|
-| `vyu-sort-mode` | `"name"`, `"date-modified"`, `"date-created"`, `"size"`, `"type"` | `"name"` |
-| `vyu-sort-desc` | `"true"`, `"false"` | `"false"` |
+| Key             | Values                                                            | Default   |
+| --------------- | ----------------------------------------------------------------- | --------- |
+| `vyu-sort-mode` | `"name"`, `"date-modified"`, `"date-created"`, `"size"`, `"type"` | `"name"`  |
+| `vyu-sort-desc` | `"true"`, `"false"`                                               | `"false"` |
 
 Loaded on app start via `loadSortMode()` and `loadSortDesc()` in `storage.ts`.
 
