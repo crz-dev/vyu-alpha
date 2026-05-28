@@ -4,6 +4,7 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { open } from "@tauri-apps/plugin-dialog";
   import { invoke } from "@tauri-apps/api/core";
+  import { watchImmediate } from "@tauri-apps/plugin-fs";
   import {
     createPlaybackActions,
     createPlaybackUI,
@@ -17,7 +18,9 @@
     LOOP_MODES,
     ALL_EXTS,
     CD_COLORS,
+    SORT_MODES,
     type LoopMode,
+    type SortMode,
   } from "$lib/shared/constants";
   import type {
     ContextMenu,
@@ -37,6 +40,10 @@
     saveClipPreferences,
     loadCdColor,
     saveCdColor,
+    loadSortMode,
+    saveSortMode,
+    loadSortDesc,
+    saveSortDesc,
   } from "$lib/services/storage";
   import {
     invokeDeleteFile,
@@ -60,6 +67,7 @@
     getParentFolder,
     getFileExt,
     clearFolderCache,
+    rescanFolder,
   } from "$lib/services/files";
   import { createMedia } from "$lib/features/media/media";
   import { viewer } from "$lib/features/viewer/viewer.svelte";
@@ -148,6 +156,12 @@
   let volumeTrackEl: HTMLDivElement | null = $state(null);
   let speedTrackEl: HTMLDivElement | null = $state(null);
   let thumbnailBarVisible = $state(false);
+  let sortMode: SortMode = $state(loadSortMode());
+  let sortDesc = $state(loadSortDesc());
+  let sortMenuVisible = $state(false);
+  let fsPillEl: HTMLButtonElement | null = $state(null);
+  let fsSortMenuX = $state(0);
+  let fsSortMenuY = $state(0);
   let volumeSliderMode = $state(false);
   let speedSliderMode = $state(false);
   let resumePoint = $state<number | null>(null);
@@ -274,7 +288,8 @@
       tsMenuOpen ||
       editApplyConfirm ||
       editTransparencyConfirm ||
-      corruptionWarning,
+      corruptionWarning ||
+      sortMenuVisible,
   );
   function currentTimeDisplay(): string {
     if (!timerShowRemaining) return formatTime(rawCurrentSecs);
@@ -617,7 +632,6 @@
     saveSliderMode({ volume: volumeSliderMode, speed: speedSliderMode });
   }
 
-  // ── Timeline / timestamps ──────────────────────────────
   const timeline = createTimeline();
   function saveTimestamps() {
     writeTimestamps(filePath, timestamps);
@@ -1381,10 +1395,19 @@
   async function loadFile(path: string) {
     slideshow.stop();
     editing.exitCropMode();
-    await media.loadFile(path, setMediaState, (list, index) => {
-      fileList = list;
-      currentIndex = index >= 0 ? index : 0;
-    });
+    await media.loadFile(
+      path,
+      setMediaState,
+      (list, index) => {
+        fileList = list;
+        currentIndex = index >= 0 ? index : 0;
+      },
+      sortMode,
+      sortDesc,
+    );
+    // Start watching the parent folder
+    const folder = getParentFolder(path);
+    if (folder) startWatching(folder);
   }
   function navigate(direction: number) {
     if (fileList.length === 0) return;
@@ -1416,6 +1439,7 @@
   }
   function closeFile() {
     slideshow.stop();
+    stopWatching();
     clearTimeout(pendingPlay);
     resumeTooltipVisible = false;
     editing.cleanup();
@@ -1431,6 +1455,105 @@
     corruptionWarning = false;
     corruptionReason = "";
     corruptionFixError = "";
+  }
+
+  // ── File watcher ─────────────────────────────────────
+  let unwatchFn: (() => void) | null = null;
+  let watchDebounce: ReturnType<typeof setTimeout> | null = null;
+
+  function startWatching(folderPath: string) {
+    stopWatching();
+    watchImmediate(
+      folderPath,
+      () => {
+        // Debounce: reset timer on every event
+        if (watchDebounce) clearTimeout(watchDebounce);
+        watchDebounce = setTimeout(() => {
+          watchDebounce = null;
+          onFolderChanged(folderPath);
+        }, 300);
+      },
+      { recursive: false },
+    )
+      .then((unwatch) => {
+        unwatchFn = unwatch;
+      })
+      .catch((e) => {
+        console.warn("Failed to start file watcher:", e);
+      });
+  }
+
+  function stopWatching() {
+    if (watchDebounce) {
+      clearTimeout(watchDebounce);
+      watchDebounce = null;
+    }
+    if (unwatchFn) {
+      unwatchFn();
+      unwatchFn = null;
+    }
+  }
+
+  async function onFolderChanged(folderPath: string) {
+    const prevPath = filePath;
+    const prevList = [...fileList];
+    const prevIndex = currentIndex;
+
+    try {
+      const newList = await rescanFolder(folderPath, sortMode, sortDesc);
+
+      // Current file still exists in the folder
+      const stillHere = newList.indexOf(prevPath);
+      if (stillHere !== -1) {
+        fileList = newList;
+        currentIndex = stillHere;
+        return;
+      }
+
+      // Current file was removed — advance to nearest neighbor
+      if (newList.length > 0) {
+        const nextIdx = Math.min(prevIndex, newList.length - 1);
+        fileList = newList;
+        await loadFile(newList[nextIdx]);
+        return;
+      }
+
+      // Folder is now empty
+      closeFile();
+    } catch (e) {
+      console.error("onFolderChanged failed:", e);
+    }
+  }
+
+  // ── Sort ─────────────────────────────────────────────
+  function toggleSortMenu() {
+    sortMenuVisible = !sortMenuVisible;
+  }
+  function closeSortMenu() {
+    sortMenuVisible = false;
+  }
+  function onSortChange(mode: SortMode, desc: boolean) {
+    sortMode = mode;
+    sortDesc = desc;
+    saveSortMode(mode);
+    saveSortDesc(desc);
+    sortMenuVisible = false;
+    // Re-sort the current folder
+    if (filePath) {
+      const folder = getParentFolder(filePath);
+      if (folder) onFolderChanged(folder);
+    }
+  }
+  function handleFsPillContext(e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (fileList.length === 0) return;
+    if (fsPillEl) {
+      const rect = fsPillEl.getBoundingClientRect();
+      fsSortMenuX = rect.left;
+      fsSortMenuY = window.innerHeight - rect.top + 4;
+    }
+    sortMenuVisible = !sortMenuVisible;
   }
 
   // ── Corruption detection ────────────────────────────────
@@ -2189,6 +2312,12 @@
   {slideshowMenuVisible}
   {closeSlideshowMenu}
   {toggleThumbnailBar}
+  {sortMode}
+  {sortDesc}
+  {sortMenuVisible}
+  {toggleSortMenu}
+  {closeSortMenu}
+  {onSortChange}
   {navigate}
   {startDrag}
   {showFilenameTooltip}
@@ -3898,12 +4027,55 @@
           </div>
         {/if}
         {#if fileList.length > 0}<button
+            bind:this={fsPillEl}
             class="fs-file-count-pill tooltip-above"
             class:slideshow-active={slideshow.active}
             data-tooltip="File position"
             onclick={toggleThumbnailBar}
+            oncontextmenu={handleFsPillContext}
             >{currentIndex + 1} / {fileList.length}</button
           >{/if}
+        {#if sortMenuVisible}
+          <div
+            class="sort-menu"
+            style="left: {fsSortMenuX}px; bottom: {fsSortMenuY}px;"
+          >
+            {#each SORT_MODES as option}
+              <button
+                class="sort-menu-item"
+                class:active={sortMode === option.value}
+                onclick={() => onSortChange(option.value, sortMode === option.value ? !sortDesc : sortDesc)}
+              >
+                <span class="sort-menu-label">{option.label}</span>
+                {#if sortMode === option.value}
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                {/if}
+              </button>
+            {/each}
+            <div class="sort-menu-separator"></div>
+            <button
+              class="sort-menu-item sort-dir"
+              onclick={() => onSortChange(sortMode, !sortDesc)}
+            >
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                style={sortDesc ? "transform: scaleY(-1)" : ""}
+              >
+                <path d="M12 5v14M5 12l7-7 7 7" />
+              </svg>
+              <span class="sort-menu-label">{sortDesc ? "Descending" : "Ascending"}</span>
+            </button>
+          </div>
+        {/if}
       </div>
     {/if}
   {/snippet}

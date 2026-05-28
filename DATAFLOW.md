@@ -206,5 +206,77 @@ The `<video>` element is declared, bound, and shared entirely in `+page.svelte`:
 | `vyu-ts-{path}`            | R/W/E | `readTimestamps`, `writeTimestamps`, `eraseTimestamps`             | File load / timestamp edit              |
 | `vyu-clips-{path}`         | R/W/E | `readClipBoundaries`, `writeClipBoundaries`, `eraseClipBoundaries` | File load / clip edit (debounced 300ms) |
 | `vyu-resume-{path}`        | R/W/E | `loadResumePoint`, `saveResumePoint`, `eraseResumePoint`           | File load / beforeunload                |
+| `vyu-sort-mode`            | R/W   | `loadSortMode`, `saveSortMode`                                     | App start / sort change                 |
+| `vyu-sort-desc`            | R/W   | `loadSortDesc`, `saveSortDesc`                                     | App start / sort direction change       |
 
 Stale cleanup: `cleanupStaleStorageEntries()` caps each prefix group at 500 entries on app start.
+
+---
+
+## Flow 5 — File Watching (Live Folder Sync)
+
+### 5.1 How it works
+
+The app watches the parent directory of the currently open file using `watchImmediate()` from `@tauri-apps/plugin-fs` (which uses the `notify` crate with Windows ReadDirectoryChangesW). When files are added, removed, or renamed in the folder, the app re-scans and updates the file list.
+
+### 5.2 Watch lifecycle
+
+- **Start:** When a file is opened via `loadFile(path)`, `startWatching(folder)` is called. The parent folder is extracted via `getParentFolder(path)`.
+- **Events:** `watchImmediate` fires on any filesystem change. A 300ms debounce timer resets on each event.
+- **Rescan:** When the debounce fires, `onFolderChanged(folder)` calls `rescanFolder(folder, sortMode, sortDesc)` which clears the LRU cache for that folder and re-reads + re-sorts the directory.
+- **Current file handling:**
+  - If the current file is still in the new list → update `fileList` and `currentIndex` to its new position
+  - If the current file was deleted → advance to the nearest neighbor (`Math.min(prevIndex, newList.length - 1)`)
+  - If the folder is now empty → call `closeFile()`
+- **Stop:** When a file is closed via `closeFile()`, or when navigating to a new file (which restarts watching for the new folder), `stopWatching()` is called. This clears the debounce timer and invokes the unwatch callback.
+
+### 5.3 Backend setup
+
+- `src-tauri/Cargo.toml`: `tauri-plugin-fs = { version = "2", features = ["watch"] }` enables the `notify` crate backend
+- `src-tauri/capabilities/default.json`: `fs:allow-watch` and `fs:allow-unwatch` permissions grant the frontend access
+
+---
+
+## Flow 6 — Sort System
+
+### 6.1 Sort modes
+
+Five global sort modes are available, exposed via a Sort button in the bottom bar (when the thumbnail bar is open):
+
+| Mode | Sort key | Requires stat() |
+|------|----------|-----------------|
+| Name | Filename (locale-aware) | No |
+| Date modified | `mtime` | Yes |
+| Date created | `birthtime` | Yes |
+| Size | File size in bytes | Yes |
+| Type | Extension, then filename | No |
+
+Each mode can be ascending or descending. The default is Name ascending.
+
+### 6.2 Persistence
+
+Sort preferences are stored in localStorage:
+
+| Key | Values | Default |
+|-----|--------|---------|
+| `vyu-sort-mode` | `"name"`, `"date-modified"`, `"date-created"`, `"size"`, `"type"` | `"name"` |
+| `vyu-sort-desc` | `"true"`, `"false"` | `"false"` |
+
+Loaded on app start via `loadSortMode()` and `loadSortDesc()` in `storage.ts`.
+
+### 6.3 Sorting implementation
+
+`services/files.ts → sortFileList(list, mode, desc)`:
+
+- **Name/Type:** Pure string comparison, no filesystem access
+- **Date modified/created/size:** Calls `stat()` on every file in the folder via `Promise.all()`. Results are not cached (stat calls are fast on local NTFS).
+
+### 6.4 LRU cache key
+
+The folder cache key includes the sort mode and direction: `folder + "\0" + mode + "\0" + desc`. This means different sort modes get separate cache entries for the same folder. `clearFolderCache(folder)` clears all entries whose key starts with the given folder path.
+
+### 6.5 UI
+
+- **Bottom bar:** A "Sort" button appears to the right of the file count pill when the thumbnail bar is open
+- **Fullscreen:** A floating "Sort" pill appears to the right of the file count pill
+- Clicking "Sort" opens a small dropdown (`SortMenu.svelte`) with the five sort options (checkmark on active) and an ascending/descending toggle

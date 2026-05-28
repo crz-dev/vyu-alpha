@@ -52,6 +52,12 @@
     slideshowMenuVisible,
     closeSlideshowMenu,
     toggleThumbnailBar,
+    sortMode,
+    sortDesc,
+    sortMenuVisible,
+    toggleSortMenu,
+    closeSortMenu,
+    onSortChange,
     navigate,
     onRenamed,
     startDrag,
@@ -216,6 +222,12 @@
     slideshowMenuVisible: boolean;
     closeSlideshowMenu: () => void;
     toggleThumbnailBar: () => void;
+    sortMode: "name" | "date-modified" | "date-created" | "size" | "type";
+    sortDesc: boolean;
+    sortMenuVisible: boolean;
+    toggleSortMenu: () => void;
+    closeSortMenu: () => void;
+    onSortChange: (mode: "name" | "date-modified" | "date-created" | "size" | "type", desc: boolean) => void;
     onRenamed: any;
     navigate: (dir: number) => void;
     startDrag: (e: MouseEvent) => void;
@@ -512,6 +524,12 @@
     {closeSlideshowMenu}
     {thumbnailBarVisible}
     {toggleThumbnailBar}
+    {sortMode}
+    {sortDesc}
+    {sortMenuVisible}
+    {toggleSortMenu}
+    {closeSortMenu}
+    {onSortChange}
     {editMenuVisible}
     {processMenuVisible}
     {editMenuMoved}

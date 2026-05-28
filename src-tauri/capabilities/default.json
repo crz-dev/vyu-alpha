@@ -23,6 +23,8 @@
     "dialog:default",
     "dialog:allow-open",
     "dialog:allow-save",
+    "fs:allow-watch",
+    "fs:allow-unwatch",
     "core:window:allow-minimize",
     "core:window:allow-toggle-maximize",
     "core:window:allow-close"

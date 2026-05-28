@@ -2,9 +2,13 @@
   import { fly } from "svelte/transition";
   import SlideshowMenu from "$lib/features/menus/SlideshowMenu.svelte";
   import { slideshow } from "$lib/features/media/slideshow.svelte";
+  import { SORT_MODES } from "$lib/shared/constants";
 
   let dismissed = $state(false);
   let pinned = $state(false);
+  let fileCountEl: HTMLButtonElement | null = $state(null);
+  let sortMenuX = $state(0);
+  let sortMenuY = $state(0);
 
   $effect(() => {
     if (dismissed) {
@@ -42,6 +46,12 @@
     closeSlideshowMenu,
     thumbnailBarVisible,
     toggleThumbnailBar,
+    sortMode,
+    sortDesc,
+    sortMenuVisible,
+    toggleSortMenu,
+    closeSortMenu,
+    onSortChange,
     editMenuVisible = false,
     processMenuVisible = false,
     editMenuMoved = false,
@@ -84,6 +94,12 @@
     closeSlideshowMenu: () => void;
     thumbnailBarVisible: boolean;
     toggleThumbnailBar: () => void;
+    sortMode: "name" | "date-modified" | "date-created" | "size" | "type";
+    sortDesc: boolean;
+    sortMenuVisible: boolean;
+    toggleSortMenu: () => void;
+    closeSortMenu: () => void;
+    onSortChange: (mode: "name" | "date-modified" | "date-created" | "size" | "type", desc: boolean) => void;
     editMenuVisible?: boolean;
     processMenuVisible?: boolean;
     editMenuMoved?: boolean;
@@ -108,6 +124,18 @@
       dismissed = false;
     }
   });
+
+  function handleFileCountContext(e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (fileListLength <= 0) return;
+    if (fileCountEl) {
+      const rect = fileCountEl.getBoundingClientRect();
+      sortMenuX = rect.left;
+      sortMenuY = window.innerHeight - rect.top + 4;
+    }
+    toggleSortMenu();
+  }
 </script>
 
 <div class="bottombar">
@@ -141,10 +169,12 @@
       />
     </div>
     <button
+      bind:this={fileCountEl}
       class="file-count tooltip-above"
       class:active={thumbnailBarVisible}
       data-tooltip="File position"
       onclick={toggleThumbnailBar}
+      oncontextmenu={handleFileCountContext}
     >
       {fileListLength > 0 ? `${currentIndex + 1} / ${fileListLength}` : "—"}
     </button>
@@ -193,6 +223,48 @@
     </button>
   </div>
 </div>
+
+{#if sortMenuVisible}
+  <div
+    class="sort-menu"
+    style="left: {sortMenuX}px; bottom: {sortMenuY}px;"
+  >
+    {#each SORT_MODES as option}
+      <button
+        class="sort-menu-item"
+        class:active={sortMode === option.value}
+        onclick={() => onSortChange(option.value, sortMode === option.value ? !sortDesc : sortDesc)}
+      >
+        <span class="sort-menu-label">{option.label}</span>
+        {#if sortMode === option.value}
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        {/if}
+      </button>
+    {/each}
+    <div class="sort-menu-separator"></div>
+    <button
+      class="sort-menu-item sort-dir"
+      onclick={() => onSortChange(sortMode, !sortDesc)}
+    >
+      <svg
+        width="10"
+        height="10"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        style={sortDesc ? "transform: scaleY(-1)" : ""}
+      >
+        <path d="M12 5v14M5 12l7-7 7 7" />
+      </svg>
+      <span class="sort-menu-label">{sortDesc ? "Descending" : "Ascending"}</span>
+    </button>
+  </div>
+{/if}
 
 {#if isVideo && clipCount > 0 && !dismissed}
   <div

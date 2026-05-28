@@ -229,13 +229,15 @@ export function createMedia(
     path: string,
     set: (data: Partial<MediaState>) => void,
     setFileList: (list: string[], index: number) => void,
+    sortMode: "name" | "date-modified" | "date-created" | "size" | "type" = "name",
+    sortDesc = false,
   ): Promise<void> {
     clearTimeout(loadingTimer);
     finishLoadingCalled = false;
     set({ isLoadingFile: true, loadingFadingOut: false });
     await displayFile(path, set);
     try {
-      const list = await readMediaFilesInFolder(path);
+      const list = await readMediaFilesInFolder(path, sortMode, sortDesc);
       setFileList(list, list.indexOf(path));
     } catch (e) {
       console.error("readMediaFilesInFolder failed:", e);

@@ -140,3 +140,14 @@ export const MEGABYTE = 1024 * 1024;
 export const FRAME_STEP_SEC = 1 / 30;
 export const PROXIMITY_DUPLICATE = 0.25;
 export const PROXIMITY_TOUCH = 0.6;
+
+// Sort constants
+export const SORT_MODES = [
+  { value: "name", label: "Name" },
+  { value: "date-modified", label: "Date modified" },
+  { value: "date-created", label: "Date created" },
+  { value: "size", label: "Size" },
+  { value: "type", label: "Type" },
+] as const;
+export type SortMode = (typeof SORT_MODES)[number]["value"];
+export const SORT_MODE_DEFAULT: SortMode = "name";
