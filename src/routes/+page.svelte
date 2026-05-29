@@ -1433,6 +1433,7 @@
     el.volume = volume;
     el.muted = muted;
     el.loop = loopMode === "loop";
+    playbackUI.initSliderMode(true, true);
     setMediaState({
       fileDimensions: "",
       fileInfoLoading: false,
@@ -3451,7 +3452,6 @@
                       <div
                         class="playback-slider-track"
                         class:muted={muted || volume === 0}
-                        style="width: 140px;"
                         transition:fly={{ x: -8, duration: 150, opacity: 0 }}
                         bind:this={volumeTrackEl}
                         role="slider"
