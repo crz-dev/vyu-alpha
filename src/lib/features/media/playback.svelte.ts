@@ -273,21 +273,31 @@ export function createPlaybackUI(
 
   // ── Continuous slider tooltip helpers ──────────────────
 
-  function showVolumeSliderTooltip(trackEl: HTMLDivElement | null) {
+  function showVolumeSliderTooltip(trackEl: HTMLDivElement | null, vertical = false) {
     if (!trackEl) return;
     const rect = trackEl.getBoundingClientRect();
-    volumeTooltipX = rect.left + volumeSliderValue * rect.width + 7;
-    volumeTooltipY = rect.top;
+    if (vertical) {
+      volumeTooltipX = rect.right + 8;
+      volumeTooltipY = rect.bottom - volumeSliderValue * rect.height + 22;
+    } else {
+      volumeTooltipX = rect.left + volumeSliderValue * rect.width + 7;
+      volumeTooltipY = rect.top;
+    }
     volumeTooltipVisible = true;
   }
   function hideVolumeSliderTooltip() {
     volumeTooltipVisible = false;
   }
-  function showSpeedSliderTooltip(trackEl: HTMLDivElement | null) {
+  function showSpeedSliderTooltip(trackEl: HTMLDivElement | null, vertical = false) {
     if (!trackEl) return;
     const rect = trackEl.getBoundingClientRect();
-    speedTooltipX = rect.left + speedSliderValue * rect.width + 7;
-    speedTooltipY = rect.top;
+    if (vertical) {
+      speedTooltipX = rect.right + 8;
+      speedTooltipY = rect.bottom - speedSliderValue * rect.height + 22;
+    } else {
+      speedTooltipX = rect.left + speedSliderValue * rect.width + 7;
+      speedTooltipY = rect.top;
+    }
     speedTooltipVisible = true;
   }
   function hideSpeedSliderTooltip() {
@@ -299,25 +309,32 @@ export function createPlaybackUI(
     speedSliderMode = speed;
   }
 
-  function startVolumeSliderDrag(e: PointerEvent, track: HTMLDivElement) {
+  function startVolumeSliderDrag(e: PointerEvent, track: HTMLDivElement, vertical = false) {
     e.preventDefault();
     track.setPointerCapture(e.pointerId);
     volumeDragging = true;
 
     volumeTooltipVisible = true;
 
-    function update(clientX: number) {
+    function update(clientX: number, clientY: number) {
       const rect = track.getBoundingClientRect();
-      const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      let pct: number;
+      if (vertical) {
+        pct = Math.max(0, Math.min(1, (rect.bottom - clientY) / rect.height));
+        volumeTooltipX = rect.right + 8;
+        volumeTooltipY = rect.bottom - volumeSliderValue * rect.height + 22;
+      } else {
+        pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        volumeTooltipX = rect.left + volumeSliderValue * rect.width + 7;
+        volumeTooltipY = rect.top;
+      }
       handleVolumeSliderChange(pct);
-      volumeTooltipX = rect.left + volumeSliderValue * rect.width + 7;
-      volumeTooltipY = rect.top;
     }
 
-    update(e.clientX);
+    update(e.clientX, e.clientY);
 
     function onMove(ev: PointerEvent) {
-      update(ev.clientX);
+      update(ev.clientX, ev.clientY);
     }
     function onUp(ev: PointerEvent) {
       track.releasePointerCapture(ev.pointerId);
@@ -331,25 +348,32 @@ export function createPlaybackUI(
     track.addEventListener("pointerup", onUp);
   }
 
-  function startSpeedSliderDrag(e: PointerEvent, track: HTMLDivElement) {
+  function startSpeedSliderDrag(e: PointerEvent, track: HTMLDivElement, vertical = false) {
     e.preventDefault();
     track.setPointerCapture(e.pointerId);
     speedDragging = true;
 
     speedTooltipVisible = true;
 
-    function update(clientX: number) {
+    function update(clientX: number, clientY: number) {
       const rect = track.getBoundingClientRect();
-      const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      let pct: number;
+      if (vertical) {
+        pct = Math.max(0, Math.min(1, (rect.bottom - clientY) / rect.height));
+        speedTooltipX = rect.right + 8;
+        speedTooltipY = rect.bottom - speedSliderValue * rect.height + 22;
+      } else {
+        pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        speedTooltipX = rect.left + speedSliderValue * rect.width + 7;
+        speedTooltipY = rect.top;
+      }
       handleSpeedSliderChange(pct);
-      speedTooltipX = rect.left + speedSliderValue * rect.width + 7;
-      speedTooltipY = rect.top;
     }
 
-    update(e.clientX);
+    update(e.clientX, e.clientY);
 
     function onMove(ev: PointerEvent) {
-      update(ev.clientX);
+      update(ev.clientX, ev.clientY);
     }
     function onUp(ev: PointerEvent) {
       track.releasePointerCapture(ev.pointerId);
