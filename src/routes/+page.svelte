@@ -2803,13 +2803,15 @@
                     {currentTimeDisplay()} / {durationDisplay}
                   </button>
                 </div>
-                <WaveformBar
-                  {filePath}
-                  {progress}
-                  {isScrubbing}
-                  editorOpen={tsEditMenu.visible}
-                  onScrubStart={startScrubbing}
-                />
+                <div class="audio-waveform-card">
+                  <WaveformBar
+                    {filePath}
+                    {progress}
+                    {isScrubbing}
+                    editorOpen={tsEditMenu.visible}
+                    onScrubStart={startScrubbing}
+                  />
+                </div>
                 <div class="audio-controls-row">
                 <div class="audio-controls-left">
                   <!-- After playback (loop) menu -->

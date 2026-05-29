@@ -2531,6 +2531,13 @@ main.fs-controls-hidden .thumbnail-bar.fullscreen {
   border-radius: 8px;
   padding: 12px;
 }
+.audio-waveform-card {
+  width: 100%;
+  background: var(--bg-secondary);
+  border: 0.5px solid var(--bg-border);
+  border-radius: 8px;
+  padding: 10px;
+}
 .audio-progress-playhead {
   position: absolute;
   top: 50%;
