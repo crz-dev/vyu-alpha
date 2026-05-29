@@ -2570,10 +2570,6 @@ main.fs-controls-hidden .thumbnail-bar.fullscreen {
   max-width: 580px;
 }
 
-.audio-album-large {
-  flex-shrink: 0;
-}
-
 .audio-controls-right {
   flex: 1;
   display: flex;
@@ -2612,6 +2608,29 @@ main.fs-controls-hidden .thumbnail-bar.fullscreen {
   height: auto;
   padding: 0;
   font-size: 12px;
+}
+
+.audio-waveform-row .audio-thumb-wrapper {
+  flex-shrink: 0;
+  height: 28px;
+  width: auto;
+  display: flex;
+  align-items: center;
+}
+.audio-waveform-row .audio-thumb-wrapper .album-cover {
+  width: auto;
+  height: 100%;
+  border-radius: 3px;
+}
+.audio-waveform-row .audio-thumb-wrapper .album-cover img {
+  width: auto;
+  height: 100%;
+  object-fit: contain;
+}
+.audio-waveform-row .audio-thumb-wrapper .album-cover.large {
+  width: auto;
+  height: 100%;
+  border-radius: 3px;
 }
 
 .audio-transport-row {

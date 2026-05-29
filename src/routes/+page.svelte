@@ -2804,14 +2804,6 @@
             />
             <div class="audio-controls-new">
               <div class="audio-controls-panel">
-                <div class="audio-album-large">
-                  <AlbumCover
-                    src={coverArtSrc || null}
-                    color={cdColor}
-                    onChange={changeAlbumCover}
-                    size="large"
-                  />
-                </div>
                 <div class="audio-controls-right">
                   <div class="audio-filename-row">
                     <div class="audio-menu-anchor">
@@ -3389,6 +3381,13 @@
                     <span class="audio-filename">{fileName}</span>
                   </div>
                   <div class="audio-waveform-row">
+                    <div class="audio-thumb-wrapper">
+                      <AlbumCover
+                        src={coverArtSrc || null}
+                        color={cdColor}
+                        onChange={changeAlbumCover}
+                      />
+                    </div>
                     <WaveformBar
                       {filePath}
                       {progress}
