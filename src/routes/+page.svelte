@@ -44,6 +44,10 @@
     saveSortMode,
     loadSortDesc,
     saveSortDesc,
+    loadAudioLayoutMode,
+    saveAudioLayoutMode,
+    loadAudioVisualizerMode,
+    saveAudioVisualizerMode,
   } from "$lib/services/storage";
   import {
     invokeDeleteFile,
@@ -158,6 +162,11 @@
   let feedbackOpen = $state(false);
   let tsMenuOpen = $state(false);
   let loopMenuOpen = $state(false);
+  let audioCustomizeOpen = $state(false);
+  let audioCustomizeBtnEl: HTMLButtonElement | null = $state(null);
+  let audioCustomizeMenuStyle = $state("");
+  let audioLayoutMode: "retro" | "modern" = $state(loadAudioLayoutMode());
+  let audioVisualizerMode: "waveform" | "progress" = $state(loadAudioVisualizerMode());
   let tsDeleteConfirm = $state(false);
   let volumeTrackEl: HTMLDivElement | null = $state(null);
   let speedTrackEl: HTMLDivElement | null = $state(null);
@@ -295,7 +304,8 @@
       editApplyConfirm ||
       editTransparencyConfirm ||
       corruptionWarning ||
-      sortMenuVisible,
+      sortMenuVisible ||
+      audioCustomizeOpen,
   );
   function currentTimeDisplay(): string {
     if (!timerShowRemaining) return formatTime(rawCurrentSecs);
@@ -1794,6 +1804,7 @@
       feedbackOpen = false;
       tsEditMenu.visible = false;
       tsMenuOpen = false;
+      audioCustomizeOpen = false;
       clipDeleteConfirm.visible = false;
       editApplyConfirm = false;
       editTransparencyConfirm = false;
@@ -2269,6 +2280,13 @@
       !target.closest(".app-dropdown-toggle")
     )
       appDropdownVisible = false;
+    if (
+      audioCustomizeOpen &&
+      !target.closest(".audio-customize-dropdown") &&
+      !target.closest(".audio-customize-btn") &&
+      !target.closest(".audio-customize-card")
+    )
+      audioCustomizeOpen = false;
   }
 
   // ── Lifecycle ──────────────────────────────────────────
@@ -2747,6 +2765,33 @@
           </div>
         {:else if fileSrc && isAudio}
           <div class="audio-wrapper" role="presentation">
+            <div class="audio-customize-card">
+              <button
+                class="audio-customize-btn tooltip-ctrl"
+                data-tooltip="Customize Player"
+                bind:this={audioCustomizeBtnEl}
+                onclick={() => {
+                  if (audioCustomizeOpen) {
+                    audioCustomizeOpen = false;
+                    return;
+                  }
+                  if (audioCustomizeBtnEl) {
+                    const rect = audioCustomizeBtnEl.getBoundingClientRect();
+                    const top = rect.bottom + 6;
+                    audioCustomizeMenuStyle = `position: fixed; left: ${rect.left}px; top: ${top}px;`;
+                  }
+                  audioCustomizeOpen = true;
+                }}
+                aria-label="Customize player"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="4" y1="8" x2="20" y2="8" />
+                  <circle cx="14" cy="8" r="2.5" fill="currentColor" stroke="none" />
+                  <line x1="4" y1="16" x2="20" y2="16" />
+                  <circle cx="8" cy="16" r="2.5" fill="currentColor" stroke="none" />
+                </svg>
+              </button>
+            </div>
             <audio
               bind:this={audioEl}
               src={fileSrc}
@@ -3191,6 +3236,87 @@
             </div>
             </div>
           </div>
+          {#if audioCustomizeOpen}
+            <div class="audio-customize-dropdown" style={audioCustomizeMenuStyle}>
+              <div class="audio-customize-header">
+                <span class="audio-customize-title">Customize Player</span>
+              </div>
+              <div class="audio-customize-separator"></div>
+              <!-- Layout toggle -->
+              <button
+                class="audio-customize-item"
+                class:active={audioLayoutMode === "retro"}
+                onclick={() => {
+                  audioLayoutMode = audioLayoutMode === "retro" ? "modern" : "retro";
+                  saveAudioLayoutMode(audioLayoutMode);
+                }}
+              >
+                {#if audioLayoutMode === "retro"}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                {:else}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                {/if}
+                <span class="audio-customize-label">{audioLayoutMode === "retro" ? "Retro Layout" : "Modern Layout"}</span>
+              </button>
+              <!-- Visualizer toggle -->
+              <button
+                class="audio-customize-item"
+                class:active={audioVisualizerMode === "waveform"}
+                onclick={() => {
+                  audioVisualizerMode = audioVisualizerMode === "waveform" ? "progress" : "waveform";
+                  saveAudioVisualizerMode(audioVisualizerMode);
+                }}
+              >
+                {#if audioVisualizerMode === "waveform"}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 12h2l3-8 4 16 4-12 3 6h4" />
+                  </svg>
+                {:else}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="4" y1="20" x2="4" y2="14" />
+                    <line x1="8" y1="20" x2="8" y2="10" />
+                    <line x1="12" y1="20" x2="12" y2="6" />
+                    <line x1="16" y1="20" x2="16" y2="10" />
+                    <line x1="20" y1="20" x2="20" y2="14" />
+                  </svg>
+                {/if}
+                <span class="audio-customize-label">{audioVisualizerMode === "waveform" ? "Waveform" : "Progress bar"}</span>
+              </button>
+              <div class="audio-customize-separator"></div>
+              <!-- Disk color -->
+              <button
+                class="audio-customize-item"
+                onclick={() => { audioCustomizeOpen = false; }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="13.5" cy="6.5" r="2.5" />
+                  <circle cx="17.5" cy="15.5" r="2.5" />
+                  <circle cx="8.5" cy="15.5" r="2.5" />
+                  <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.5-.75 1.5-1.5 0-.39-.15-.74-.39-1.04-.23-.29-.38-.63-.38-1.02 0-.83.67-1.5 1.5-1.5H16c3.31 0 6-2.69 6-6 0-5.5-4.5-9-10-9z" />
+                </svg>
+                <span class="audio-customize-label">Disk Color</span>
+              </button>
+              <!-- Audio image -->
+              <button
+                class="audio-customize-item"
+                onclick={() => { audioCustomizeOpen = false; }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 18V5l12-2v13" />
+                  <circle cx="6" cy="18" r="3" />
+                  <circle cx="18" cy="16" r="3" />
+                </svg>
+                <span class="audio-customize-label">Audio Image</span>
+              </button>
+            </div>
+          {/if}
         {:else if fileSrc && isPdf}
           <div
             class="pdf-viewer"

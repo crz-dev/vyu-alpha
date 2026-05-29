@@ -262,3 +262,27 @@ export function loadSortDesc(): boolean {
 export function saveSortDesc(desc: boolean): void {
   localStorage.setItem("vyu-sort-desc", desc ? "true" : "false");
 }
+
+// ── Audio customize ──────────────────────────────────────
+export type AudioLayoutMode = "retro" | "modern";
+export type AudioVisualizerMode = "waveform" | "progress";
+
+export function loadAudioLayoutMode(): AudioLayoutMode {
+  const v = localStorage.getItem("vyu-audio-layout-mode");
+  if (v === "retro" || v === "modern") return v;
+  return "retro";
+}
+
+export function saveAudioLayoutMode(mode: AudioLayoutMode): void {
+  localStorage.setItem("vyu-audio-layout-mode", mode);
+}
+
+export function loadAudioVisualizerMode(): AudioVisualizerMode {
+  const v = localStorage.getItem("vyu-audio-visualizer-mode");
+  if (v === "waveform" || v === "progress") return v;
+  return "waveform";
+}
+
+export function saveAudioVisualizerMode(mode: AudioVisualizerMode): void {
+  localStorage.setItem("vyu-audio-visualizer-mode", mode);
+}
