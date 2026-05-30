@@ -2938,6 +2938,15 @@ main.fs-controls-hidden .thumbnail-bar.fullscreen {
   justify-content: center;
   line-height: 0;
 }
+.audio-right-controls-card {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-secondary);
+  border: 0.5px solid var(--bg-border);
+  border-radius: 6px;
+  padding: 2px;
+}
 .audio-transport-btn {
   background: none;
   border: none;

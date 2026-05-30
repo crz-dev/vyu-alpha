@@ -2963,6 +2963,7 @@
                     </div>
                     <div class="controls-spacer"></div>
                     <div class="audio-controls-right">
+                      <div class="audio-right-controls-card">
                     <!-- Volume control: button + vertical slider -->
                     <div
                       class="volume-control"
@@ -3168,7 +3169,10 @@
                       {/if}
                     </div>
                     <!-- After playback (loop) menu -->
-                    <div class="loop-menu-anchor" style="position:relative;">
+                    <div class="loop-menu-anchor" style="position:relative;"
+                      onmouseenter={() => { loopMenuOpen = true; }}
+                      onmouseleave={() => { loopMenuOpen = false; }}
+                    >
                       <button
                         class="retro-slider-btn tooltip-ctrl"
                         class:loop-menu-open={loopMenuOpen}
@@ -3181,9 +3185,6 @@
                               : loopMode === "next"
                                 ? "Play next"
                                 : "Shuffle"}
-                        onclick={() => {
-                          loopMenuOpen = !loopMenuOpen;
-                        }}
                         aria-label="loop mode menu"
                       >
                         {#if loopMode === "loop"}
@@ -3254,15 +3255,14 @@
                       {/if}
                     </div>
                     <!-- Markers menu -->
-                    <div class="ts-menu-anchor" style="position:relative;">
+                    <div class="ts-menu-anchor" style="position:relative;"
+                      onmouseenter={() => { tsMenuOpen = true; tsDeleteConfirm = false; }}
+                      onmouseleave={() => { tsMenuOpen = false; }}
+                    >
                       <button
                         class="retro-slider-btn tooltip-ctrl"
                         data-tooltip="Marker menu"
                         class:ts-menu-open={tsMenuOpen}
-                        onclick={() => {
-                          tsMenuOpen = !tsMenuOpen;
-                          tsDeleteConfirm = false;
-                        }}
                         aria-label="markers menu"
                       >
                         <svg class="ts-drop-arrow-icon" width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -3356,6 +3356,7 @@
                         </div>
                       {/if}
                     </div>
+                      </div>
                     </div>
                   </div>
                 </div>
