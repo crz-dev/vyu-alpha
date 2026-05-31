@@ -2902,7 +2902,8 @@
                     <div class="retro-transport-group">
                       <div class="audio-transport-card">
                         <button
-                          class="retro-transport-btn"
+                          class="retro-transport-btn tooltip-ctrl"
+                          data-tooltip="Previous track"
                           onclick={handlePrevClick}
                           aria-label="Previous track"
                         >
@@ -2913,7 +2914,8 @@
                       </div>
                       <div class="audio-transport-card">
                         <button
-                          class="retro-transport-btn is-playpause"
+                          class="retro-transport-btn is-playpause tooltip-ctrl"
+                          data-tooltip={playing ? "Pause track" : "Play track"}
                           onclick={togglePlay}
                           aria-label={playing ? "Pause" : "Play"}
                         >
@@ -2933,7 +2935,8 @@
                       </div>
                       <div class="audio-transport-card">
                         <button
-                          class="retro-transport-btn"
+                          class="retro-transport-btn tooltip-ctrl"
+                          data-tooltip="Next track"
                           onclick={handleNextClick}
                           aria-label="Next track"
                         >
@@ -3566,7 +3569,8 @@
                 <div class="audio-transport-cards-container">
                   <div class="audio-transport-card">
                     <button
-                      class="audio-transport-btn"
+                      class="audio-transport-btn tooltip-ctrl"
+                      data-tooltip="Previous track"
                       onclick={handlePrevClick}
                       aria-label="Previous track"
                     >
@@ -3577,7 +3581,8 @@
                   </div>
                   <div class="audio-transport-card">
                     <button
-                      class="audio-transport-btn is-playpause"
+                      class="audio-transport-btn is-playpause tooltip-ctrl"
+                      data-tooltip={playing ? "Pause track" : "Play track"}
                       onclick={togglePlay}
                       aria-label={playing ? "Pause" : "Play"}
                     >
@@ -3597,7 +3602,8 @@
                   </div>
                   <div class="audio-transport-card">
                     <button
-                      class="audio-transport-btn"
+                      class="audio-transport-btn tooltip-ctrl"
+                      data-tooltip="Next track"
                       onclick={handleNextClick}
                       aria-label="Next track"
                     >
