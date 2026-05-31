@@ -2906,6 +2906,7 @@ main.fs-controls-hidden .thumbnail-bar.fullscreen {
   display: flex;
   align-items: center;
   gap: 2px;
+  height: 34px;
   background: var(--bg-secondary);
   border: 0.5px solid var(--bg-border);
   border-radius: 6px;
