@@ -386,6 +386,53 @@ fn generate_ffmpeg_image_frame(path: &str, thumb_path: &Path) -> Result<Option<S
     }
 }
 
+/// Tries to extract embedded cover art from an audio file and write it to `thumb_path`.
+/// Returns `Ok(Some(path))` if cover art was found, `Ok(None)` if not, or `Err` on ffmpeg failure.
+fn try_extract_audio_cover_art(path: &str, thumb_path: &Path) -> Result<Option<String>, String> {
+    let mut child = Command::new("ffmpeg")
+        .creation_flags(CREATE_NO_WINDOW)
+        .args([
+            "-y", "-hide_banner", "-loglevel", "error",
+            "-i", path,
+            "-an",
+            "-c:v", "copy",
+            "-q:v", "4",
+            &thumb_path.to_string_lossy(),
+        ])
+        .spawn()
+        .map_err(|e| format!("Failed to spawn ffmpeg: {e}"))?;
+
+    let start = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                if status.success()
+                    && thumb_path.exists()
+                    && thumb_path.metadata().map(|m| m.len()).unwrap_or(0) > 0
+                {
+                    return Ok(Some(thumb_path.to_string_lossy().to_string()));
+                }
+                // No cover art stream or empty output — clean up
+                let _ = fs::remove_file(thumb_path);
+                return Ok(None);
+            }
+            Ok(None) => {
+                if start.elapsed() > FFMPEG_THUMB_TIMEOUT {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    let _ = fs::remove_file(thumb_path);
+                    return Ok(None);
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            Err(e) => {
+                let _ = fs::remove_file(thumb_path);
+                return Err(format!("ffmpeg error: {e}"));
+            }
+        }
+    }
+}
+
 fn generate_audio_waveform(path: &str, thumb_path: &Path) -> Result<Option<String>, String> {
     let mut child = Command::new("ffmpeg")
         .creation_flags(CREATE_NO_WINDOW)
@@ -556,7 +603,11 @@ async fn get_thumbnail(
             } else if is_ffmpeg_image || is_raw {
                 generate_ffmpeg_image_frame(&path_c, &thumb_path_c)
             } else if is_audio {
-                generate_audio_waveform(&path_c, &thumb_path_c)
+                // Try embedded cover art first, fall back to waveform
+                match try_extract_audio_cover_art(&path_c, &thumb_path_c) {
+                    Ok(Some(_)) => Ok(Some(thumb_path_c.to_string_lossy().to_string())),
+                    _ => generate_audio_waveform(&path_c, &thumb_path_c),
+                }
             } else {
                 return Err("Unsupported media type for thumbnail".into());
             };
