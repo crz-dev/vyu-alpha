@@ -41,7 +41,6 @@
     { id: "editor", label: "Editor" },
     { id: "process", label: "Process" },
     { id: "library", label: "Library" },
-    { id: "cache", label: "Cache" },
     { id: "system", label: "System" },
     { id: "keybinds", label: "Keybinds" },
     { id: "debug", label: "Debug" },
@@ -54,7 +53,6 @@
     editor: "Configure editing and export preferences.",
     process: "Set processing and encoding options.",
     library: "Manage your media library and history.",
-    cache: "Manage cached data for thumbnails and previews.",
     system: "System-level app behavior and updates.",
     keybinds: "View and customize keyboard shortcuts.",
     debug: "Diagnostic tools and developer options.",
@@ -1831,89 +1829,6 @@
             </div>
           </div>
 
-          <!-- Cache -->
-          <div
-            id="settings-section-cache"
-            class="settings-section"
-            class:flash={flashId === "cache"}
-          >
-            <p class="settings-section-header">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                ><rect x="2" y="2" width="20" height="8" rx="2" ry="2" /><rect
-                  x="2"
-                  y="14"
-                  width="20"
-                  height="8"
-                  rx="2"
-                  ry="2"
-                /><circle cx="6" cy="6" r="2" /><circle
-                  cx="6"
-                  cy="18"
-                  r="2"
-                /></svg
-              >
-              Cache
-            </p>
-            <div class="settings-row">
-              <div class="settings-label-col">
-                <svg
-                  class="settings-row-icon"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  ><polyline points="3 6 5 6 21 6" /><path
-                    d="M19 6l-1 14H6L5 6"
-                  /><path d="M10 11v6" /><path d="M14 11v6" /><path
-                    d="M9 6V4h6v2"
-                  /></svg
-                >
-                <div class="settings-label-text">
-                  <span class="settings-label">Thumbnail Cache</span>
-                  <span class="settings-hint"
-                    >{thumbnailCacheSizeText} stored on disk</span
-                  >
-                </div>
-              </div>
-              <div class="settings-control">
-                <button
-                  class="settings-action-btn red"
-                  onclick={handleClearThumbnailCache}
-                  disabled={clearingThumbnailCache}
-                >
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    ><polyline points="3 6 5 6 21 6" /><path
-                      d="M19 6l-1 14H6L5 6"
-                    /><path d="M10 11v6" /><path d="M14 11v6" /><path
-                      d="M9 6V4h6v2"
-                    /></svg
-                  >
-                  {clearingThumbnailCache ? "Clearing…" : "Clear Cache"}
-                </button>
-              </div>
-            </div>
-          </div>
-
           <!-- System -->
           <div
             id="settings-section-system"
@@ -2141,11 +2056,17 @@
                 >
                 <div class="settings-label-text">
                   <span class="settings-label">Clear Cache</span>
-                  <span class="settings-hint">Remove temporary media data</span>
+                  <span class="settings-hint"
+                    >{thumbnailCacheSizeText} stored on disk</span
+                  >
                 </div>
               </div>
               <div class="settings-control">
-                <button class="settings-action-btn yellow">
+                <button
+                  class="settings-action-btn yellow"
+                  onclick={handleClearThumbnailCache}
+                  disabled={clearingThumbnailCache}
+                >
                   <svg
                     width="12"
                     height="12"
@@ -2161,7 +2082,7 @@
                       d="M9 6V4h6v2"
                     /></svg
                   >
-                  Clear
+                  {clearingThumbnailCache ? "Clearing…" : "Clear Cache"}
                 </button>
               </div>
             </div>
