@@ -3350,10 +3350,10 @@
                           </button>
                         </div>
                       {/if}
-                    </div>
-                      </div>
-                    </div>
                   </div>
+                  </div>
+                </div>
+              </div>
                 </div>
               </div>
             </div>
@@ -3407,6 +3407,7 @@
               </div>
               <div class="audio-modern-controls-row">
                 <div class="audio-controls-left">
+                  <div class="audio-left-controls-card">
                   <!-- After playback (loop) menu -->
                   <div class="loop-menu-anchor" style="position:relative;">
                     <button
@@ -3572,6 +3573,7 @@
                       </div>
                     {/if}
                   </div>
+                  </div>
                 </div>
                 <!-- Transport buttons: prev, play/pause, next — centered between left/right groups -->
                 <div class="audio-transport-cards-container">
@@ -3623,6 +3625,7 @@
                 </div>
                 <div class="controls-spacer"></div>
                 <div class="audio-controls-right">
+                  <div class="audio-right-controls-card">
                   <!-- Playback speed control -->
                   <div
                     class="speed-control"
@@ -3816,6 +3819,7 @@
                         </button>
                       </div>
                     {/if}
+                  </div>
                   </div>
                 </div>
               </div>

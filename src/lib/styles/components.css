@@ -2716,6 +2716,7 @@ main.fs-controls-hidden .thumbnail-bar.fullscreen {
   width: 100%;
   display: flex;
   flex-direction: column;
+  align-items: center;
   overflow: visible;
 }
 
@@ -2900,6 +2901,7 @@ main.fs-controls-hidden .thumbnail-bar.fullscreen {
   justify-content: center;
   line-height: 0;
 }
+.audio-left-controls-card,
 .audio-right-controls-card {
   display: flex;
   align-items: center;
