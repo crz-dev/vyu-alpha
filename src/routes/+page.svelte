@@ -2874,17 +2874,6 @@
                 color={cdColor}
                 onCenterClick={() => (showCdColorPicker = !showCdColorPicker)}
               />
-              <CdColorPicker
-                visible={showCdColorPicker}
-                onClose={() => (showCdColorPicker = false)}
-                activeIndex={cdColorIndex}
-                onPick={(idx) => {
-                  cdColorIndex = idx;
-                  cdColor = CD_COLORS[idx];
-                  if (filePath) saveCdColor(filePath, idx);
-                  showCdColorPicker = false;
-                }}
-              />
               <div class="audio-controls-card">
               <div class="audio-controls-new">
                 <div class="audio-thumb-wrapper">
@@ -3845,6 +3834,17 @@
             </div>
             {/key}
             </div>
+            <CdColorPicker
+              visible={showCdColorPicker}
+              onClose={() => (showCdColorPicker = false)}
+              activeIndex={cdColorIndex}
+              onPick={(idx) => {
+                cdColorIndex = idx;
+                cdColor = CD_COLORS[idx];
+                if (filePath) saveCdColor(filePath, idx);
+                showCdColorPicker = false;
+              }}
+            />
           </div>
 
         {:else if fileSrc && isPdf}
