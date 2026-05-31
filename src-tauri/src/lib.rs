@@ -2,6 +2,8 @@ use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -203,6 +205,7 @@ fn unique_path(path: PathBuf) -> PathBuf {
 
 fn ffmpeg_extract_segment(input: &Path, output: &Path, start: f64, end: f64) -> Result<(), String> {
     let output_run = Command::new("ffmpeg")
+        .creation_flags(CREATE_NO_WINDOW)
         .args([
             "-y",
             "-hide_banner",
@@ -226,6 +229,7 @@ fn ffmpeg_extract_segment(input: &Path, output: &Path, start: f64, end: f64) -> 
     }
 
     let fallback = Command::new("ffmpeg")
+        .creation_flags(CREATE_NO_WINDOW)
         .args([
             "-y",
             "-hide_banner",
@@ -291,8 +295,14 @@ const DOCUMENT_EXTS_RUST: &[&str] = &["pdf"];
 const FFMPEG_IMAGE_EXTS_RUST: &[&str] = &["gif", "psd", "jxl", "heic", "heif"];
 const FFMPEG_THUMB_TIMEOUT: Duration = Duration::from_secs(8);
 
+/// Prevents console windows from appearing when spawning ffmpeg/ffprobe/winget/powershell
+/// from a GUI (windows_subsystem = "windows") application.
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
 fn generate_video_frame(path: &str, thumb_path: &Path) -> Result<Option<String>, String> {
     let mut child = Command::new("ffmpeg")
+        .creation_flags(CREATE_NO_WINDOW)
         .args([
             "-y", "-hide_banner", "-loglevel", "error",
             "-ss", "1",
@@ -337,6 +347,7 @@ fn generate_video_frame(path: &str, thumb_path: &Path) -> Result<Option<String>,
 /// single-frame images have only frame at position 0.
 fn generate_ffmpeg_image_frame(path: &str, thumb_path: &Path) -> Result<Option<String>, String> {
     let mut child = Command::new("ffmpeg")
+        .creation_flags(CREATE_NO_WINDOW)
         .args([
             "-y", "-hide_banner", "-loglevel", "error",
             "-i", path,
@@ -377,6 +388,7 @@ fn generate_ffmpeg_image_frame(path: &str, thumb_path: &Path) -> Result<Option<S
 
 fn generate_audio_waveform(path: &str, thumb_path: &Path) -> Result<Option<String>, String> {
     let mut child = Command::new("ffmpeg")
+        .creation_flags(CREATE_NO_WINDOW)
         .args([
             "-y", "-hide_banner", "-loglevel", "error",
             "-i", path,
@@ -677,6 +689,7 @@ async fn prepare_display_image(
         if is_ffmpeg {
             // Use ffmpeg to decode PSD, JXL, etc. to PNG
             let status = Command::new("ffmpeg")
+                .creation_flags(CREATE_NO_WINDOW)
                 .args([
                     "-y", "-hide_banner", "-loglevel", "error",
                     "-i", &path_clone,
@@ -765,6 +778,7 @@ async fn prepare_video_display(
     tauri::async_runtime::spawn_blocking(move || {
         // Remux TS/M2TS → MP4 (no re-encode, just container swap)
         let status = Command::new("ffmpeg")
+            .creation_flags(CREATE_NO_WINDOW)
             .args([
                 "-y", "-hide_banner", "-loglevel", "error",
                 "-i", &path_clone,
@@ -829,6 +843,7 @@ async fn extract_cover_art(
 
     let result = tauri::async_runtime::spawn_blocking(move || -> Result<Option<PathBuf>, String> {
         let mut child = Command::new("ffmpeg")
+            .creation_flags(CREATE_NO_WINDOW)
             .args([
                 "-y", "-hide_banner", "-loglevel", "error",
                 "-i", &path_c,
@@ -911,6 +926,7 @@ fn write_cover_art(audio_path: String, image_path: String) -> Result<String, Str
         );
 
     let status = Command::new("ffmpeg")
+        .creation_flags(CREATE_NO_WINDOW)
         .args([
             "-y", "-hide_banner", "-loglevel", "error",
             "-i", &audio_path,
@@ -1013,6 +1029,7 @@ fn get_media_properties(path: String) -> Result<MediaProperties, String> {
     }
 
     let output = Command::new("ffprobe")
+        .creation_flags(CREATE_NO_WINDOW)
         .args(["-v", "error", "-print_format", "json", "-show_streams", "-show_format", &path])
         .output()
         .map_err(|e| format!("ffprobe not available: {e}"))?;
@@ -1043,7 +1060,7 @@ fn get_media_properties(path: String) -> Result<MediaProperties, String> {
 
 #[tauri::command]
 fn check_ffprobe() -> bool {
-    Command::new("ffprobe").arg("-version").output().map(|o| o.status.success()).unwrap_or(false)
+    Command::new("ffprobe").creation_flags(CREATE_NO_WINDOW).arg("-version").output().map(|o| o.status.success()).unwrap_or(false)
 }
 
 #[tauri::command]
@@ -1051,6 +1068,7 @@ fn install_ffmpeg() -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         Command::new("winget")
+            .creation_flags(CREATE_NO_WINDOW)
             .args(["install", "--id", "Gyan.FFmpeg", "--accept-package-agreements", "--accept-source-agreements"])
             .spawn()
             .map_err(|e| format!("Failed to start FFmpeg install: {e}"))?;
@@ -1102,6 +1120,7 @@ fn export_cropped_media(
     }
 
     let output = Command::new("ffmpeg")
+        .creation_flags(CREATE_NO_WINDOW)
         .args([
             "-y",
             "-hide_banner",
@@ -1123,6 +1142,7 @@ fn export_cropped_media(
     }
 
     let fallback = Command::new("ffmpeg")
+        .creation_flags(CREATE_NO_WINDOW)
         .args([
             "-y",
             "-hide_banner",
@@ -1243,6 +1263,7 @@ fn export_edited_media(
     };
 
     let output = Command::new("ffmpeg")
+        .creation_flags(CREATE_NO_WINDOW)
         .args([
             "-y",
             "-hide_banner",
@@ -1264,6 +1285,7 @@ fn export_edited_media(
     }
 
     let fallback = Command::new("ffmpeg")
+        .creation_flags(CREATE_NO_WINDOW)
         .args([
             "-y",
             "-hide_banner",
@@ -1294,6 +1316,7 @@ fn copy_image_to_clipboard(path: String) -> Result<(), String> {
         // Decode RAW to temp PNG via ffmpeg, then load with image crate
         let temp_png = std::env::temp_dir().join(format!("vyu_clipboard_{}.png", hash_path(&path)));
         Command::new("ffmpeg")
+            .creation_flags(CREATE_NO_WINDOW)
             .args(["-y", "-hide_banner", "-loglevel", "error", "-i", &path, temp_png.to_str().unwrap()])
             .status()
             .map_err(|e| format!("Failed to run ffmpeg for RAW clipboard: {e}"))?;
@@ -1324,6 +1347,7 @@ fn get_clipboard_file_path() -> Option<String> {
     #[cfg(target_os = "windows")]
     {
         let output = Command::new("powershell")
+            .creation_flags(CREATE_NO_WINDOW)
             .args([
                 "-NoProfile",
                 "-Command",
@@ -1411,6 +1435,7 @@ fn check_media_integrity(path: String) -> Result<MediaIntegrity, String> {
         }
     } else if is_video || is_audio || is_ffmpeg_image || is_raw {
         let output = Command::new("ffprobe")
+            .creation_flags(CREATE_NO_WINDOW)
             .args([
                 "-v",
                 "error",
@@ -1587,6 +1612,7 @@ fn fix_image(input: &Path, output: &Path) -> Result<(), String> {
 fn fix_video_audio(input: &Path, output: &Path) -> Result<(), String> {
     // First try: stream copy (remux) — fast and lossless
     let remux = Command::new("ffmpeg")
+        .creation_flags(CREATE_NO_WINDOW)
         .args([
             "-y",
             "-hide_banner",
@@ -1609,6 +1635,7 @@ fn fix_video_audio(input: &Path, output: &Path) -> Result<(), String> {
 
     // Second try: full re-encode (slower but can fix more corruption)
     let reencode = Command::new("ffmpeg")
+        .creation_flags(CREATE_NO_WINDOW)
         .args([
             "-y",
             "-hide_banner",
@@ -1901,6 +1928,7 @@ fn convert_media(
     args.push(output_path.to_string_lossy().to_string());
 
     let output = Command::new("ffmpeg")
+        .creation_flags(CREATE_NO_WINDOW)
         .args(&args)
         .output()
         .map_err(|e| format!("Failed to start ffmpeg: {e}"))?;
@@ -2063,6 +2091,7 @@ fn process_video_clips(
             let merged_name = format!("{}_clips_merged.{}", base_name, ext);
             let merged_output = unique_path(out_dir.join(merged_name));
             let merge_out = Command::new("ffmpeg")
+                .creation_flags(CREATE_NO_WINDOW)
                 .args(["-y", "-hide_banner", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", &list_file.to_string_lossy(), "-c", "copy", &merged_output.to_string_lossy()])
                 .output()
                 .map_err(|e| format!("Failed to run ffmpeg merge: {e}"))?;
