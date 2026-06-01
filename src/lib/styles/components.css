@@ -1332,7 +1332,10 @@ main:not(.fullscreen).thumbnail-bar-open .video-inner video {
 .thumb-gen-toast {
   position: absolute;
   top: -36px;
-  left: 8px;
+  left: 0;
+  right: 0;
+  width: fit-content;
+  margin: 0 auto;
   z-index: 95;
   background: var(--bg-secondary);
   border: 0.5px solid var(--bg-border);

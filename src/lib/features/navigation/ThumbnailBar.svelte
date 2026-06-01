@@ -91,13 +91,13 @@
       return;
     }
 
-    // Build center-outward order: current, +1, -1, +2, -2, …
+    // Build center-outward order: current, -1, +1, -2, +2, …
     const order: number[] = [currentIndex];
     let l = currentIndex - 1;
     let r = currentIndex + 1;
     while (l >= 0 || r < fileList.length) {
-      if (r < fileList.length) order.push(r++);
       if (l >= 0) order.push(l--);
+      if (r < fileList.length) order.push(r++);
     }
 
     // Keep all items — will be fetched in center-outward order
