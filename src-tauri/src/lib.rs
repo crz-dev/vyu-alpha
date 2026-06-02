@@ -14,6 +14,7 @@ use tauri::{Listener, Manager, PhysicalPosition, PhysicalSize, Position, Size, W
 use tokio::sync::Semaphore;
 use windows::core::w;
 use windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID;
+use windows::Win32::System::Com::{CoInitializeEx, CoUninitialize, COINIT_APARTMENTTHREADED};
 use xxhash_rust::xxh3::xxh3_64;
 
 #[derive(serde::Serialize)]
@@ -1752,6 +1753,11 @@ pub fn run() {
             copy_image_to_clipboard,
             check_media_integrity,
             fix_media,
+            print_file,
+            send_bluetooth,
+            set_wallpaper,
+            set_lock_screen,
+            create_desktop_shortcut,
         ])
         .setup(|app| {
             // Set AppUserModelID so Task Manager groups all WebView2 children under "Vyu"
@@ -2167,4 +2173,201 @@ fn process_video_clips(
         deleted_original,
         output_dir: out_dir.to_string_lossy().to_string(),
     })
+}
+
+// ── Share: Send to ──────────────────────────────────────────────────────────
+
+#[tauri::command]
+fn print_file(path: String) -> Result<(), String> {
+    let p = PathBuf::from(&path);
+    if !p.exists() {
+        return Err("File does not exist".into());
+    }
+    #[cfg(target_os = "windows")]
+    {
+        use windows::Win32::UI::Shell::ShellExecuteW;
+        use windows::Win32::UI::WindowsAndMessaging::SW_SHOWDEFAULT;
+        let wide_path = windows::core::HSTRING::from(&path);
+        unsafe {
+            let hinst = ShellExecuteW(None, w!("print"), &wide_path, None, None, SW_SHOWDEFAULT);
+            if hinst.is_invalid() {
+                return Err("Failed to open print dialog".into());
+            }
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        return Err("Printing is only supported on Windows.".into());
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn send_bluetooth(path: String) -> Result<(), String> {
+    let p = PathBuf::from(&path);
+    if !p.exists() {
+        return Err("File does not exist".into());
+    }
+    #[cfg(target_os = "windows")]
+    {
+        Command::new("fsquirt.exe")
+            .creation_flags(CREATE_NO_WINDOW)
+            .args(["-send", &path])
+            .spawn()
+            .map_err(|e| format!("Failed to launch Bluetooth wizard: {e}"))?;
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        return Err("Bluetooth transfer is only supported on Windows.".into());
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn set_wallpaper(path: String) -> Result<(), String> {
+    let p = PathBuf::from(&path);
+    if !p.exists() {
+        return Err("File does not exist".into());
+    }
+    #[cfg(target_os = "windows")]
+    {
+        use windows::Win32::UI::WindowsAndMessaging::{
+            SystemParametersInfoW, SPI_SETDESKWALLPAPER, SPIF_UPDATEINIFILE, SPIF_SENDCHANGE,
+        };
+        let wide_path = windows::core::HSTRING::from(&path);
+        unsafe {
+            SystemParametersInfoW(
+                SPI_SETDESKWALLPAPER,
+                0,
+                Some(wide_path.as_ptr() as _),
+                SPIF_UPDATEINIFILE | SPIF_SENDCHANGE,
+            )
+            .map_err(|e| format!("SystemParametersInfoW failed: {e}"))?;
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        return Err("Setting wallpaper is only supported on Windows.".into());
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn set_lock_screen(path: String) -> Result<(), String> {
+    let p = PathBuf::from(&path);
+    if !p.exists() {
+        return Err("File does not exist".into());
+    }
+    #[cfg(target_os = "windows")]
+    {
+        use windows::Win32::System::Registry::{
+            RegOpenKeyExW, RegSetValueExW, HKEY_CURRENT_USER, KEY_SET_VALUE, REG_SZ,
+        };
+
+        // Copy image to local app data so it persists
+        let local_app = std::env::var("LOCALAPPDATA").unwrap_or_else(|_| {
+            std::env::var("USERPROFILE").unwrap_or_default() + "\\AppData\\Local"
+        });
+        let wallpapers_dir = PathBuf::from(&local_app).join("vyu").join("wallpapers");
+        fs::create_dir_all(&wallpapers_dir)
+            .map_err(|e| format!("Failed to create wallpapers dir: {e}"))?;
+        let ext = p.extension().and_then(|e| e.to_str()).unwrap_or("png");
+        let dest = wallpapers_dir.join(format!("lockscreen.{ext}"));
+        fs::copy(&p, &dest).map_err(|e| format!("Failed to copy image: {e}"))?;
+
+        // Write the path into the Lock Screen registry key
+        let wide_dest = windows::core::HSTRING::from(dest.to_string_lossy().to_string());
+        unsafe {
+            let mut key = Default::default();
+            let open_err = RegOpenKeyExW(
+                HKEY_CURRENT_USER,
+                w!(r"Software\Microsoft\Windows\CurrentVersion\Lock Screen"),
+                0,
+                KEY_SET_VALUE,
+                &mut key,
+            );
+            if open_err.0 != 0 {
+                return Err(format!("Failed to open registry key: error {:#x}", open_err.0));
+            }
+
+            let data_bytes =
+                std::slice::from_raw_parts(wide_dest.as_ptr() as *const u8, wide_dest.len() * 2);
+            let set_err = RegSetValueExW(key, w!("WallPaper"), 0, REG_SZ, Some(data_bytes));
+            if set_err.0 != 0 {
+                return Err(format!("Failed to set registry value: error {:#x}", set_err.0));
+            }
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        return Err("Setting lock screen is only supported on Windows.".into());
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn create_desktop_shortcut(path: String) -> Result<(), String> {
+    let p = PathBuf::from(&path);
+    if !p.exists() {
+        return Err("File does not exist".into());
+    }
+    #[cfg(target_os = "windows")]
+    {
+        use windows::core::Interface;
+        use windows::Win32::System::Com::{CoCreateInstance, CLSCTX_INPROC_SERVER, IPersistFile};
+        use windows::Win32::UI::Shell::{IShellLinkW, ShellLink};
+
+        unsafe {
+            let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
+
+            let shell_link: IShellLinkW = CoCreateInstance(&ShellLink, None, CLSCTX_INPROC_SERVER)
+                .map_err(|e| format!("Failed to create IShellLink: {e}"))?;
+
+            let wide_path = windows::core::HSTRING::from(&path);
+            shell_link
+                .SetPath(&wide_path)
+                .map_err(|e| format!("SetPath failed: {e}"))?;
+            shell_link
+                .SetDescription(w!("Shortcut created by Vyu"))
+                .map_err(|e| format!("SetDescription failed: {e}"))?;
+
+            let persist: IPersistFile = shell_link
+                .cast()
+                .map_err(|e| format!("IPersistFile cast failed: {e}"))?;
+
+            // Build .lnk path on the Desktop
+            let user_profile = std::env::var("USERPROFILE").unwrap_or_default();
+            let file_stem = p.file_stem().and_then(|s| s.to_str()).unwrap_or("shortcut");
+            let lnk_path = format!("{user_profile}\\Desktop\\{file_stem}.lnk");
+
+            // Handle duplicates by appending a counter
+            let final_lnk = if Path::new(&lnk_path).exists() {
+                let mut counter = 2u32;
+                loop {
+                    let candidate = format!("{user_profile}\\Desktop\\{file_stem} ({counter}).lnk");
+                    if !Path::new(&candidate).exists() {
+                        break candidate;
+                    }
+                    counter += 1;
+                    if counter > 999 {
+                        return Err("Too many duplicates on Desktop".into());
+                    }
+                }
+            } else {
+                lnk_path
+            };
+
+            let wide_lnk = windows::core::HSTRING::from(&final_lnk);
+            persist
+                .Save(&wide_lnk, true)
+                .map_err(|e| format!("IPersistFile::Save failed: {e}"))?;
+
+            CoUninitialize();
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        return Err("Creating shortcuts is only supported on Windows.".into());
+    }
+    Ok(())
 }

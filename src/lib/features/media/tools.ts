@@ -387,3 +387,25 @@ export async function invokeExportEditedMedia(
     height,
   });
 }
+
+// ── Share: Send to ──────────────────────────────────────────────────────────
+
+export async function invokePrintFile(path: string): Promise<void> {
+  return invoke("print_file", { path });
+}
+
+export async function invokeSendBluetooth(path: string): Promise<void> {
+  return invoke("send_bluetooth", { path });
+}
+
+export async function invokeSetWallpaper(path: string): Promise<void> {
+  return invoke("set_wallpaper", { path });
+}
+
+export async function invokeSetLockScreen(path: string): Promise<void> {
+  return invoke("set_lock_screen", { path });
+}
+
+export async function invokeCreateDesktopShortcut(path: string): Promise<void> {
+  return invoke("create_desktop_shortcut", { path });
+}

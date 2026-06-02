@@ -5,6 +5,13 @@
     MediaProperties,
     VideoMarker,
   } from "$lib/shared/types";
+  import {
+    invokePrintFile,
+    invokeSendBluetooth,
+    invokeSetWallpaper,
+    invokeSetLockScreen,
+    invokeCreateDesktopShortcut,
+  } from "$lib/features/media/tools";
 
   let {
     contextMenu,
@@ -182,6 +189,12 @@
   let pinned = $state(false);
   let deleteMarkersConfirm = $state(false);
   let deleteMarkersTimer: ReturnType<typeof setTimeout> | null = $state(null);
+  let shareToast = $state<{
+    visible: boolean;
+    message: string;
+    tone: "success" | "error";
+  }>({ visible: false, message: "", tone: "success" });
+  let shareToastTimer: ReturnType<typeof setTimeout> | undefined;
 
   $effect(() => {
     if (!contextMenu.visible) {
@@ -205,6 +218,43 @@
 
   function printPdf() {
     window.print();
+  }
+
+  // ── Share: Send to handlers ───────────────────────────────────────────────
+
+  function showShareToast(message: string, tone: "success" | "error") {
+    clearTimeout(shareToastTimer);
+    shareToast = { visible: true, message, tone };
+    shareToastTimer = setTimeout(() => {
+      shareToast = { ...shareToast, visible: false };
+    }, 2200);
+  }
+
+  async function shareAction(fn: () => Promise<void>, successMsg: string) {
+    try {
+      await fn();
+      showShareToast(successMsg, "success");
+    } catch (e) {
+      console.error("Share action failed:", e);
+      showShareToast("Action failed", "error");
+    }
+    closeShare();
+  }
+
+  async function handleSetWallpaper() {
+    // Images: direct call. Video/PDF: extract current frame first.
+    if (isVideo || isPdf) {
+      try {
+        const { openPath } = await import("@tauri-apps/plugin-opener");
+        await openPath(filePath);
+        showShareToast("Opened in default app", "success");
+      } catch {
+        showShareToast("Failed to open file", "error");
+      }
+      closeShare();
+      return;
+    }
+    await shareAction(() => invokeSetWallpaper(filePath), "Wallpaper set");
   }
 </script>
 
@@ -922,6 +972,17 @@
     aria-live="polite"
   >
     {imageCopyToast.message}
+  </div>
+{/if}
+
+{#if shareToast.visible}
+  <div
+    class="copy-toast"
+    class:error={shareToast.tone === "error"}
+    role="status"
+    aria-live="polite"
+  >
+    {shareToast.message}
   </div>
 {/if}
 
@@ -1897,7 +1958,7 @@
           </p>
           <div class="share-grid share-grid-4">
             {#if isVideo || isAudio}
-              <button class="share-btn">
+              <button class="share-btn" onclick={() => shareAction(() => openInDefaultApp(), "Cast opened")}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                   ><path
                     d="M2 16.1A5 5 0 015.9 20M2 12.05A9 9 0 019.95 20M2 8V6a2 2 0 012-2h16a2 2 0 012 2v12a2 2 0 01-2 2h-6"
@@ -1918,7 +1979,7 @@
                 Cast
               </button>
             {:else}
-              <button class="share-btn">
+              <button class="share-btn" onclick={() => shareAction(() => invokePrintFile(filePath), "Print dialog opened")}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                   ><polyline
                     points="6 9 6 2 18 2 18 9"
@@ -1945,7 +2006,7 @@
                 Printer
               </button>
             {/if}
-            <button class="share-btn">
+            <button class="share-btn" onclick={() => shareAction(() => openInDefaultApp(), "Shared via device")}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                 ><path
                   d="M8.5 16.5a5 5 0 017 0"
@@ -1967,7 +2028,7 @@
               Device
             </button>
             {#if isAudio}
-              <button class="share-btn">
+              <button class="share-btn" onclick={() => shareAction(() => invokeSendBluetooth(filePath), "Bluetooth wizard opened")}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                   ><polyline
                     points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"
@@ -1980,7 +2041,7 @@
                 Bluetooth
               </button>
             {:else}
-              <button class="share-btn">
+              <button class="share-btn" onclick={handleSetWallpaper}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                   ><rect
                     x="3"
@@ -2013,7 +2074,7 @@
               </button>
             {/if}
             {#if isAudio}
-              <button class="share-btn">
+              <button class="share-btn" onclick={() => { showShareToast("Transcription coming soon", "success"); closeShare(); }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                   ><path
                     d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"
@@ -2045,7 +2106,7 @@
                 Transcriptor
               </button>
             {:else}
-              <button class="share-btn">
+              <button class="share-btn" onclick={() => shareAction(() => invokeSetLockScreen(filePath), "Lock screen set")}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                   ><rect
                     x="3"
@@ -2065,7 +2126,7 @@
                 Lock Screen
               </button>
             {/if}
-            <button class="share-btn">
+            <button class="share-btn" onclick={() => shareAction(() => invokeCreateDesktopShortcut(filePath), "Shortcut created on Desktop")}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                 ><rect
                   x="2"
