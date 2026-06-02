@@ -286,3 +286,11 @@ export function loadAudioVisualizerMode(): AudioVisualizerMode {
 export function saveAudioVisualizerMode(mode: AudioVisualizerMode): void {
   localStorage.setItem("vyu-audio-visualizer-mode", mode);
 }
+
+export function loadShareOutputDir(): string {
+  return localStorage.getItem("vyu-share-output-dir") ?? "";
+}
+
+export function saveShareOutputDir(dir: string): void {
+  localStorage.setItem("vyu-share-output-dir", dir);
+}

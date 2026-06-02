@@ -18,6 +18,7 @@
     invokeOpenInBrowser,
     invokeOpenWithDialog,
   } from "$lib/features/media/tools";
+  import { loadShareOutputDir, saveShareOutputDir } from "$lib/services/storage";
 
   let {
     contextMenu,
@@ -203,6 +204,7 @@
     appName?: string;
   }>({ visible: false, message: "", tone: "success" });
   let shareToastTimer: ReturnType<typeof setTimeout> | undefined;
+  let shareOutputDir = $state(loadShareOutputDir());
 
   $effect(() => {
     if (!contextMenu.visible) {
@@ -280,6 +282,15 @@
       return;
     }
     await shareAction(() => invokeSetWallpaper(filePath), "Wallpaper set");
+  }
+
+  async function handleShareLocation() {
+    const { open } = await import("@tauri-apps/plugin-dialog");
+    const dir = await open({ directory: true });
+    if (dir) {
+      shareOutputDir = dir as string;
+      saveShareOutputDir(shareOutputDir);
+    }
   }
 </script>
 
@@ -2395,9 +2406,12 @@
               stroke-linecap="round"
               stroke-linejoin="round"
               ><path
-                d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"
-              /><polyline points="17 21 17 13 7 13 7 21" /><polyline
-                points="7 3 7 8 15 8"
+                d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"
+              /><polyline points="7 10 12 15 17 10" /><line
+                x1="12"
+                y1="15"
+                x2="12"
+                y2="3"
               /></svg
             >
             Save as...
@@ -2437,6 +2451,31 @@
             </div>
           {/if}
         </div>
+      </div>
+
+      <div class="share-dest-bar">
+        <span class="share-dest-label">
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            style="margin-right: 4px; flex-shrink: 0;"
+            ><path
+              d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"
+            /><polyline points="17 21 17 13 7 13 7 21" /><polyline
+              points="7 3 7 8 15 8"
+            /></svg
+          >
+          Save to:
+        </span>
+        <button class="share-dest-btn" onclick={handleShareLocation}>
+          {shareOutputDir || parentFolder()}
+        </button>
       </div>
 
       <div class="delete-actions">

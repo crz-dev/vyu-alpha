@@ -796,6 +796,45 @@
   cursor: default;
 }
 
+/* Save-to destination bar */
+.share-dest-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+}
+.share-dest-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  font-family: var(--font-family);
+  white-space: nowrap;
+  background: var(--bg-primary);
+  border: 0.5px solid var(--bg-elevated);
+  border-right: none;
+  border-radius: 7px 0 0 7px;
+  padding: 5px 10px;
+}
+.share-dest-btn {
+  background: var(--bg-elevated);
+  border: 0.5px solid var(--bg-border);
+  border-radius: 0 7px 7px 0;
+  padding: 5px 10px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: var(--font-family);
+  cursor: pointer;
+  max-width: 260px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: color 0.15s;
+}
+.share-dest-btn:hover {
+  color: var(--text-primary);
+}
+
 .ffprobe-note {
   border: 0.5px solid var(--bg-border);
   background: var(--bg-secondary);
