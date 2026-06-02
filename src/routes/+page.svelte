@@ -154,6 +154,7 @@
   let pendingEditAction = $state<"apply" | "export" | null>(null);
   let exportFormatOverride = $state<"png" | null>(null);
   let propertiesOpen = $state(false);
+  let shareOpen = $state(false);
   let editMenuVisible = $state(false);
   let processMenuVisible = $state(false);
   let slideshowMenuVisible = $state(false);
@@ -302,6 +303,7 @@
       tsEditMenu.visible ||
       deleteConfirm ||
       propertiesOpen ||
+      shareOpen ||
       clipDeleteConfirm.visible ||
       tsMenuOpen ||
       editApplyConfirm ||
@@ -1820,6 +1822,7 @@
       contextMenu.visible ||
       deleteConfirm ||
       propertiesOpen ||
+      shareOpen ||
       editMenuVisible ||
       processMenuVisible ||
       slideshowMenuVisible ||
@@ -1837,6 +1840,7 @@
       contextMenu.visible = false;
       deleteConfirm = false;
       propertiesOpen = false;
+      shareOpen = false;
       editMenuVisible = false;
       processMenuVisible = false;
       slideshowMenuVisible = false;
@@ -2018,6 +2022,10 @@
           setMediaPropsLoading: (v) => (mediaPropsLoading = v),
         });
     })();
+  }
+  function ctxShare() {
+    closeContextMenu();
+    shareOpen = true;
   }
   function needsTransparencyDialog(): boolean {
     if (isVideo) return false;
@@ -2513,6 +2521,7 @@
     (clipDeleteConfirm = { visible: false, mode: null })}
   onCloseDeleteConfirm={() => (deleteConfirm = false)}
   onCloseProperties={() => (propertiesOpen = false)}
+  onCloseShare={() => (shareOpen = false)}
   onUpdateDeleteNoAsk={(v: boolean) => (deleteNoAsk = v)}
   onUpdateDeletePermanently={(v: boolean) => (deletePermanently = v)}
   onCloseContextMenu={closeContextMenu}
@@ -2557,6 +2566,7 @@
   {ctxProcess}
   ctxShowInExplorer={ctxShowInExplorerFn}
   {ctxProperties}
+  {ctxShare}
   {ctxDelete}
   {ctxClearMarkers}
   {clipDeleteConfirm}
@@ -2564,6 +2574,7 @@
   {deleteNoAsk}
   {deletePermanently}
   {propertiesOpen}
+  {shareOpen}
   fileExt={() => getFileExt(filePath)}
   {fileCreated}
   {fileModified}

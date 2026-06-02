@@ -31,6 +31,7 @@
     ctxFlip,
     ctxShowInExplorer,
     ctxProperties,
+    ctxShare,
     ctxEdit,
     ctxProcess,
     ctxDelete,
@@ -38,6 +39,8 @@
     clipDeleteConfirm,
     deleteConfirm,
     propertiesOpen,
+    shareOpen,
+    closeShare,
     deleteNoAsk,
     deletePermanently,
     fileName,
@@ -123,6 +126,7 @@
     ctxFlip: () => void;
     ctxShowInExplorer: () => void;
     ctxProperties: () => void;
+    ctxShare: () => void;
     ctxEdit: () => void;
     ctxProcess: () => void;
     ctxClearMarkers: () => void;
@@ -130,6 +134,8 @@
     clipDeleteConfirm: { visible: boolean; mode: "separate" | "merge" | null };
     deleteConfirm: boolean;
     propertiesOpen: boolean;
+    shareOpen: boolean;
+    closeShare: () => void;
     deleteNoAsk: boolean;
     deletePermanently: boolean;
     fileName: string;
@@ -289,25 +295,35 @@
     </div>
     {#if isPdf}
       <button
-        class="ctx-item green"
-        onclick={ctxCopyPath}
+        class="ctx-item purple"
+        onclick={ctxShare}
         role="menuitem"
         style="animation-delay: 0ms"
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
           ><path
-            d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"
+            d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
-          /><path
-            d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"
+            stroke-linejoin="round"
+          /><polyline
+            points="16 6 12 2 8 6"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          /><line
+            x1="12"
+            y1="2"
+            x2="12"
+            y2="15"
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
           /></svg
         >
-        Copy file path
+        Share
       </button>
       <div class="ctx-sep"></div>
       <button
@@ -471,25 +487,35 @@
         Copy image
       </button>
       <button
-        class="ctx-item green"
-        onclick={ctxCopyPath}
+        class="ctx-item purple"
+        onclick={ctxShare}
         role="menuitem"
         style="animation-delay: 55ms"
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
           ><path
-            d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"
+            d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
-          /><path
-            d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"
+            stroke-linejoin="round"
+          /><polyline
+            points="16 6 12 2 8 6"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          /><line
+            x1="12"
+            y1="2"
+            x2="12"
+            y2="15"
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
           /></svg
         >
-        Copy file path
+        Share
       </button>
       <div class="ctx-sep"></div>
       <button
@@ -639,25 +665,35 @@
         Copy current frame
       </button>
       <button
-        class="ctx-item green"
-        onclick={ctxCopyPath}
+        class="ctx-item purple"
+        onclick={ctxShare}
         role="menuitem"
         style="animation-delay: 55ms"
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
           ><path
-            d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"
+            d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
-          /><path
-            d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"
+            stroke-linejoin="round"
+          /><polyline
+            points="16 6 12 2 8 6"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          /><line
+            x1="12"
+            y1="2"
+            x2="12"
+            y2="15"
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
           /></svg
         >
-        Copy file path
+        Share
       </button>
       <div class="ctx-sep"></div>
       <button
@@ -1762,6 +1798,250 @@
       </div>
       <div class="delete-actions">
         <button class="delete-cancel" onclick={closeProperties}> Close </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if shareOpen}
+  <div
+    class="delete-overlay"
+    role="presentation"
+    onmousedown={(e) => e.stopPropagation()}
+  >
+    <div class="delete-dialog share-dialog" role="dialog" aria-modal="true">
+      <div class="share-header-bar">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
+          <polyline points="16 6 12 2 8 6" />
+          <line x1="12" y1="2" x2="12" y2="15" />
+        </svg>
+        <div>
+          <p class="delete-title">Share</p>
+          <p class="delete-subtitle">{fileName}</p>
+        </div>
+      </div>
+
+      <p class="share-section-label">Send to</p>
+      <div class="share-grid share-grid-4">
+        <button class="share-btn" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            ><polyline
+              points="6 9 6 2 18 2 18 9"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            /><path
+              d="M6 12H4a2 2 0 00-2 2v4a2 2 0 002 2h16a2 2 0 002-2v-4a2 2 0 00-2-2h-2"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            /><rect
+              x="6"
+              y="14"
+              width="12"
+              height="8"
+              rx="1"
+              stroke="currentColor"
+              stroke-width="2"
+            /></svg
+          >
+          Printer
+        </button>
+        <button class="share-btn" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            ><rect
+              x="2"
+              y="3"
+              width="20"
+              height="14"
+              rx="2"
+              stroke="currentColor"
+              stroke-width="2"
+            /><line
+              x1="8"
+              y1="21"
+              x2="16"
+              y2="21"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /><line
+              x1="12"
+              y1="17"
+              x2="12"
+              y2="21"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /></svg
+          >
+          Wallpaper
+        </button>
+        <button class="share-btn" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            ><rect
+              x="3"
+              y="11"
+              width="18"
+              height="11"
+              rx="2"
+              stroke="currentColor"
+              stroke-width="2"
+            /><path
+              d="M7 11V7a5 5 0 0110 0v4"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /></svg
+          >
+          Lock Screen
+        </button>
+        <button class="share-btn" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            ><rect
+              x="2"
+              y="3"
+              width="20"
+              height="14"
+              rx="2"
+              stroke="currentColor"
+              stroke-width="2"
+            /><line
+              x1="8"
+              y1="21"
+              x2="16"
+              y2="21"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /><line
+              x1="12"
+              y1="17"
+              x2="12"
+              y2="21"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /></svg
+          >
+          Desktop
+        </button>
+      </div>
+
+      <div class="ctx-sep"></div>
+
+      <p class="share-section-label">Open with</p>
+      <div class="share-grid share-grid-4">
+        <button class="share-btn-circle" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            ><path
+              d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            /><polyline
+              points="15 3 21 3 21 9"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            /><line
+              x1="10"
+              y1="14"
+              x2="21"
+              y2="3"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            /></svg
+          >
+          Default app
+        </button>
+        <button class="share-btn-circle" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            ><rect
+              x="3"
+              y="3"
+              width="18"
+              height="18"
+              rx="2"
+              stroke="currentColor"
+              stroke-width="2"
+            /><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" /><path
+              d="M21 15l-5-5L5 21"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            /></svg
+          >
+          Photos
+        </button>
+        <button class="share-btn-circle" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            ><polygon
+              points="5 3 19 12 5 21 5 3"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            /></svg
+          >
+          VLC
+        </button>
+        <button class="share-btn-circle" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            ><circle
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="2"
+            /><line
+              x1="2"
+              y1="12"
+              x2="22"
+              y2="12"
+              stroke="currentColor"
+              stroke-width="2"
+            /><path
+              d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"
+              stroke="currentColor"
+              stroke-width="2"
+            /></svg
+          >
+          Browser
+        </button>
+      </div>
+
+      <div class="ctx-sep"></div>
+
+      <p class="share-section-label">Save as</p>
+      <div class="share-grid share-grid-3">
+        <button class="share-btn-wide" disabled>JPG</button>
+        <button class="share-btn-wide" disabled>PNG</button>
+        <button class="share-btn-wide" disabled>WebP</button>
+        <button class="share-btn-wide" disabled>PSD</button>
+        <button class="share-btn-wide" disabled>PDF</button>
+        <button class="share-btn-wide" disabled>Other…</button>
+      </div>
+
+      <div class="delete-actions">
+        <button class="delete-cancel" onclick={closeShare}> Close </button>
       </div>
     </div>
   </div>

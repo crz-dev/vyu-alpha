@@ -158,6 +158,13 @@
   background: var(--red-bg-active);
   color: var(--red-soft);
 }
+.ctx-item.purple {
+  background: rgba(168, 85, 247, 0.15);
+  color: var(--purple);
+}
+.ctx-item.purple:hover {
+  background: rgba(168, 85, 247, 0.25);
+}
 .ctx-sep {
   height: 0.5px;
   background: var(--bg-border);
@@ -597,6 +604,129 @@
   opacity: 0.6;
   cursor: default;
 }
+
+/* ── Share dialog ───────────────────────────── */
+.share-dialog {
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  gap: 10px;
+}
+.share-header-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 0.5px solid var(--bg-elevated);
+}
+.share-header-bar svg {
+  color: var(--cyan);
+  flex-shrink: 0;
+}
+.share-header-bar .delete-title {
+  margin: 0;
+}
+.share-header-bar .delete-subtitle {
+  margin: 0;
+}
+.share-dialog .delete-actions {
+  justify-content: flex-end;
+  padding-top: 10px;
+  border-top: 0.5px solid var(--bg-elevated);
+}
+.share-section-label {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-family);
+  padding-bottom: 2px;
+}
+.share-grid {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.share-grid-4 {
+  flex-wrap: wrap;
+}
+.share-grid-3 {
+  flex-wrap: wrap;
+}
+/* Square buttons (Send to) */
+.share-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 72px;
+  height: 64px;
+  border-radius: 8px;
+  border: 0.5px solid rgba(6, 182, 212, 0.35);
+  background: rgba(6, 182, 212, 0.10);
+  color: var(--cyan);
+  font-size: 10px;
+  font-family: var(--font-family);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.share-btn:hover:not(:disabled) {
+  background: rgba(6, 182, 212, 0.20);
+}
+.share-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+/* Circular buttons (Open with) */
+.share-btn-circle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 72px;
+  height: 64px;
+  border-radius: 50%;
+  border: 0.5px solid rgba(6, 182, 212, 0.35);
+  background: rgba(6, 182, 212, 0.10);
+  color: var(--cyan);
+  font-size: 10px;
+  font-family: var(--font-family);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.share-btn-circle:hover:not(:disabled) {
+  background: rgba(6, 182, 212, 0.20);
+}
+.share-btn-circle:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+/* Wide rectangular buttons (Save as) */
+.share-btn-wide {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 7px 10px;
+  border-radius: 7px;
+  border: 0.5px solid rgba(6, 182, 212, 0.35);
+  background: rgba(6, 182, 212, 0.10);
+  color: var(--cyan);
+  font-size: 11px;
+  font-family: var(--font-family);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.share-btn-wide:hover:not(:disabled) {
+  background: rgba(6, 182, 212, 0.20);
+}
+.share-btn-wide:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .ffprobe-note {
   border: 0.5px solid var(--bg-border);
   background: var(--bg-secondary);

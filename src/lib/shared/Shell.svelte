@@ -113,6 +113,7 @@
     onCloseClipDeleteConfirm,
     onCloseDeleteConfirm,
     onCloseProperties,
+    onCloseShare,
     onUpdateDeleteNoAsk,
     onUpdateDeletePermanently,
     onCloseContextMenu,
@@ -157,6 +158,7 @@
     ctxProcess,
     ctxShowInExplorer,
     ctxProperties,
+    ctxShare,
     ctxDelete,
     ctxClearMarkers,
     clipDeleteConfirm,
@@ -164,6 +166,7 @@
     deleteNoAsk,
     deletePermanently,
     propertiesOpen,
+    shareOpen,
     fileExt,
     fileCreated,
     fileModified,
@@ -289,6 +292,7 @@
     onCloseClipDeleteConfirm: () => void;
     onCloseDeleteConfirm: () => void;
     onCloseProperties: () => void;
+    onCloseShare: () => void;
     onUpdateDeleteNoAsk: (v: boolean) => void;
     onUpdateDeletePermanently: (v: boolean) => void;
     onCloseContextMenu: () => void;
@@ -333,6 +337,7 @@
     ctxProcess: () => void;
     ctxShowInExplorer: () => void;
     ctxProperties: () => void;
+    ctxShare: () => void;
     ctxDelete: () => void;
     ctxClearMarkers: () => void;
     clipDeleteConfirm: any;
@@ -340,6 +345,7 @@
     deleteNoAsk: boolean;
     deletePermanently: boolean;
     propertiesOpen: boolean;
+    shareOpen: boolean;
     fileExt: () => string;
     fileCreated: string;
     fileModified: string;
@@ -627,11 +633,14 @@
     {ctxProcess}
     {ctxShowInExplorer}
     {ctxProperties}
+    {ctxShare}
     {ctxDelete}
     {ctxClearMarkers}
     closeClipDeleteConfirm={onCloseClipDeleteConfirm}
     closeDeleteConfirm={onCloseDeleteConfirm}
     closeProperties={onCloseProperties}
+    closeShare={onCloseShare}
+    {shareOpen}
     updateDeleteNoAsk={onUpdateDeleteNoAsk}
     updateDeletePermanently={onUpdateDeletePermanently}
     onClose={onCloseContextMenu}
