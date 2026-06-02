@@ -690,7 +690,7 @@
   color: var(--green);
 }
 .share-btn:disabled {
-  opacity: 0.45;
+  opacity: 0.55;
   cursor: default;
 }
 /* Circular buttons (Open with) */
@@ -716,7 +716,7 @@
   color: var(--blue-light);
 }
 .share-btn-circle:disabled {
-  opacity: 0.45;
+  opacity: 0.55;
   cursor: default;
 }
 /* Wide rectangular buttons (Save as) */
@@ -742,7 +742,7 @@
   color: var(--yellow-soft);
 }
 .share-btn-wide:disabled {
-  opacity: 0.45;
+  opacity: 0.55;
   cursor: default;
 }
 

@@ -1848,7 +1848,7 @@
             Send to
           </p>
           <div class="share-grid share-grid-4">
-            <button class="share-btn" disabled>
+            <button class="share-btn">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                 ><polyline
                   points="6 9 6 2 18 2 18 9"
@@ -1874,29 +1874,56 @@
               >
               Printer
             </button>
-            <button class="share-btn" disabled>
+            <button class="share-btn">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                ><rect
-                  x="2"
-                  y="3"
-                  width="20"
-                  height="14"
-                  rx="2"
+                ><path
+                  d="M8.5 16.5a5 5 0 017 0"
                   stroke="currentColor"
                   stroke-width="2"
+                  stroke-linecap="round"
+                /><path
+                  d="M5.5 13.5a10 10 0 0113 0"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                /><path
+                  d="M2 10.5a15 15 0 0120 0"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                /><circle
+                  cx="12"
+                  cy="19.5"
+                  r="1.5"
+                  fill="currentColor"
+                /></svg
+              >
+              Device
+            </button>
+            <button class="share-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                ><rect
+                  x="3"
+                  y="3"
+                  width="18"
+                  height="8"
+                  rx="4"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  fill="none"
                 /><line
-                  x1="8"
-                  y1="21"
-                  x2="16"
-                  y2="21"
+                  x1="7"
+                  y1="11"
+                  x2="7"
+                  y2="19"
                   stroke="currentColor"
                   stroke-width="2"
                   stroke-linecap="round"
                 /><line
-                  x1="12"
-                  y1="17"
-                  x2="12"
-                  y2="21"
+                  x1="7"
+                  y1="19"
+                  x2="11"
+                  y2="19"
                   stroke="currentColor"
                   stroke-width="2"
                   stroke-linecap="round"
@@ -1904,7 +1931,7 @@
               >
               Wallpaper
             </button>
-            <button class="share-btn" disabled>
+            <button class="share-btn">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                 ><rect
                   x="3"
@@ -1923,7 +1950,7 @@
               >
               Lock Screen
             </button>
-            <button class="share-btn" disabled>
+            <button class="share-btn">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                 ><rect
                   x="2"
@@ -1953,32 +1980,6 @@
               >
               Desktop
             </button>
-            <button class="share-btn" disabled>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                ><path
-                  d="M8.5 16.5a5 5 0 017 0"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                /><path
-                  d="M5.5 13.5a10 10 0 0113 0"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                /><path
-                  d="M2 10.5a15 15 0 0120 0"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                /><circle
-                  cx="12"
-                  cy="19.5"
-                  r="1.5"
-                  fill="currentColor"
-                /></svg
-              >
-              Nearby sharing
-            </button>
           </div>
         </div>
 
@@ -1992,7 +1993,7 @@
             Open with
           </p>
           <div class="share-grid share-grid-4">
-            <button class="share-btn-circle" disabled>
+            <button class="share-btn-circle">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                 ><path
                   d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"
@@ -2019,7 +2020,7 @@
               >
               Default app
             </button>
-            <button class="share-btn-circle" disabled>
+            <button class="share-btn-circle">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                 ><rect
                   x="3"
@@ -2039,7 +2040,7 @@
               >
               Photos
             </button>
-            <button class="share-btn-circle" disabled>
+            <button class="share-btn-circle">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                 ><polygon
                   points="5 3 19 12 5 21 5 3"
@@ -2051,7 +2052,7 @@
               >
               VLC
             </button>
-            <button class="share-btn-circle" disabled>
+            <button class="share-btn-circle">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                 ><circle
                   cx="12"
@@ -2074,25 +2075,26 @@
               >
               Browser
             </button>
-            <button class="share-btn-circle" disabled>
+            <button class="share-btn-circle">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                ><rect
-                  x="2"
-                  y="4"
-                  width="20"
-                  height="16"
-                  rx="2"
-                  stroke="currentColor"
-                  stroke-width="2"
-                /><polyline
-                  points="22,4 12,13 2,4"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
+                ><circle
+                  cx="5"
+                  cy="12"
+                  r="1.5"
+                  fill="currentColor"
+                /><circle
+                  cx="12"
+                  cy="12"
+                  r="1.5"
+                  fill="currentColor"
+                /><circle
+                  cx="19"
+                  cy="12"
+                  r="1.5"
+                  fill="currentColor"
                 /></svg
               >
-              Email
+              Other
             </button>
           </div>
         </div>
@@ -2107,14 +2109,14 @@
             Save as
           </p>
           <div class="share-grid share-grid-3">
-            <button class="share-btn-wide" disabled>JPG</button>
-            <button class="share-btn-wide" disabled>PNG</button>
-            <button class="share-btn-wide" disabled>WebP</button>
+            <button class="share-btn-wide">JPG</button>
+            <button class="share-btn-wide">PNG</button>
+            <button class="share-btn-wide">WebP</button>
           </div>
           <div class="share-grid share-grid-3">
-            <button class="share-btn-wide" disabled>PSD</button>
-            <button class="share-btn-wide" disabled>PDF</button>
-            <button class="share-btn-wide" disabled>Other…</button>
+            <button class="share-btn-wide">PSD</button>
+            <button class="share-btn-wide">PDF</button>
+            <button class="share-btn-wide">Other…</button>
           </div>
         </div>
       </div>
