@@ -211,6 +211,7 @@
     tone: "success" | "error";
     installUrl?: string;
     appName?: string;
+    outputDir?: string;
   }>({ visible: false, message: "", tone: "success" });
   let shareToastTimer: ReturnType<typeof setTimeout> | undefined;
   let shareOutputDir = $state(loadShareOutputDir());
@@ -246,12 +247,12 @@
 
   // ── Share: Send to handlers ───────────────────────────────────────────────
 
-  function showShareToast(message: string, tone: "success" | "error") {
+  function showShareToast(message: string, tone: "success" | "error", outputDir?: string) {
     clearTimeout(shareToastTimer);
-    shareToast = { visible: true, message, tone };
+    shareToast = { visible: true, message, tone, outputDir };
     shareToastTimer = setTimeout(() => {
       shareToast = { ...shareToast, visible: false };
-    }, 2200);
+    }, 4000);
   }
 
   function showAppNotInstalledToast(appName: string, installUrl: string) {
@@ -333,7 +334,7 @@
       } else {
         await invokeConvertMedia(filePath, outputDir, format, "Balanced");
       }
-      showShareToast("Saved as " + format.toUpperCase(), "success");
+      showShareToast("Saved as " + format.toUpperCase(), "success", outputDir);
       success = true;
     } catch (e: any) {
       const msg = typeof e === "string" ? e : e?.message || "Conversion failed";
@@ -457,7 +458,7 @@
           outputPath,
         );
       }
-      showShareToast("Saved as " + outputExt.toUpperCase(), "success");
+      showShareToast("Saved as " + outputExt.toUpperCase(), "success", outputDirFromSave);
       success = true;
     } catch (e: any) {
       const msg = typeof e === "string" ? e : e?.message || "Conversion failed";
@@ -1204,6 +1205,27 @@
   >
     <span class="share-toast-msg">{shareToast.message}</span>
     <div class="share-toast-actions">
+      {#if shareToast.tone === "success" && shareToast.outputDir}
+        <button
+          class="share-toast-folder"
+          onclick={async () => {
+            try {
+              await invokeOpenDirectory(shareToast.outputDir!);
+            } catch (e) {
+              console.error("Failed to open share output directory:", e);
+            }
+          }}
+          aria-label="open output folder"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+            ><path
+              d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
+              stroke="currentColor"
+              stroke-width="2"
+            /></svg
+          ></button
+        >
+      {/if}
       {#if shareToast.installUrl}
         <button
           class="share-toast-link"

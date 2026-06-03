@@ -240,6 +240,22 @@
   opacity: 1;
   background: rgba(255, 255, 255, 0.1);
 }
+.share-toast-folder {
+  width: 24px;
+  height: 24px;
+  border: 0.5px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.share-toast-folder:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
 
 .clip-toast {
   position: fixed;

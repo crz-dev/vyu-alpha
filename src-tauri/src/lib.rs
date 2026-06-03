@@ -2352,7 +2352,7 @@ fn convert_audio_to_waveform_video(
     };
 
     let filter_complex =
-        "[0:a]showwaves=s=1920x1080:mode=cline:colors=white:rate=30,format=yuv420p[v]";
+        "[0:a]showwavespic=s=1920x1080:colors=white,format=yuv420p,loop=loop=-1:size=1:start=0[v]";
 
     let output = Command::new("ffmpeg")
         .creation_flags(CREATE_NO_WINDOW)
