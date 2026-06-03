@@ -357,55 +357,62 @@
     const { save } = await import("@tauri-apps/plugin-dialog");
     const isImage = !isVideo && !isAudio && !isPdf;
 
+    const f = (name: string, ext: string) => ({ name, extensions: [ext] });
+
     let filters: { name: string; extensions: string[] }[];
     if (isImage) {
+      // Image → other image formats, PSD, PDF
       filters = [
-        {
-          name: "Images",
-          extensions: [
-            "jpg",
-            "jpeg",
-            "png",
-            "webp",
-            "bmp",
-            "gif",
-            "tiff",
-            "tif",
-            "psd",
-          ],
-        },
-        { name: "Documents", extensions: ["pdf"] },
+        f("PNG", "png"),
+        f("JPG", "jpg"),
+        f("GIF", "gif"),
+        f("WebP", "webp"),
+        f("BMP", "bmp"),
+        f("HEIC", "heic"),
+        f("AVIF", "avif"),
+        f("TIFF", "tiff"),
+        f("JXL", "jxl"),
+        f("PSD", "psd"),
+        f("PDF", "pdf"),
       ];
     } else if (isVideo) {
+      // Video → other video formats, audio extraction, GIF
       filters = [
-        {
-          name: "Video",
-          extensions: ["mp4", "mkv", "webm", "avi", "mov", "wmv", "m4v"],
-        },
-        {
-          name: "Audio",
-          extensions: ["mp3", "wav", "flac", "ogg", "aac", "opus", "m4a"],
-        },
-        { name: "Image", extensions: ["gif"] },
+        f("MP4", "mp4"),
+        f("MKV", "mkv"),
+        f("MOV", "mov"),
+        f("AVI", "avi"),
+        f("WebM", "webm"),
+        f("WMV", "wmv"),
+        f("M4V", "m4v"),
+        f("MPG", "mpg"),
+        f("TS", "ts"),
+        f("GIF", "gif"),
+        f("MP3", "mp3"),
+        f("AAC", "aac"),
+        f("WAV", "wav"),
+        f("FLAC", "flac"),
+        f("M4A", "m4a"),
+        f("OGG", "ogg"),
+        f("WMA", "wma"),
+        f("AIFF", "aiff"),
+        f("ALAC", "alac"),
+        f("Opus", "opus"),
       ];
     } else {
+      // Audio → other audio formats, Opus, MP4 (waveform video)
       filters = [
-        {
-          name: "Audio",
-          extensions: [
-            "mp3",
-            "wav",
-            "flac",
-            "ogg",
-            "aac",
-            "opus",
-            "m4a",
-            "wma",
-            "aiff",
-            "alac",
-          ],
-        },
-        { name: "Video", extensions: ["mp4", "mkv", "webm"] },
+        f("MP3", "mp3"),
+        f("AAC", "aac"),
+        f("WAV", "wav"),
+        f("FLAC", "flac"),
+        f("M4A", "m4a"),
+        f("OGG", "ogg"),
+        f("WMA", "wma"),
+        f("AIFF", "aiff"),
+        f("ALAC", "alac"),
+        f("Opus", "opus"),
+        f("MP4", "mp4"),
       ];
     }
 
