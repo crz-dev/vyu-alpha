@@ -1732,56 +1732,58 @@
           <span class="props-v">{filePath || "Unknown"}</span>
         </div>
       </div>
-      <div class="props-actions">
-        <button class="props-btn" onclick={propsCopyPath}>
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          >
-            <path
-              d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"
-            />
-            <path
-              d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"
-            />
-          </svg>
-          Copy file path
-        </button>
-        <button class="props-btn" onclick={propsOpenFolder}>
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path
-              d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
-            />
-          </svg>
-          Open folder
-        </button>
-        <button class="props-btn" onclick={propsCopyAll}>
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          >
-            <rect x="8" y="8" width="13" height="13" rx="2" />
-            <path d="M4 16V5a1 1 0 011-1h11" />
-          </svg>
-          Copy properties
-        </button>
+      <div class="props-actions-card">
+        <div class="props-actions">
+          <button class="props-btn" onclick={propsOpenFolder}>
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
+              />
+            </svg>
+            Open folder
+          </button>
+          <button class="props-btn" onclick={propsCopyPath}>
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <path
+                d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"
+              />
+              <path
+                d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"
+              />
+            </svg>
+            Copy file path
+          </button>
+          <button class="props-btn" onclick={propsCopyAll}>
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <rect x="8" y="8" width="13" height="13" rx="2" />
+              <path d="M4 16V5a1 1 0 011-1h11" />
+            </svg>
+            Copy properties
+          </button>
+        </div>
       </div>
     </div>
   </div>

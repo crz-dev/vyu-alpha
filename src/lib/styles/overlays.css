@@ -633,6 +633,12 @@
   font-family: var(--font-family);
   word-break: break-word;
 }
+.props-actions-card {
+  border: 0.5px solid var(--bg-elevated);
+  border-radius: 10px;
+  padding: 8px;
+  background: var(--bg-primary);
+}
 .props-actions {
   display: flex;
   gap: 8px;
