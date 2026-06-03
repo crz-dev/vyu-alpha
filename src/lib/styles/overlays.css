@@ -587,6 +587,8 @@
   width: 420px;
   max-width: calc(100vw - 32px);
   gap: 10px;
+  padding: 0 24px 16px;
+  overflow: hidden;
 }
 .props-list {
   display: flex;
@@ -673,6 +675,8 @@
   width: 440px;
   max-width: calc(100vw - 32px);
   gap: 10px;
+  padding: 0 24px 16px;
+  overflow: hidden;
 }
 .menu-open .share-dialog [data-tooltip]:hover::after {
   opacity: 1 !important;
@@ -1671,8 +1675,8 @@
 /* Dialog close X button — positioned top-right of any header bar */
 .dialog-close-x {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 18px;
+  right: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
