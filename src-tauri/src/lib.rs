@@ -2050,6 +2050,57 @@ fn open_directory(path: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Write a minimal flat (single-layer, no transparency) PSD file.
+/// Image data is raw planar: all R, then all G, then all B.
+fn write_psd_flat(path: &Path, width: u32, height: u32, rgb: &[u8]) -> Result<(), String> {
+    use std::io::Write;
+
+    let mut f = fs::File::create(path).map_err(|e| format!("Failed to create PSD: {e}"))?;
+
+    // ── Header (26 bytes) ──
+    f.write_all(b"8BPS").map_err(|e| e.to_string())?; // signature
+    f.write_all(&1u16.to_be_bytes()).map_err(|e| e.to_string())?; // version 1 (PSD, not PSB)
+    f.write_all(&[0u8; 6]).map_err(|e| e.to_string())?; // reserved
+    f.write_all(&3u16.to_be_bytes()).map_err(|e| e.to_string())?; // channels = 3 (RGB)
+    f.write_all(&(height as u32).to_be_bytes())
+        .map_err(|e| e.to_string())?; // rows (height first!)
+    f.write_all(&(width as u32).to_be_bytes())
+        .map_err(|e| e.to_string())?; // columns
+    f.write_all(&8u16.to_be_bytes()).map_err(|e| e.to_string())?; // bits per channel
+    f.write_all(&3u16.to_be_bytes())
+        .map_err(|e| e.to_string())?; // color mode = RGB
+
+    // ── Color mode data (empty) ──
+    f.write_all(&0u32.to_be_bytes()).map_err(|e| e.to_string())?;
+
+    // ── Image resources (empty) ──
+    f.write_all(&0u32.to_be_bytes()).map_err(|e| e.to_string())?;
+
+    // ── Layer and mask info (empty) ──
+    f.write_all(&0u32.to_be_bytes()).map_err(|e| e.to_string())?;
+
+    // ── Image data: raw planar compression ──
+    f.write_all(&0u16.to_be_bytes())
+        .map_err(|e| e.to_string())?; // compression = 0 (Raw)
+
+    // Raw PSD stores planes separately: RRR...GGG...BBB
+    // rgb from image crate is interleaved RGBRGB..., so deinterleave:
+    let n = (width * height) as usize;
+    let mut r_plane = Vec::with_capacity(n);
+    let mut g_plane = Vec::with_capacity(n);
+    let mut b_plane = Vec::with_capacity(n);
+    for px in rgb.chunks_exact(3) {
+        r_plane.push(px[0]);
+        g_plane.push(px[1]);
+        b_plane.push(px[2]);
+    }
+    f.write_all(&r_plane).map_err(|e| e.to_string())?;
+    f.write_all(&g_plane).map_err(|e| e.to_string())?;
+    f.write_all(&b_plane).map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
 #[tauri::command]
 fn convert_media(
     path: String,
@@ -2090,6 +2141,14 @@ fn convert_media(
             unique_path(out_dir.join(&out_name))
         }
     };
+
+    // PSD encoding: FFmpeg has no PSD encoder, so write it directly using the image crate.
+    if ext == "psd" {
+        let img = image::open(&input).map_err(|e| format!("Failed to decode image: {e}"))?;
+        let rgb = img.to_rgb8();
+        write_psd_flat(&output_path, rgb.width(), rgb.height(), &rgb)?;
+        return Ok(output_path.to_string_lossy().to_string());
+    }
 
     let mut args: Vec<String> = vec![
         "-y".into(),
@@ -2139,10 +2198,6 @@ fn convert_media(
             args.push("-c:v".into());
             args.push("libwebp".into());
         }
-        "psd" => {
-            args.push("-c:v".into());
-            args.push("psd".into());
-        }
         // Audio formats
         "mp3" => {
             args.push("-c:a".into());
@@ -2187,7 +2242,6 @@ fn convert_media(
         && ext != "jpg"
         && ext != "jpeg"
         && ext != "webp"
-        && ext != "psd"
         && ext != "mp3"
         && ext != "wav"
         && ext != "flac"
