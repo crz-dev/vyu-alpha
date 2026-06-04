@@ -3383,7 +3383,7 @@ main.fs-controls-hidden .thumbnail-bar.fullscreen {
 .markup-slider-panel {
   width: 100%;
   margin: 0;
-  padding: 8px 6px 6px;
+  padding: 8px 6px 10px;
   background: var(--bg-elevated);
   border: 0.5px solid var(--bg-border);
   border-radius: 7px;

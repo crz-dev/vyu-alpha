@@ -178,7 +178,7 @@
     const x = clientX - rect.left;
     const pct = Math.max(0, Math.min(1, x / rect.width));
     const val = Math.round(pct * 100) / 100;
-    const clamped = Math.max(0.1, Math.min(1, val));
+    const clamped = Math.max(0, Math.min(1, val));
     localOpacity = clamped;
     markup.setDrawOpacity(clamped);
   }
@@ -211,7 +211,7 @@
   ];
 
   const opacityMarkers = [
-    { val: 0.1, pct: 0 },
+    { val: 0, pct: 0 },
     { val: 0.5, pct: 50 },
     { val: 1, pct: 100 },
   ];
