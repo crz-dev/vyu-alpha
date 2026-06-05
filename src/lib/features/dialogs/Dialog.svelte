@@ -859,24 +859,8 @@
         role="menuitem"
         style="animation-delay: 110ms"
       >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-          ><path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c1.1 0 2-.9 2-2 0-.51-.2-.98-.54-1.34-.31-.33-.49-.76-.49-1.16 0-.88.72-1.5 1.6-1.5H16c3.31 0 6-2.69 6-6 0-5.17-4.37-9-10-9z"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          /><circle cx="7.5" cy="11.5" r="1.5" fill="currentColor" /><circle
-            cx="10.5"
-            cy="7.5"
-            r="1.5"
-            fill="currentColor"
-          /><circle cx="15.5" cy="7.5" r="1.5" fill="currentColor" /><circle
-            cx="18"
-            cy="11"
-            r="1.5"
-            fill="currentColor"
-          /></svg
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+          ><line x1="21" y1="4" x2="14" y2="4" /><line x1="10" y1="4" x2="3" y2="4" /><line x1="21" y1="12" x2="12" y2="12" /><line x1="8" y1="12" x2="3" y2="12" /><line x1="21" y1="20" x2="16" y2="20" /><line x1="12" y1="20" x2="3" y2="20" /><line x1="14" y1="2" x2="14" y2="6" /><line x1="8" y1="10" x2="8" y2="14" /><line x1="16" y1="18" x2="16" y2="22" /></svg
         >
         Edit
       </button>
@@ -1049,24 +1033,8 @@
         role="menuitem"
         style="animation-delay: 110ms"
       >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-          ><path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c1.1 0 2-.9 2-2 0-.51-.2-.98-.54-1.34-.31-.33-.49-.76-.49-1.16 0-.88.72-1.5 1.6-1.5H16c3.31 0 6-2.69 6-6 0-5.17-4.37-9-10-9z"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          /><circle cx="7.5" cy="11.5" r="1.5" fill="currentColor" /><circle
-            cx="10.5"
-            cy="7.5"
-            r="1.5"
-            fill="currentColor"
-          /><circle cx="15.5" cy="7.5" r="1.5" fill="currentColor" /><circle
-            cx="18"
-            cy="11"
-            r="1.5"
-            fill="currentColor"
-          /></svg
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+          ><line x1="21" y1="4" x2="14" y2="4" /><line x1="10" y1="4" x2="3" y2="4" /><line x1="21" y1="12" x2="12" y2="12" /><line x1="8" y1="12" x2="3" y2="12" /><line x1="21" y1="20" x2="16" y2="20" /><line x1="12" y1="20" x2="3" y2="20" /><line x1="14" y1="2" x2="14" y2="6" /><line x1="8" y1="10" x2="8" y2="14" /><line x1="16" y1="18" x2="16" y2="22" /></svg
         >
         Edit
       </button>

@@ -26,6 +26,7 @@
   let highlightRowOpen = $state(false);
   let drawRowOpen = $state(false);
   let textRowOpen = $state(false);
+  let shapesRowOpen = $state(false);
   let pinned = $state(false);
   let openTimeout: ReturnType<typeof setTimeout> | null = $state(null);
 
@@ -38,6 +39,10 @@
   let isOpacityDragging = $state(false);
   let localOpacity = $state(1);
 
+  // Shape toggle state
+  let roundedCorners = $state(false);
+  let pathMode = $state(false);
+
   $effect(() => {
     if (!visible) {
       if (openTimeout) clearTimeout(openTimeout);
@@ -46,8 +51,11 @@
       highlightRowOpen = false;
       drawRowOpen = false;
       textRowOpen = false;
+      shapesRowOpen = false;
       pinned = false;
       activeDrawTool = null;
+      roundedCorners = false;
+      pathMode = false;
     }
   });
 
@@ -64,6 +72,7 @@
     highlightRowOpen = false;
     drawRowOpen = false;
     textRowOpen = false;
+    shapesRowOpen = false;
   }
 
   function closeDrawSubTools() {
@@ -124,6 +133,19 @@
       closeDrawSubTools();
       openTimeout = setTimeout(() => {
         textRowOpen = true;
+        openTimeout = null;
+      }, 100);
+    }
+  }
+
+  function toggleShapes() {
+    if (shapesRowOpen) {
+      shapesRowOpen = false;
+    } else {
+      if (openTimeout) clearTimeout(openTimeout);
+      shapesRowOpen = false;
+      openTimeout = setTimeout(() => {
+        shapesRowOpen = true;
         openTimeout = null;
       }, 100);
     }
@@ -607,7 +629,12 @@
             </svg>
             <span>Opacity</span>
           </button>
-          <button class="edit-menu-btn green sub disabled-btn">
+          <button
+            class="edit-menu-btn green sub"
+            class:sub-open={shapesRowOpen}
+            onclick={toggleShapes}
+            aria-label="Shapes"
+          >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="7" height="7" />
               <circle cx="17.5" cy="6.5" r="3.5" />
@@ -616,6 +643,80 @@
             <span>Shapes</span>
           </button>
         </div>
+
+        {#if shapesRowOpen}
+          <div class="edit-menu-separator"></div>
+          <div
+            class="edit-menu-row"
+            in:fly={{ y: -10, duration: 150, opacity: 0.05 }}
+            out:fly={{ y: -10, duration: 100, opacity: 0.05 }}
+          >
+            <button class="edit-menu-btn green sub" aria-label="Square">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+              </svg>
+            </button>
+            <button class="edit-menu-btn green sub" aria-label="Circle">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9" />
+              </svg>
+            </button>
+            <button class="edit-menu-btn green sub" aria-label="Triangle">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12,3 22,21 2,21" />
+              </svg>
+            </button>
+            <div class="edit-menu-divider"></div>
+            <button
+              class="edit-menu-btn sub"
+              class:green={roundedCorners}
+              class:grey={!roundedCorners}
+              class:active={roundedCorners}
+              onclick={() => { roundedCorners = !roundedCorners; }}
+              aria-pressed={roundedCorners}
+              aria-label="Rounded corners"
+              data-tooltip="Rounded corners"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" stroke-dasharray="2 2" opacity="0.45" />
+                <path d="M3 9 V5 Q3 3 5 3 H9" />
+              </svg>
+            </button>
+            <button
+              class="edit-menu-btn sub"
+              class:green={pathMode}
+              class:grey={!pathMode}
+              class:active={pathMode}
+              onclick={() => { pathMode = !pathMode; }}
+              aria-pressed={pathMode}
+              aria-label="Path"
+              data-tooltip="Path"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 14 Q6 8 9 14 T15 14 T21 14" />
+              </svg>
+            </button>
+            <div class="edit-menu-divider"></div>
+            <button class="edit-menu-btn green sub" aria-label="Line">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" y1="12" x2="20" y2="12" />
+              </svg>
+            </button>
+            <button class="edit-menu-btn green sub" aria-label="Arrow">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" y1="12" x2="20" y2="12" />
+                <polyline points="14,6 20,12 14,18" />
+              </svg>
+            </button>
+            <button class="edit-menu-btn green sub" aria-label="Bidirectional arrow">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="8,6 2,12 8,18" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+                <polyline points="16,6 22,12 16,18" />
+              </svg>
+            </button>
+          </div>
+        {/if}
 
         {#if activeDrawTool === "color"}
           <div
