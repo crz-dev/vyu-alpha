@@ -7,8 +7,11 @@
     createPlaybackUI,
     formatTime,
   } from "$lib/features/media/playback.svelte";
-  import { createTimeline } from "$lib/features/timeline/timeline";
   import { createClips } from "$lib/features/media/clips.svelte";
+  import {
+    markerStore,
+    createMarkerActions,
+  } from "$lib/features/markers/markers.svelte";
   import { createKeybindHandler } from "$lib/shared/keybinds";
   import {
     VOLUME_SEGMENTS,
@@ -20,15 +23,11 @@
   } from "$lib/shared/constants";
   import type {
     ContextMenu,
-    VideoMarker,
     ClipBoundary,
     MediaProperties,
   } from "$lib/shared/types";
   import {
     saveVolume,
-    writeTimestamps,
-    deleteTimestamps,
-    deleteResumePoint,
     saveLoopMode,
     saveSliderMode,
     saveClipPreferences,
@@ -178,9 +177,6 @@
   let fsPillEl: HTMLButtonElement | null = $state(null);
   let volumeSliderMode = $state(false);
   let speedSliderMode = $state(false);
-  let resumePoint = $state<number | null>(null);
-  let resumeTooltipVisible = $state(false);
-  let timestamps = $state<VideoMarker[]>([]);
   let clipOutputDir = $state("");
   let clipDeleteOriginal = $state(false);
   let clipUseCustomPath = $state(false);
@@ -205,29 +201,6 @@
   let ffprobeChecked = $state(false);
   let ffmpegInstalling = $state(false);
   let ffmpegInstallError = $state("");
-  let tsTooltip = $state<{
-    visible: boolean;
-    x: number;
-    y: number;
-    title?: string;
-    timeLabel: string;
-    tone?: "yellow" | "blue" | "green" | "red" | "grey";
-    targetId?: string;
-  }>({ visible: false, x: 0, y: 0, title: "", timeLabel: "", tone: "yellow" });
-  let tsEditMenu = $state<{
-    visible: boolean;
-    x: number;
-    y: number;
-    targetId: string;
-    targetType: "timestamp" | "segment";
-  }>({ visible: false, x: 0, y: 0, targetId: "", targetType: "timestamp" });
-  let loopStart = $state<number | null>(null);
-  let loopEnd = $state<number | null>(null);
-  const abLoopRegion = $derived(
-    loopStart !== null && loopEnd !== null
-      ? { start: loopStart, end: loopEnd }
-      : null,
-  );
   let frameCopyToast = $state<{
     visible: boolean;
     message: string;
@@ -279,7 +252,7 @@
   const fsCursor = $derived(
     markup.drawActive
       ? "crosshair"
-      : !viewer.state.fsControlsVisible && !tsEditMenu.visible
+      : !viewer.state.fsControlsVisible && !markerStore.tsEditMenu.visible
         ? "none"
         : panCursor,
   );
@@ -295,7 +268,7 @@
       menuStore.helpOpen ||
       menuStore.aboutOpen ||
       menuStore.feedbackOpen ||
-      tsEditMenu.visible ||
+      markerStore.tsEditMenu.visible ||
       deleteStore.deleteConfirm ||
       propertiesOpen ||
       shareOpen ||
@@ -408,8 +381,8 @@
         playing = !el.paused;
 
         // AB loop enforcement
-        if (abLoopRegion && el.currentTime >= abLoopRegion.end) {
-          el.currentTime = abLoopRegion.start;
+        if (markerStore.abLoopRegion && el.currentTime >= markerStore.abLoopRegion.end) {
+          el.currentTime = markerStore.abLoopRegion.start;
         }
       }
 
@@ -693,173 +666,6 @@
     saveSliderMode({ volume: volumeSliderMode, speed: speedSliderMode });
   }
 
-  const timeline = createTimeline();
-  function saveTimestamps() {
-    writeTimestamps(filePath, timestamps);
-  }
-  function addTimestamp() {
-    timeline.addTimestamp(rawCurrentSecs, timestamps, (v) => (timestamps = v));
-    saveTimestamps();
-  }
-  function removeTimestamp(id: string) {
-    tsTooltip = { ...tsTooltip, visible: false };
-    tsEditMenu = { ...tsEditMenu, visible: false };
-    if (abLoopRegion) {
-      const ts = timeline.getTimestampById(id, timestamps);
-      if (
-        ts &&
-        (Math.abs(ts.time - abLoopRegion.start) < 0.01 ||
-          Math.abs(ts.time - abLoopRegion.end) < 0.01)
-      ) {
-        clearABLoop();
-      }
-    }
-    timeline.removeTimestamp(id, timestamps, (v) => (timestamps = v));
-    saveTimestamps();
-  }
-  function clearAllTimestamps() {
-    tsTooltip = { ...tsTooltip, visible: false };
-    tsEditMenu = { ...tsEditMenu, visible: false };
-    clearABLoop();
-    timeline.clearTimestamps((v) => (timestamps = v));
-    deleteTimestamps(filePath);
-  }
-  function updateTimestampTitle(id: string, title: string) {
-    timeline.updateTimestampTitle(
-      id,
-      title,
-      timestamps,
-      (v) => (timestamps = v),
-    );
-    saveTimestamps();
-    if (tsTooltip.visible && tsTooltip.targetId === id) {
-      tsTooltip = { ...tsTooltip, title: title.trim() };
-    }
-  }
-  function getTimestampById(id: string): VideoMarker | undefined {
-    return timeline.getTimestampById(id, timestamps);
-  }
-  function getTitleEditorWidthCh(title: string): number {
-    return Math.min(26, Math.max(10, (title || "").trim().length + 2));
-  }
-  function showTimestampTooltip(e: MouseEvent, ts: VideoMarker) {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    tsTooltip = {
-      visible: true,
-      x: rect.left + rect.width / 2,
-      y: rect.top - 6,
-      title: ts.title,
-      timeLabel: formatTime(ts.time),
-      tone: "yellow",
-      targetId: ts.id,
-    };
-  }
-  function openTimestampEditor(e: MouseEvent, id: string) {
-    e.stopPropagation();
-    const ts = getTimestampById(id);
-    if (!ts) return;
-    const markerEl = e.currentTarget as HTMLElement;
-    const bar = markerEl.closest(
-      ".progress-bar, .fs-progress",
-    ) as HTMLElement | null;
-    if (!bar) return;
-    const barRect = bar.getBoundingClientRect();
-    const pct = rawDurationSecs > 0 ? ts.time / rawDurationSecs : 0;
-    tsEditMenu = {
-      visible: true,
-      x: barRect.left + pct * barRect.width,
-      y: barRect.top - 12,
-      targetId: id,
-      targetType: "timestamp",
-    };
-  }
-  function openSegmentEditor(e: MouseEvent, id: string) {
-    e.stopPropagation();
-    const b = clips.getBoundaryById(id);
-    if (!b) return;
-    const markerEl = e.currentTarget as HTMLElement;
-    const bar = markerEl.closest(
-      ".progress-bar, .fs-progress",
-    ) as HTMLElement | null;
-    if (!bar) return;
-    const barRect = bar.getBoundingClientRect();
-    const pct = rawDurationSecs > 0 ? b.time / rawDurationSecs : 0;
-    tsEditMenu = {
-      visible: true,
-      x: barRect.left + pct * barRect.width,
-      y: barRect.top - 12,
-      targetId: id,
-      targetType: "segment",
-    };
-  }
-  function closeTimestampEditor() {
-    tsEditMenu = { ...tsEditMenu, visible: false };
-    hideTsTooltip();
-  }
-  function getActiveEditorTimestamp(): VideoMarker | undefined {
-    return tsEditMenu.targetType === "timestamp"
-      ? getTimestampById(tsEditMenu.targetId)
-      : undefined;
-  }
-  function getActiveEditorSegment(): ClipBoundary | undefined {
-    return tsEditMenu.targetType === "segment"
-      ? clips.getBoundaryById(tsEditMenu.targetId)
-      : undefined;
-  }
-  function getEditorTitle(): string {
-    const ts = getActiveEditorTimestamp();
-    if (ts) return ts.title ?? "";
-    const seg = getActiveEditorSegment();
-    return seg?.title ?? "";
-  }
-  function updateEditorTitle(v: string) {
-    if (tsEditMenu.targetType === "timestamp")
-      updateTimestampTitle(tsEditMenu.targetId, v);
-    else if (tsEditMenu.targetType === "segment") {
-      clips.updateBoundaryTitle(tsEditMenu.targetId, v);
-      if (tsTooltip.visible && tsTooltip.targetId === tsEditMenu.targetId) {
-        tsTooltip = { ...tsTooltip, title: v.trim() };
-      }
-    }
-  }
-  function onEditorScissor(kind: "start" | "end") {
-    const seg = getActiveEditorSegment();
-    if (seg) {
-      clips.setBoundaryKind(seg.id, kind);
-      closeTimestampEditor();
-    } else {
-      const ts = getActiveEditorTimestamp();
-      if (ts) {
-        clips.addClipBoundary(kind, ts.time);
-        removeTimestamp(ts.id);
-        const newBoundary = clips.clipBoundaries.find(
-          (b) => b.time === ts.time && b.kind === kind,
-        );
-        if (newBoundary) {
-          tsEditMenu = {
-            ...tsEditMenu,
-            visible: true,
-            targetId: newBoundary.id,
-            targetType: "segment",
-          };
-        }
-      }
-    }
-  }
-  function onEditorDeleteTimestamp() {
-    const ts = getActiveEditorTimestamp();
-    if (ts) removeTimestamp(ts.id);
-    closeTimestampEditor();
-  }
-  function onEditorDeleteSegment() {
-    const seg = getActiveEditorSegment();
-    if (seg) {
-      clips.removeClipBoundary(seg.id);
-      closeTimestampEditor();
-    }
-  }
-
-  // ── Clip boundaries ────────────────────────────────────
   const clips = createClips(() => filePath);
   function addClipBoundary(kind: "start" | "end") {
     const mediaEl = isVideo ? videoEl : audioEl;
@@ -869,349 +675,59 @@
       Math.max(0, Math.min(mediaEl.currentTime, rawDurationSecs)),
     );
   }
-  function addClipBoundaryAt(kind: "start" | "end", time: number) {
-    if (rawDurationSecs <= 0) return;
-    clips.addClipBoundary(kind, Math.max(0, Math.min(time, rawDurationSecs)));
-  }
-  function removeClipBoundary(id: string) {
-    tsTooltip = { ...tsTooltip, visible: false };
-    clips.removeClipBoundary(id);
-  }
-  function showClipBoundaryTooltip(e: MouseEvent, marker: ClipBoundary) {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    tsTooltip = {
-      visible: true,
-      x: rect.left + rect.width / 2,
-      y: rect.top - 6,
-      title: marker.title,
-      timeLabel: formatTime(marker.time),
-      tone: "blue",
-      targetId: marker.id,
-    };
-  }
-  function showLoopMarkerTooltip(e: MouseEvent, which: "start" | "end") {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const time = which === "start" ? loopStart : loopEnd;
-    tsTooltip = {
-      visible: true,
-      x: rect.left + rect.width / 2,
-      y: rect.top - 6,
-      title: which === "start" ? "Loop A" : "Loop B",
-      timeLabel: formatTime(time ?? 0),
-      tone: "green",
-      targetId: which,
-    };
-  }
   function clearAllSegments() {
     clips.clearBoundaries();
   }
-  function hideTsTooltip() {
-    tsTooltip = { ...tsTooltip, visible: false };
-  }
+  const markerActions = createMarkerActions({
+    getFilePath: () => filePath,
+    getRawDurationSecs: () => rawDurationSecs,
+    getLoopMode: () => loopMode,
+    getMediaEl: () => (isVideo ? videoEl : isAudio ? audioEl : null),
+    formatTime,
+    clips,
+    onClipMenuReopen: () => clipMenuResetKey++,
+    setRawCurrentSecs: (v: number) => (rawCurrentSecs = v),
+    setProgress: (v: number) => (progress = v),
+  });
+  const {
+    addTimestamp,
+    removeTimestamp,
+    clearAllTimestamps,
+    updateTimestampTitle,
+    getTimestampById,
+    getTimestampPct,
+    setABLoop,
+    clearABLoop,
+    addLoopStart,
+    addLoopEnd,
+    clearLoopMarkers,
+    startLoopMarkerDrag,
+    startTimestampDrag,
+    startClipMarkerDrag,
+    seekToTimestamp,
+    removeResumePoint,
+    seekToResumePoint,
+    showResumeTooltip,
+    hideResumeTooltip,
+    showTimestampTooltip,
+    showLoopMarkerTooltip,
+    showClipBoundaryTooltip,
+    hideTsTooltip,
+    updateTooltipDuringDrag,
+    openTimestampEditor,
+    openSegmentEditor,
+    closeTimestampEditor,
+    getActiveEditorTimestamp,
+    getActiveEditorSegment,
+    getEditorTitle,
+    updateEditorTitle,
+    onEditorScissor,
+    onEditorDeleteTimestamp,
+    onEditorDeleteSegment,
+    getTitleEditorWidthCh,
+    removeClipBoundary,
+  } = markerActions;
 
-  /** Update the tsTooltip position and time to track a marker during drag, floating above the progress bar. */
-  function updateTooltipDuringDrag(
-    time: number,
-    tone: "yellow" | "blue" | "green" | "grey",
-    title: string | undefined,
-    targetId: string | undefined,
-  ) {
-    const bar =
-      document.querySelector(".fs-progress") ??
-      document.querySelector(".progress-bar");
-    if (!bar) return;
-    const barRect = bar.getBoundingClientRect();
-    const pct = rawDurationSecs > 0 ? time / rawDurationSecs : 0;
-    tsTooltip = {
-      visible: true,
-      x: barRect.left + pct * barRect.width,
-      y: barRect.top - 12,
-      title,
-      timeLabel: formatTime(time),
-      tone,
-      targetId,
-    };
-  }
-
-  // ── Timestamp drag to reposition ────────────────────────
-  let timestampDragJustEnded = $state(false);
-  function getTimestampPct(time: number): number {
-    return timeline.getTimestampPct(time, rawDurationSecs);
-  }
-  function startTimestampDrag(e: MouseEvent, id: string) {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    e.stopPropagation();
-
-    const mediaEl = isVideo ? videoEl : audioEl;
-    if (!mediaEl || rawDurationSecs <= 0) return;
-
-    const startTs = timeline.getTimestampById(id, timestamps);
-    if (!startTs) return;
-    const dragTitle = startTs.title;
-
-    const bar =
-      document.querySelector(".fs-progress") ??
-      document.querySelector(".progress-bar");
-    if (!bar) return;
-
-    // Show tooltip immediately at drag start
-    updateTooltipDuringDrag(startTs.time, "yellow", dragTitle, id);
-
-    function timeFromClientX(clientX: number): number {
-      const rect = bar!.getBoundingClientRect();
-      const ratio = Math.max(
-        0,
-        Math.min(1, (clientX - rect.left) / rect.width),
-      );
-      return ratio * rawDurationSecs;
-    }
-
-    let moved = false;
-    function onMouseMove(ev: MouseEvent) {
-      moved = true;
-      const time = Math.max(
-        0,
-        Math.min(timeFromClientX(ev.clientX), rawDurationSecs),
-      );
-      timeline.updateTimestampTime(
-        id,
-        time,
-        timestamps,
-        (v) => (timestamps = v),
-      );
-      updateTooltipDuringDrag(time, "yellow", dragTitle, id);
-      if (tsEditMenu.visible && tsEditMenu.targetId === id && bar) {
-        const barRect = bar.getBoundingClientRect();
-        const pct = rawDurationSecs > 0 ? time / rawDurationSecs : 0;
-        tsEditMenu.x = barRect.left + pct * barRect.width;
-        tsEditMenu.y = barRect.top - 12;
-      }
-    }
-
-    function onMouseUp() {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-      if (moved) {
-        timestampDragJustEnded = true;
-        setTimeout(() => {
-          timestampDragJustEnded = false;
-        }, 50);
-      }
-      saveTimestamps();
-      hideTsTooltip();
-    }
-
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-  }
-
-  // ── AB Loop ────────────────────────────────────────────
-  function setABLoop(start: number, end: number) {
-    loopStart = start;
-    loopEnd = end;
-    const mediaEl = getMediaEl();
-    if (mediaEl) mediaEl.loop = true;
-  }
-
-  function clearABLoop() {
-    loopStart = null;
-    loopEnd = null;
-    const mediaEl = getMediaEl();
-    if (mediaEl) mediaEl.loop = loopMode === "loop";
-  }
-
-  // ── Loop markers (A/B) ─────────────────────────────────
-  function addLoopStart() {
-    const mediaEl = isVideo ? videoEl : audioEl;
-    if (!mediaEl || rawDurationSecs <= 0) return;
-    const time = Math.max(0, Math.min(mediaEl.currentTime, rawDurationSecs));
-    loopStart = time;
-    // If end exists but is before new start, clear it
-    if (loopEnd !== null && loopEnd < time) {
-      loopEnd = null;
-    }
-    const mEl = getMediaEl();
-    if (mEl && loopStart !== null && loopEnd !== null) {
-      mEl.loop = true;
-    }
-  }
-
-  function addLoopEnd() {
-    const mediaEl = isVideo ? videoEl : audioEl;
-    if (!mediaEl || rawDurationSecs <= 0 || loopStart === null) return;
-    const time = Math.max(0, Math.min(mediaEl.currentTime, rawDurationSecs));
-    if (time <= loopStart) return;
-    loopEnd = time;
-    mediaEl.loop = true;
-  }
-
-  function clearLoopMarkers() {
-    loopStart = null;
-    loopEnd = null;
-    const mediaEl = getMediaEl();
-    if (mediaEl) mediaEl.loop = loopMode === "loop";
-  }
-
-  let loopMarkerJustDragged = $state(false);
-  function startLoopMarkerDrag(e: MouseEvent, which: "start" | "end") {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    e.stopPropagation();
-
-    const mediaEl = isVideo ? videoEl : audioEl;
-    if (!mediaEl || rawDurationSecs <= 0) return;
-    if (which === "start" && loopStart === null) return;
-    if (which === "end" && loopEnd === null) return;
-
-    const bar =
-      document.querySelector(".fs-progress") ??
-      document.querySelector(".progress-bar");
-    if (!bar) return;
-
-    function timeFromClientX(clientX: number): number {
-      const rect = bar!.getBoundingClientRect();
-      const ratio = Math.max(
-        0,
-        Math.min(1, (clientX - rect.left) / rect.width),
-      );
-      return ratio * rawDurationSecs;
-    }
-
-    let moved = false;
-    function onMouseMove(ev: MouseEvent) {
-      moved = true;
-      const time = timeFromClientX(ev.clientX);
-      if (which === "start") {
-        loopStart = Math.max(0, Math.min(time, rawDurationSecs));
-      } else {
-        loopEnd = Math.max(0, Math.min(time, rawDurationSecs));
-      }
-      updateTooltipDuringDrag(
-        time,
-        "green",
-        which === "start" ? "Loop A" : "Loop B",
-        which,
-      );
-    }
-
-    function onMouseUp() {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-      if (moved) {
-        loopMarkerJustDragged = true;
-        setTimeout(() => {
-          loopMarkerJustDragged = false;
-        }, 50);
-      }
-      // Normalize the loop if A crossed B
-      if (loopStart !== null && loopEnd !== null) {
-        const mediaEl = getMediaEl();
-        if (mediaEl) mediaEl.loop = true;
-      }
-      hideTsTooltip();
-    }
-
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-  }
-
-  // ── Resume point ───────────────────────────────────────
-  function seekToTimestamp(time: number) {
-    const mediaEl = isVideo ? videoEl : audioEl;
-    if (!mediaEl || !mediaEl.duration) return;
-    mediaEl.currentTime = time;
-    // Update UI immediately — don't wait for throttled timeupdate
-    rawCurrentSecs = time;
-    progress = (time / mediaEl.duration) * 100;
-  }
-  function removeResumePoint() {
-    tsTooltip = { ...tsTooltip, visible: false };
-    resumeTooltipVisible = false;
-    resumePoint = null;
-    deleteResumePoint(filePath);
-  }
-  function seekToResumePoint() {
-    const mediaEl = isVideo ? videoEl : audioEl;
-    if (resumePoint !== null && mediaEl) seekToTimestamp(resumePoint);
-  }
-  function showResumeTooltip(e: MouseEvent) {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    tsTooltip = {
-      visible: true,
-      x: rect.left + rect.width / 2,
-      y: rect.top - 6,
-      title: "Resume",
-      timeLabel: formatTime(resumePoint ?? 0),
-      tone: "grey",
-    };
-  }
-  function hideResumeTooltip() {
-    tsTooltip = { ...tsTooltip, visible: false };
-  }
-
-  // ── Clip marker drag ───────────────────────────────────
-  function startClipMarkerDrag(e: MouseEvent, id: string) {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    e.stopPropagation();
-
-    // Reopen the clipping menu if it was dismissed
-    clipMenuResetKey++;
-
-    const mediaEl = isVideo ? videoEl : audioEl;
-    if (!mediaEl || rawDurationSecs <= 0) return;
-
-    const boundary = clips.getBoundaryById(id);
-    if (!boundary) return;
-    const dragTitle = boundary.title;
-
-    const bar =
-      document.querySelector(".fs-progress") ??
-      document.querySelector(".progress-bar");
-    if (!bar) return;
-
-    // Show tooltip immediately at drag start
-    updateTooltipDuringDrag(boundary.time, "blue", dragTitle, id);
-
-    function timeFromClientX(clientX: number): number {
-      const rect = bar!.getBoundingClientRect();
-      const ratio = Math.max(
-        0,
-        Math.min(1, (clientX - rect.left) / rect.width),
-      );
-      return ratio * rawDurationSecs;
-    }
-
-    let moved = false;
-    function onMouseMove(ev: MouseEvent) {
-      moved = true;
-      const time = timeFromClientX(ev.clientX);
-      clips.setBoundaryTime(id, Math.max(0, Math.min(time, rawDurationSecs)));
-      updateTooltipDuringDrag(time, "blue", dragTitle, id);
-      if (tsEditMenu.visible && tsEditMenu.targetId === id && bar) {
-        const barRect = bar.getBoundingClientRect();
-        const pct = rawDurationSecs > 0 ? time / rawDurationSecs : 0;
-        tsEditMenu.x = barRect.left + pct * barRect.width;
-        tsEditMenu.y = barRect.top - 12;
-      }
-    }
-
-    function onMouseUp() {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-      if (moved) {
-        clips.clipMarkerJustDragged = true;
-        setTimeout(() => {
-          clips.clipMarkerJustDragged = false;
-        }, 50);
-      }
-      hideTsTooltip();
-    }
-
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-  }
 
   // ── Clip jobs ──────────────────────────────────────────
   function persistClipPrefs() {
@@ -1369,10 +885,10 @@
       rawDurationSecs = data.rawDurationSecs;
     if (data.progress !== undefined) progress = data.progress;
     if (data.playing !== undefined) playing = data.playing;
-    if (data.timestamps !== undefined) timestamps = data.timestamps;
+    if (data.timestamps !== undefined) markerStore.timestamps = data.timestamps;
     if (data.clipBoundaries !== undefined)
       clips.setBoundaries(data.clipBoundaries);
-    if (data.resumePoint !== undefined) resumePoint = data.resumePoint;
+    if (data.resumePoint !== undefined) markerStore.resumePoint = data.resumePoint;
   }
   const media = createMedia(
     () => videoEl,
@@ -1381,10 +897,10 @@
     () => muted,
     () => loopMode === "loop",
     (newPath?: string) => {
-      tsTooltip = { ...tsTooltip, visible: false };
-      tsEditMenu = { ...tsEditMenu, visible: false };
-      loopStart = null;
-      loopEnd = null;
+      markerStore.tsTooltip = { ...markerStore.tsTooltip, visible: false };
+      markerStore.tsEditMenu = { ...markerStore.tsEditMenu, visible: false };
+      markerStore.loopStart = null;
+      markerStore.loopEnd = null;
       resetZoom();
       viewer.state.baseZoomLevel = 100;
       if (newPath) {
@@ -1542,7 +1058,7 @@
     slideshow.stop();
     folderWatcher.stopWatching();
     clearTimeout(pendingPlay);
-    resumeTooltipVisible = false;
+    markerStore.resumeTooltipVisible = false;
     editing.cleanup();
     viewer.state.zoomLevel = 100;
     viewer.state.baseZoomLevel = 100;
@@ -1630,7 +1146,7 @@
       menuStore.helpOpen ||
       menuStore.aboutOpen ||
       menuStore.feedbackOpen ||
-      tsEditMenu.visible ||
+      markerStore.tsEditMenu.visible ||
       menuStore.tsMenuOpen ||
       clipDeleteConfirm.visible ||
       corruption.state.warning,
@@ -1648,7 +1164,7 @@
       menuStore.helpOpen = false;
       menuStore.aboutOpen = false;
       menuStore.feedbackOpen = false;
-      tsEditMenu.visible = false;
+      markerStore.tsEditMenu.visible = false;
       menuStore.tsMenuOpen = false;
       clipDeleteConfirm.visible = false;
       editApplyConfirm = false;
@@ -2035,7 +1551,7 @@
     )
       closeSlideshowMenu();
     if (
-      tsEditMenu.visible &&
+      markerStore.tsEditMenu.visible &&
       !target.closest(".ts-edit-menu") &&
       !target.closest(".ts-marker") &&
       !target.closest(".clip-marker") &&
@@ -2234,9 +1750,9 @@
   onUpdateDeleteNoAsk={(v: boolean) => (deleteStore.deleteNoAsk = v)}
   onUpdateDeletePermanently={(v: boolean) => (deleteStore.deletePermanently = v)}
   onCloseContextMenu={closeContextMenu}
-  {tsTooltip}
-  tsEditMenuVisible={tsEditMenu.visible}
-  {tsEditMenu}
+  tsTooltip={markerStore.tsTooltip}
+  tsEditMenuVisible={markerStore.tsEditMenu.visible}
+  tsEditMenu={markerStore.tsEditMenu}
   editingTimestamp={getActiveEditorTimestamp()}
   editingSegment={getActiveEditorSegment()}
   currentTitle={getEditorTitle()}
@@ -2255,9 +1771,9 @@
   playbackSpeed={playbackUI.playbackSpeed}
   {muted}
   {volume}
-  {timestamps}
+  timestamps={markerStore.timestamps}
   clipBoundaries={clips.clipBoundaries}
-  {resumePoint}
+  resumePoint={markerStore.resumePoint}
   {frameCopyToast}
   {imageCopyToast}
   {clipToast}
@@ -2418,7 +1934,7 @@
             <div
               class="video-controls"
               class:gif-only={isGifVideo}
-              class:editor-open={tsEditMenu.visible}
+              class:editor-open={markerStore.tsEditMenu.visible}
             >
               <TimelineMarkers
                 fullscreen={false}
@@ -2427,14 +1943,14 @@
                 {isGifVideo}
                 clipPairs={clips.clipPairs}
                 clipBoundaries={clips.clipBoundaries}
-                {timestamps}
-                {abLoopRegion}
-                {loopStart}
-                {loopEnd}
-                {resumePoint}
+                timestamps={markerStore.timestamps}
+                abLoopRegion={markerStore.abLoopRegion}
+                loopStart={markerStore.loopStart}
+                loopEnd={markerStore.loopEnd}
+                resumePoint={markerStore.resumePoint}
                 durationSecs={rawDurationSecs}
                 clipMarkerJustDragged={clips.clipMarkerJustDragged}
-                tsEditMenuVisible={tsEditMenu.visible}
+                tsEditMenuVisible={markerStore.tsEditMenu.visible}
                 {startScrubbing}
                 {getTimestampPct}
                 {startClipMarkerDrag}
@@ -2444,7 +1960,7 @@
                 {seekToTimestamp}
                 {openSegmentEditor}
                 {startTimestampDrag}
-                {timestampDragJustEnded}
+                timestampDragJustEnded={markerStore.timestampDragJustEnded}
                 {removeTimestamp}
                 {showTimestampTooltip}
                 {openTimestampEditor}
@@ -2455,7 +1971,7 @@
                 {clearABLoop}
                 {formatTime}
                 {startLoopMarkerDrag}
-                {loopMarkerJustDragged}
+                loopMarkerJustDragged={markerStore.loopMarkerJustDragged}
                 {showLoopMarkerTooltip}
               />
               <PlaybackControls
@@ -2489,13 +2005,13 @@
                 addClipEnd={() => addClipBoundary("end")}
                 {addLoopStart}
                 {addLoopEnd}
-                hasLoopStart={loopStart !== null}
-                hasLoopEnd={loopEnd !== null}
-                hasAnyMarkers={timestamps.length > 0 ||
+                hasLoopStart={markerStore.loopStart !== null}
+                hasLoopEnd={markerStore.loopEnd !== null}
+                hasAnyMarkers={markerStore.timestamps.length > 0 ||
                   clips.clipBoundaries.length > 0 ||
-                  resumePoint !== null ||
-                  loopStart !== null ||
-                  loopEnd !== null}
+                  markerStore.resumePoint !== null ||
+                  markerStore.loopStart !== null ||
+                  markerStore.loopEnd !== null}
                 deleteAllMarkers={() => {
                   clearAllTimestamps();
                   clearAllSegments();
@@ -2563,11 +2079,11 @@
             {discScrubHandlers}
             {startScrubbing}
             {clips}
-            {timestamps}
-            {loopStart}
-            {loopEnd}
-            {resumePoint}
-            tsEditMenuVisible={tsEditMenu.visible}
+            timestamps={markerStore.timestamps}
+            loopStart={markerStore.loopStart}
+            loopEnd={markerStore.loopEnd}
+            resumePoint={markerStore.resumePoint}
+            tsEditMenuVisible={markerStore.tsEditMenu.visible}
             tsMenuOpen={menuStore.tsMenuOpen}
             loopMenuOpen={menuStore.loopMenuOpen}
             onTsMenuChange={(v) => (menuStore.tsMenuOpen = v)}
@@ -2669,7 +2185,7 @@
     {#if viewer.state.isFullscreen && fileSrc}
       <div
         class="fs-overlay"
-        class:visible={viewer.state.fsControlsVisible || tsEditMenu.visible}
+        class:visible={viewer.state.fsControlsVisible || markerStore.tsEditMenu.visible}
         class:audio-fullscreen={isAudio}
         role="button"
         tabindex="0"
@@ -2725,14 +2241,14 @@
               {isGifVideo}
               clipPairs={clips.clipPairs}
               clipBoundaries={clips.clipBoundaries}
-              {timestamps}
-              {abLoopRegion}
-              {loopStart}
-              {loopEnd}
-              {resumePoint}
+              timestamps={markerStore.timestamps}
+              abLoopRegion={markerStore.abLoopRegion}
+              loopStart={markerStore.loopStart}
+              loopEnd={markerStore.loopEnd}
+              resumePoint={markerStore.resumePoint}
               durationSecs={rawDurationSecs}
               clipMarkerJustDragged={clips.clipMarkerJustDragged}
-              tsEditMenuVisible={tsEditMenu.visible}
+              tsEditMenuVisible={markerStore.tsEditMenu.visible}
               {startScrubbing}
               {getTimestampPct}
               {startClipMarkerDrag}
@@ -2742,7 +2258,7 @@
               {seekToTimestamp}
               {openSegmentEditor}
               {startTimestampDrag}
-              {timestampDragJustEnded}
+              timestampDragJustEnded={markerStore.timestampDragJustEnded}
               {removeTimestamp}
               {showTimestampTooltip}
               {openTimestampEditor}
@@ -2753,7 +2269,7 @@
               {clearABLoop}
               {formatTime}
               {startLoopMarkerDrag}
-              {loopMarkerJustDragged}
+              loopMarkerJustDragged={markerStore.loopMarkerJustDragged}
               {showLoopMarkerTooltip}
             />
             <PlaybackControls
@@ -2787,13 +2303,13 @@
               addClipEnd={() => addClipBoundary("end")}
               {addLoopStart}
               {addLoopEnd}
-              hasLoopStart={loopStart !== null}
-              hasLoopEnd={loopEnd !== null}
-              hasAnyMarkers={timestamps.length > 0 ||
+              hasLoopStart={markerStore.loopStart !== null}
+              hasLoopEnd={markerStore.loopEnd !== null}
+              hasAnyMarkers={markerStore.timestamps.length > 0 ||
                 clips.clipBoundaries.length > 0 ||
-                resumePoint !== null ||
-                loopStart !== null ||
-                loopEnd !== null}
+                markerStore.resumePoint !== null ||
+                markerStore.loopStart !== null ||
+                markerStore.loopEnd !== null}
               deleteAllMarkers={() => {
                 clearAllTimestamps();
                 clearAllSegments();
