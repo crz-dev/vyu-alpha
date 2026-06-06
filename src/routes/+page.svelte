@@ -59,7 +59,6 @@
   import { createMarkupActions } from "$lib/features/markup/markupActions";
   import Controls from "$lib/shared/Controls.svelte";
   import Shell from "$lib/shared/Shell.svelte";
-  import SortMenu from "$lib/features/navigation/SortMenu.svelte";
   import { createToastHelpers, toastStore } from "$lib/features/toast/toast.svelte";
   import {
     ctxCopyImage,
@@ -86,7 +85,6 @@
   import { setupInit } from "./init";
   import { createPdf } from "$lib/features/pdf/pdf.svelte";
   import AudioPlayer from "$lib/features/media/AudioPlayer.svelte";
-  import Marquee from "$lib/shared/Marquee.svelte";
   import { corruption } from "$lib/features/media/corruption.svelte";
   import { sort } from "$lib/features/navigation/sort.svelte";
   import {
@@ -99,6 +97,7 @@
   import { createPanDrag } from "$lib/features/viewer/panDrag";
   import { createViewerEffects } from "$lib/features/viewer/viewerEffects.svelte";
   import { createViewerStyle } from "$lib/features/viewer/viewerStyle.svelte";
+  import FullscreenOverlay from "$lib/features/viewer/FullscreenOverlay.svelte";
   import { loadCdColorForFile } from "$lib/features/media/cdColor";
   import {
     createDeleteActions,
@@ -1411,110 +1410,42 @@
       </div>
     </div>
 
-    {#if viewer.state.isFullscreen && fileSrc}
-      <div
-        class="fs-overlay"
-        class:visible={viewer.state.fsControlsVisible ||
-          markerStore.tsEditMenu.visible}
-        class:audio-fullscreen={isAudio}
-        role="button"
-        tabindex="0"
-        onwheel={handleViewerScroll}
-        onmousedown={markup.drawActive ? undefined : startPan}
-        ontouchstart={(e) => {
-          if (e.touches.length === 2) e.preventDefault();
-        }}
-        ontouchmove={viewer.handleTouchZoom}
-        ontouchend={viewer.handleTouchEnd}
-        style="cursor: {style.fsCursor}"
-      >
-        <div class="fs-topbar">
-          <span class="fs-filename"
-            ><Marquee text={fileName} scrollOnHover class="fs-marquee" /></span
-          >
-          <div class="fs-window-controls">
-            <button
-              class="fs-wc-btn"
-              onclick={minimizeWindow}
-              aria-label="minimize">−</button
-            ><button
-              class="fs-wc-btn"
-              onclick={maximizeWindow}
-              aria-label="maximize">▢</button
-            ><button
-              class="fs-wc-btn close"
-              onclick={closeWindow}
-              aria-label="close">✕</button
-            >
-          </div>
-        </div>
-        <div class="fs-nav-left">
-          <button
-            class="fs-nav-btn"
-            onclick={() => navigate(-1)}
-            aria-label="previous file">‹</button
-          >
-        </div>
-        <div class="fs-nav-right">
-          <button
-            class="fs-nav-btn"
-            onclick={() => navigate(1)}
-            aria-label="next file">›</button
-          >
-        </div>
-        {#if isVideo && videoEl}
-          <div class="fs-controls" class:gif-only={isGifVideo}>
-            <Controls
-              fullscreen={true}
-              timelineProps={timelineProps}
-              playbackProps={playbackProps}
-            />
-          </div>
-        {:else}
-          <div class="fs-controls image-only">
-            <div class="fs-controls-row">
-              <div class="fs-right">
-                <button
-                  class="fs-ctrl-btn tooltip-ctrl"
-                  data-tooltip="Unfullscreen"
-                  onclick={viewer.toggleFullscreen}
-                  aria-label="exit fullscreen"
-                  ><svg width="12" height="12" viewBox="0 0 12 12" fill="none"
-                    ><path
-                      d="M4 1v3h-3M8 1v3h3M8 11v-3h3M4 11v-3h-3"
-                      stroke="currentColor"
-                      stroke-width="1.2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    /></svg
-                  ></button
-                >
-              </div>
-            </div>
-          </div>
-        {/if}
-        {#if fileList.length > 0}<button
-            bind:this={fsPillEl}
-            class="fs-file-count-pill tooltip-above"
-            class:slideshow-active={slideshow.active}
-            data-tooltip="File position"
-            onclick={toggleThumbnailBar}
-            oncontextmenu={handleFsPillContext}
-            >{currentIndex + 1} / {fileList.length}</button
-          >{/if}
-        {#if sort.menuVisible}
-          <SortMenu
-            visible={sort.menuVisible}
-            onClose={sort.close}
-            x={sort.menuX}
-            y={sort.menuY}
-            sortMode={sort.mode}
-            sortDesc={sort.desc}
-            {onSortChange}
-          />
-        {/if}
-      </div>
-    {/if}
+    <FullscreenOverlay
+      isFullscreen={viewer.state.isFullscreen && !!fileSrc}
+      fsControlsVisible={viewer.state.fsControlsVisible}
+      tsEditMenuVisible={markerStore.tsEditMenu.visible}
+      isAudio={isAudio}
+      fileName={fileName}
+      handleViewerScroll={handleViewerScroll}
+      drawActive={markup.drawActive}
+      startPan={startPan}
+      handleTouchZoom={viewer.handleTouchZoom}
+      handleTouchEnd={viewer.handleTouchEnd}
+      fsCursor={style.fsCursor}
+      minimizeWindow={minimizeWindow}
+      maximizeWindow={maximizeWindow}
+      closeWindow={closeWindow}
+      navigate={navigate}
+      isVideo={isVideo}
+      videoEl={videoEl}
+      isGifVideo={isGifVideo}
+      timelineProps={timelineProps}
+      playbackProps={playbackProps}
+      toggleFullscreen={viewer.toggleFullscreen}
+      fileListLength={fileList.length}
+      currentIndex={currentIndex}
+      fsPillEl={fsPillEl}
+      slideshowActive={slideshow.active}
+      toggleThumbnailBar={toggleThumbnailBar}
+      handleFsPillContext={handleFsPillContext}
+      sortMenuVisible={sort.menuVisible}
+      sortMenuX={sort.menuX}
+      sortMenuY={sort.menuY}
+      sortMode={sort.mode}
+      sortDesc={sort.desc}
+      onSortChange={onSortChange}
+      sortClose={sort.close}
+    />
   {/snippet}
 </Shell>
 
