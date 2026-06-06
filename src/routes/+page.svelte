@@ -1,6 +1,5 @@
 <!-- Layout shell: wires feature modules into the template. State and handlers live in src/lib/features/*/. -->
 <script lang="ts">
-  import { getCurrentWindow } from "@tauri-apps/api/window";
   import { open } from "@tauri-apps/plugin-dialog";
   import { invoke, convertFileSrc } from "@tauri-apps/api/core";
   import {
@@ -16,7 +15,6 @@
     LOOP_MODES,
     ALL_EXTS,
     AUDIO_EXTS,
-    CD_COLORS,
     type LoopMode,
     type SortMode,
   } from "$lib/shared/constants";
@@ -28,29 +26,21 @@
   } from "$lib/shared/types";
   import {
     saveVolume,
-    loadSkipDeleteConfirmation,
-    saveSkipDeleteConfirmation,
     writeTimestamps,
     deleteTimestamps,
     deleteResumePoint,
     saveLoopMode,
     saveSliderMode,
     saveClipPreferences,
-    loadCdColor,
-    saveCdColor,
     loadAudioLayoutMode,
-    saveAudioLayoutMode,
   } from "$lib/services/storage";
   import {
-    invokeDeleteFile,
-    invokeTrashFile,
     invokeOpenDirectory,
     exportEditedImage,
     invokeExportEditedMedia,
     renderMarkupOnImage,
     invokeCheckMediaIntegrity,
     invokeProcessVideoClips,
-    invokeExtractCoverArt,
   } from "$lib/features/media/tools";
   import { computeContextMenuPosition } from "$lib/services/session";
   import {
@@ -103,6 +93,16 @@
     closeWindow,
   } from "$lib/features/window/windowControls";
   import { createFileOpenActions } from "$lib/features/fileActions/fileOpen";
+  import { createPanDrag } from "$lib/features/viewer/panDrag";
+  import { loadCdColorForFile } from "$lib/features/media/cdColor";
+  import {
+    createDeleteActions,
+    deleteStore,
+  } from "$lib/features/fileActions/deleteFile.svelte";
+  import {
+    menuStore,
+    createMenuActions,
+  } from "$lib/features/dialogs/menuVisibility.svelte";
 
   // ── State ──────────────────────────────────────────────
   let filePath = $state("");
@@ -148,26 +148,24 @@
   let pendingPlay: ReturnType<typeof setTimeout> | undefined;
   let isScrubbing = $state(false);
   let contextMenu = $state<ContextMenu>({ x: 0, y: 0, visible: false });
-  let deleteConfirm = $state(false);
-  let deletePermanently = $state(false);
-  let deleteNoAsk = $state(false);
   let editApplyConfirm = $state(false);
   let editTransparencyConfirm = $state(false);
   let pendingEditAction = $state<"apply" | "export" | null>(null);
   let exportFormatOverride = $state<"png" | null>(null);
   let propertiesOpen = $state(false);
   let shareOpen = $state(false);
-  let editMenuVisible = $state(false);
-  let markupMenuVisible = $state(false);
-  let slideshowMenuVisible = $state(false);
-  let appDropdownVisible = $state(false);
-  let settingsOpen = $state(false);
-  let accessibilityOpen = $state(false);
-  let helpOpen = $state(false);
-  let aboutOpen = $state(false);
-  let feedbackOpen = $state(false);
-  let tsMenuOpen = $state(false);
-  let loopMenuOpen = $state(false);
+  const menuActions = createMenuActions({
+    closeContextMenu: () => (contextMenu.visible = false),
+    getFilePath: () => filePath,
+  });
+  const {
+    openEditMenu,
+    closeEditMenu,
+    openMarkupMenu,
+    closeMarkupMenu,
+    toggleSlideshowMenu,
+    closeSlideshowMenu,
+  } = menuActions;
   let audioLayoutMode: "retro" | "modern" = $state(loadAudioLayoutMode());
   let cassetteFilenameOverflow = $state(false);
   let cassetteInfoRowEl = $state<HTMLElement | null>(null);
@@ -288,21 +286,21 @@
   const isGifVideo = $derived(isVideo && getFileExt(filePath) === "gif");
   const anyMenuOpen = $derived(
     contextMenu.visible ||
-      appDropdownVisible ||
-      slideshowMenuVisible ||
-      editMenuVisible ||
-      markupMenuVisible ||
-      settingsOpen ||
-      accessibilityOpen ||
-      helpOpen ||
-      aboutOpen ||
-      feedbackOpen ||
+      menuStore.appDropdownVisible ||
+      menuStore.slideshowMenuVisible ||
+      menuStore.editMenuVisible ||
+      menuStore.markupMenuVisible ||
+      menuStore.settingsOpen ||
+      menuStore.accessibilityOpen ||
+      menuStore.helpOpen ||
+      menuStore.aboutOpen ||
+      menuStore.feedbackOpen ||
       tsEditMenu.visible ||
-      deleteConfirm ||
+      deleteStore.deleteConfirm ||
       propertiesOpen ||
       shareOpen ||
       clipDeleteConfirm.visible ||
-      tsMenuOpen ||
+      menuStore.tsMenuOpen ||
       editApplyConfirm ||
       editTransparencyConfirm ||
       corruption.state.warning ||
@@ -1339,28 +1337,11 @@
     if (data.isVideo !== undefined) isVideo = data.isVideo;
     if (data.isAudio !== undefined) isAudio = data.isAudio;
     if (data.isAudio && data.filePath) {
-      const idx = loadCdColor(data.filePath);
-      if (idx >= 0 && idx < CD_COLORS.length) {
-        cdColorIndex = idx;
-        cdColor = CD_COLORS[idx];
-      } else {
-        const rand = Math.floor(Math.random() * CD_COLORS.length);
-        saveCdColor(data.filePath, rand);
-        cdColorIndex = rand;
-        cdColor = CD_COLORS[rand];
-      }
-      // Extract embedded album art
-      invokeExtractCoverArt(data.filePath)
-        .then((coverPath) => {
-          if (coverPath) {
-            coverArtSrc = convertFileSrc(coverPath);
-          } else {
-            coverArtSrc = "";
-          }
-        })
-        .catch(() => {
-          coverArtSrc = "";
-        });
+      loadCdColorForFile(data.filePath, {
+        setCdColor: (v) => (cdColor = v),
+        setCdColorIndex: (v) => (cdColorIndex = v),
+        setCoverArtSrc: (v) => (coverArtSrc = v),
+      });
     }
     if (data.isPdf !== undefined) isPdf = data.isPdf;
     if (data.fileList !== undefined) fileList = data.fileList;
@@ -1413,7 +1394,7 @@
         markup.cleanup();
         markup.cleanup();
       }
-      editMenuVisible = false;
+      menuStore.editMenuVisible = false;
     },
   );
   slideshow.bind(
@@ -1627,100 +1608,48 @@
   });
   const { openFileDialog, pickAudioFile, openConvertedFile } =
     createFileOpenActions({ loadFile });
-
-  // ── Pan / drag ─────────────────────────────────────────
-  function startPan(e: MouseEvent) {
-    if (e.button !== 0) return;
-    if (
-      (e.target as HTMLElement).closest(
-        ".video-controls, .fs-controls, .fs-topbar, .fs-nav-left, .fs-nav-right, .fs-file-count-pill, .context-menu, .delete-overlay",
-      )
-    )
-      return;
-    e.preventDefault();
-    let hasMoved = false;
-    viewer.setDragging(true);
-    dragStart = {
-      x: e.clientX,
-      y: e.clientY,
-      tx: viewer.state.translateX,
-      ty: viewer.state.translateY,
-    };
-    function onMove(ev: MouseEvent) {
-      const dx = ev.clientX - dragStart.x;
-      const dy = ev.clientY - dragStart.y;
-      if (!hasMoved && Math.sqrt(dx * dx + dy * dy) < 8) return;
-      hasMoved = true;
-      if (viewer.state.zoomLevel > viewer.state.baseZoomLevel)
-        viewer.setTranslation(dragStart.tx + dx, dragStart.ty + dy);
-    }
-    function onUp() {
-      viewer.setDragging(false);
-      if (!hasMoved) {
-        const now = Date.now();
-        const timeSinceLast = now - lastLeftClickTime;
-        lastLeftClickTime = now;
-        if (isVideo) {
-          if (timeSinceLast < 300) {
-            clearTimeout(pendingPlay);
-            toggleFullscreen();
-          } else {
-            pendingPlay = setTimeout(togglePlay, 150);
-          }
-        } else {
-          if (timeSinceLast < 300) toggleFullscreen();
-        }
-      }
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    }
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-  }
-  async function startDrag(e: MouseEvent) {
-    if (e.button !== 0) return;
-    if ((e.target as HTMLElement).closest("button, .filename, .filename-input"))
-      return;
-    document.activeElement && (document.activeElement as HTMLElement).blur();
-    await getCurrentWindow().startDragging();
-  }
+  const { startPan, startDrag } = createPanDrag({
+    getIsVideo: () => isVideo,
+    toggleFullscreen,
+    togglePlay,
+  });
 
   // ── Keybinds ───────────────────────────────────────────
   const configuredKeydown = createKeybindHandler({
     areDialogsOpen: () =>
       contextMenu.visible ||
-      deleteConfirm ||
+      deleteStore.deleteConfirm ||
       propertiesOpen ||
       shareOpen ||
-      editMenuVisible ||
-      markupMenuVisible ||
-      slideshowMenuVisible ||
-      appDropdownVisible ||
-      settingsOpen ||
-      accessibilityOpen ||
-      helpOpen ||
-      aboutOpen ||
-      feedbackOpen ||
+      menuStore.editMenuVisible ||
+      menuStore.markupMenuVisible ||
+      menuStore.slideshowMenuVisible ||
+      menuStore.appDropdownVisible ||
+      menuStore.settingsOpen ||
+      menuStore.accessibilityOpen ||
+      menuStore.helpOpen ||
+      menuStore.aboutOpen ||
+      menuStore.feedbackOpen ||
       tsEditMenu.visible ||
-      tsMenuOpen ||
+      menuStore.tsMenuOpen ||
       clipDeleteConfirm.visible ||
       corruption.state.warning,
     closeDialogs: () => {
       contextMenu.visible = false;
-      deleteConfirm = false;
+      deleteStore.deleteConfirm = false;
       propertiesOpen = false;
       shareOpen = false;
-      editMenuVisible = false;
-      markupMenuVisible = false;
-      slideshowMenuVisible = false;
-      appDropdownVisible = false;
-      settingsOpen = false;
-      accessibilityOpen = false;
-      helpOpen = false;
-      aboutOpen = false;
-      feedbackOpen = false;
+      menuStore.editMenuVisible = false;
+      menuStore.markupMenuVisible = false;
+      menuStore.slideshowMenuVisible = false;
+      menuStore.appDropdownVisible = false;
+      menuStore.settingsOpen = false;
+      menuStore.accessibilityOpen = false;
+      menuStore.helpOpen = false;
+      menuStore.aboutOpen = false;
+      menuStore.feedbackOpen = false;
       tsEditMenu.visible = false;
-      tsMenuOpen = false;
+      menuStore.tsMenuOpen = false;
       clipDeleteConfirm.visible = false;
       editApplyConfirm = false;
       editTransparencyConfirm = false;
@@ -1771,29 +1700,6 @@
   }
   function closeContextMenu() {
     contextMenu = { ...contextMenu, visible: false };
-  }
-
-  // ── Menu toggles ───────────────────────────────────────
-  function openEditMenu() {
-    closeContextMenu();
-    editing.setFilePath(filePath);
-    editMenuVisible = true;
-  }
-  function closeEditMenu() {
-    editMenuVisible = false;
-  }
-  function openMarkupMenu() {
-    closeContextMenu();
-    markupMenuVisible = true;
-  }
-  function closeMarkupMenu() {
-    markupMenuVisible = false;
-  }
-  function toggleSlideshowMenu() {
-    slideshowMenuVisible = !slideshowMenuVisible;
-  }
-  function closeSlideshowMenu() {
-    slideshowMenuVisible = false;
   }
 
   // ── Context menu actions ───────────────────────────────
@@ -1982,7 +1888,7 @@
 
   async function handleApplyEdits() {
     if (!editing.getHasEdits() && !editing.getCropBounds()) return;
-    editMenuVisible = false;
+    menuStore.editMenuVisible = false;
     editing.exitCropMode();
 
     if (needsTransparencyDialog()) {
@@ -2066,32 +1972,16 @@
     folderWatcher,
     showFrameCopyToast: toast.showFrameCopyToast,
   });
-  async function ctxDelete() {
-    closeContextMenu();
-    if (loadSkipDeleteConfirmation()) performDelete();
-    else deleteConfirm = true;
-  }
-  async function performDelete() {
-    deleteConfirm = false;
-    if (deleteNoAsk) saveSkipDeleteConfirmation();
-    const pathToDelete = filePath;
-    const prevList = [...fileList];
-    const prevIndex = currentIndex;
-    closeFile();
-    try {
-      if (deletePermanently) await invokeDeleteFile(pathToDelete);
-      else await invokeTrashFile(pathToDelete);
-      toast.showFrameCopyToast(
-        deletePermanently ? "File deleted permanently" : "File moved to trash",
-        "error",
-      );
-    } catch {
-      toast.showFrameCopyToast("Failed to delete file", "error");
-    }
-    const remaining = prevList.filter((p) => p !== pathToDelete);
-    if (remaining.length > 0)
-      loadFile(remaining[Math.min(prevIndex, remaining.length - 1)]);
-  }
+  const deleteActions = createDeleteActions({
+    getFilePath: () => filePath,
+    getFileList: () => fileList,
+    getCurrentIndex: () => currentIndex,
+    loadFile,
+    closeFile,
+    showFrameCopyToast: toast.showFrameCopyToast,
+  });
+  const { performDelete } = deleteActions;
+  const ctxDelete = () => deleteActions.ctxDelete(closeContextMenu);
 
   // ── Properties dialog ──────────────────────────────────
   const { propsCopyPath, propsOpenFolder, propsCopyAll, copyPropValue } =
@@ -2122,7 +2012,7 @@
     )
       closeContextMenu();
     if (
-      editMenuVisible &&
+      menuStore.editMenuVisible &&
       e.button === 2 &&
       !target.closest(".edit-menu") &&
       !target.closest(".edit-menu-wrapper") &&
@@ -2130,14 +2020,14 @@
     )
       closeEditMenu();
     if (
-      markupMenuVisible &&
+      menuStore.markupMenuVisible &&
       e.button === 2 &&
       !target.closest(".markup-menu-wrapper") &&
       !document.querySelector(".edit-menu.pinned")
     )
       closeMarkupMenu();
     if (
-      slideshowMenuVisible &&
+      menuStore.slideshowMenuVisible &&
       e.button === 2 &&
       !target.closest(".slideshow-menu") &&
       !target.closest(".slideshow-btn") &&
@@ -2153,11 +2043,11 @@
     )
       closeTimestampEditor();
     if (
-      appDropdownVisible &&
+      menuStore.appDropdownVisible &&
       !target.closest(".app-dropdown-menu") &&
       !target.closest(".app-dropdown-toggle")
     )
-      appDropdownVisible = false;
+      menuStore.appDropdownVisible = false;
   }
 
   // ── Lifecycle ──────────────────────────────────────────
@@ -2246,7 +2136,7 @@
   {toggleClipMergeSegments}
   {clipJobLabel}
   {toggleSlideshowMenu}
-  {slideshowMenuVisible}
+  slideshowMenuVisible={menuStore.slideshowMenuVisible}
   {closeSlideshowMenu}
   {toggleThumbnailBar}
   sortMode={sort.mode}
@@ -2264,27 +2154,27 @@
   {minimizeWindow}
   {maximizeWindow}
   {closeWindow}
-  {appDropdownVisible}
-  toggleAppDropdown={() => (appDropdownVisible = !appDropdownVisible)}
-  closeAppDropdown={() => (appDropdownVisible = false)}
-  openSettings={() => (settingsOpen = true)}
-  openAccessibility={() => (accessibilityOpen = true)}
-  openHelp={() => (helpOpen = true)}
-  openAbout={() => (aboutOpen = true)}
-  openFeedback={() => (feedbackOpen = true)}
-  {settingsOpen}
-  closeSettings={() => (settingsOpen = false)}
-  {accessibilityOpen}
-  closeAccessibility={() => (accessibilityOpen = false)}
-  {helpOpen}
-  closeHelp={() => (helpOpen = false)}
-  {aboutOpen}
-  closeAbout={() => (aboutOpen = false)}
-  {feedbackOpen}
-  closeFeedback={() => (feedbackOpen = false)}
+  appDropdownVisible={menuStore.appDropdownVisible}
+  toggleAppDropdown={() => (menuStore.appDropdownVisible = !menuStore.appDropdownVisible)}
+  closeAppDropdown={() => (menuStore.appDropdownVisible = false)}
+  openSettings={() => (menuStore.settingsOpen = true)}
+  openAccessibility={() => (menuStore.accessibilityOpen = true)}
+  openHelp={() => (menuStore.helpOpen = true)}
+  openAbout={() => (menuStore.aboutOpen = true)}
+  openFeedback={() => (menuStore.feedbackOpen = true)}
+  settingsOpen={menuStore.settingsOpen}
+  closeSettings={() => (menuStore.settingsOpen = false)}
+  accessibilityOpen={menuStore.accessibilityOpen}
+  closeAccessibility={() => (menuStore.accessibilityOpen = false)}
+  helpOpen={menuStore.helpOpen}
+  closeHelp={() => (menuStore.helpOpen = false)}
+  aboutOpen={menuStore.aboutOpen}
+  closeAbout={() => (menuStore.aboutOpen = false)}
+  feedbackOpen={menuStore.feedbackOpen}
+  closeFeedback={() => (menuStore.feedbackOpen = false)}
   {contextMenu}
   onOpenContextMenu={openContextMenu}
-  {editMenuVisible}
+  editMenuVisible={menuStore.editMenuVisible}
   onApply={handleApplyEdits}
   onExport={handleExportEdits}
   onUndo={handleUndo}
@@ -2292,7 +2182,7 @@
   onMarkupApply={handleMarkupApply}
   onMarkupExport={handleMarkupExport}
   {closeEditMenu}
-  {markupMenuVisible}
+  markupMenuVisible={menuStore.markupMenuVisible}
   {closeMarkupMenu}
   {ffprobeChecked}
   {ffprobeAvailable}
@@ -2338,11 +2228,11 @@
   onDismissClipboardToast={toast.dismissClipboardToast}
   onCloseClipDeleteConfirm={() =>
     (clipDeleteConfirm = { visible: false, mode: null })}
-  onCloseDeleteConfirm={() => (deleteConfirm = false)}
+  onCloseDeleteConfirm={() => (deleteStore.deleteConfirm = false)}
   onCloseProperties={() => (propertiesOpen = false)}
   onCloseShare={() => (shareOpen = false)}
-  onUpdateDeleteNoAsk={(v: boolean) => (deleteNoAsk = v)}
-  onUpdateDeletePermanently={(v: boolean) => (deletePermanently = v)}
+  onUpdateDeleteNoAsk={(v: boolean) => (deleteStore.deleteNoAsk = v)}
+  onUpdateDeletePermanently={(v: boolean) => (deleteStore.deletePermanently = v)}
   onCloseContextMenu={closeContextMenu}
   {tsTooltip}
   tsEditMenuVisible={tsEditMenu.visible}
@@ -2389,9 +2279,9 @@
   {ctxDelete}
   {ctxClearMarkers}
   {clipDeleteConfirm}
-  {deleteConfirm}
-  {deleteNoAsk}
-  {deletePermanently}
+  deleteConfirm={deleteStore.deleteConfirm}
+  deleteNoAsk={deleteStore.deleteNoAsk}
+  deletePermanently={deleteStore.deletePermanently}
   {propertiesOpen}
   {shareOpen}
   fileExt={() => getFileExt(filePath)}
@@ -2617,7 +2507,7 @@
                 {durationDisplay}
                 {timerTooltip}
                 {toggleFullscreen}
-                onTsMenuChange={(v) => (tsMenuOpen = v)}
+                onTsMenuChange={(v) => (menuStore.tsMenuOpen = v)}
                 volumeSliderMode={playbackUI.volumeSliderMode ||
                   volumeSliderMode}
                 speedSliderMode={playbackUI.speedSliderMode || speedSliderMode}
@@ -2678,10 +2568,10 @@
             {loopEnd}
             {resumePoint}
             tsEditMenuVisible={tsEditMenu.visible}
-            {tsMenuOpen}
-            {loopMenuOpen}
-            onTsMenuChange={(v) => (tsMenuOpen = v)}
-            onLoopMenuChange={(v) => (loopMenuOpen = v)}
+            tsMenuOpen={menuStore.tsMenuOpen}
+            loopMenuOpen={menuStore.loopMenuOpen}
+            onTsMenuChange={(v) => (menuStore.tsMenuOpen = v)}
+            onLoopMenuChange={(v) => (menuStore.loopMenuOpen = v)}
             {addTimestamp}
             {addLoopStart}
             {addLoopEnd}
@@ -2915,7 +2805,7 @@
               {durationDisplay}
               {timerTooltip}
               {toggleFullscreen}
-              onTsMenuChange={(v) => (tsMenuOpen = v)}
+              onTsMenuChange={(v) => (menuStore.tsMenuOpen = v)}
               volumeSliderMode={playbackUI.volumeSliderMode || volumeSliderMode}
               speedSliderMode={playbackUI.speedSliderMode || speedSliderMode}
               volumeSliderValue={playbackUI.volumeSliderValue}
