@@ -20,10 +20,7 @@
     type LoopMode,
     type SortMode,
   } from "$lib/shared/constants";
-  import type {
-    ClipBoundary,
-    MediaProperties,
-  } from "$lib/shared/types";
+  import type { ClipBoundary, MediaProperties } from "$lib/shared/types";
   import {
     saveVolume,
     saveLoopMode,
@@ -32,8 +29,6 @@
   } from "$lib/services/storage";
   import {
     invokeOpenDirectory,
-    exportEditedImage,
-    invokeExportEditedMedia,
     renderMarkupOnImage,
     invokeCheckMediaIntegrity,
   } from "$lib/features/media/tools";
@@ -106,6 +101,10 @@
     menuStore,
     createMenuActions,
   } from "$lib/features/dialogs/menuVisibility.svelte";
+  import {
+    editDialogStore,
+    createEditActions,
+  } from "$lib/features/edit/editActions.svelte";
 
   // ── State ──────────────────────────────────────────────
   let filePath = $state("");
@@ -150,10 +149,6 @@
   let lastLeftClickTime = 0;
   let pendingPlay: ReturnType<typeof setTimeout> | undefined;
   let isScrubbing = $state(false);
-  let editApplyConfirm = $state(false);
-  let editTransparencyConfirm = $state(false);
-  let pendingEditAction = $state<"apply" | "export" | null>(null);
-  let exportFormatOverride = $state<"png" | null>(null);
   let propertiesOpen = $state(false);
   let shareOpen = $state(false);
   const menuActions = createMenuActions({
@@ -198,12 +193,6 @@
     tone: "success" | "error" | "info";
   }>({ visible: false, message: "", tone: "success" });
   let imageCopyToastTimer: ReturnType<typeof setTimeout> | undefined;
-  let exportToast = $state<{
-    visible: boolean;
-    phase: string;
-    message: string;
-    outputPath: string;
-  }>({ visible: false, phase: "", message: "", outputPath: "" });
   let clipboardToast = $state<{ visible: boolean; filePath: string | null }>({
     visible: false,
     filePath: null,
@@ -290,8 +279,8 @@
       shareOpen ||
       clips.clipDeleteConfirm.visible ||
       menuStore.tsMenuOpen ||
-      editApplyConfirm ||
-      editTransparencyConfirm ||
+      editDialogStore.editApplyConfirm ||
+      editDialogStore.editTransparencyConfirm ||
       corruption.state.warning ||
       sort.menuVisible,
   );
@@ -397,7 +386,10 @@
         playing = !el.paused;
 
         // AB loop enforcement
-        if (markerStore.abLoopRegion && el.currentTime >= markerStore.abLoopRegion.end) {
+        if (
+          markerStore.abLoopRegion &&
+          el.currentTime >= markerStore.abLoopRegion.end
+        ) {
           el.currentTime = markerStore.abLoopRegion.start;
         }
       }
@@ -731,7 +723,6 @@
     removeClipBoundary,
   } = markerActions;
 
-
   // ── File loading / navigation ──────────────────────────
   function setMediaState(
     data: Partial<import("$lib/features/media/media.svelte").MediaState>,
@@ -777,7 +768,8 @@
     if (data.timestamps !== undefined) markerStore.timestamps = data.timestamps;
     if (data.clipBoundaries !== undefined)
       clips.setBoundaries(data.clipBoundaries);
-    if (data.resumePoint !== undefined) markerStore.resumePoint = data.resumePoint;
+    if (data.resumePoint !== undefined)
+      markerStore.resumePoint = data.resumePoint;
   }
   const media = createMedia(
     () => videoEl,
@@ -1056,10 +1048,7 @@
       markerStore.tsEditMenu.visible = false;
       menuStore.tsMenuOpen = false;
       clips.clipDeleteConfirm.visible = false;
-      editApplyConfirm = false;
-      editTransparencyConfirm = false;
-      pendingEditAction = null;
-      exportFormatOverride = null;
+      editDialogStore.closeAll();
       corruption.hide();
       markup.drawActive = false;
     },
@@ -1179,189 +1168,27 @@
   function ctxShareFn() {
     ctxShare({ closeContextMenu, setShareOpen: (v) => (shareOpen = v) });
   }
-  function needsTransparencyDialog(): boolean {
-    if (isVideo) return false;
-    const ext = getFileExt(filePath);
-    return (
-      ["jpg", "jpeg"].includes(ext) && editing.snapshot.rotation % 90 !== 0
-    );
-  }
-
-  async function performApply() {
-    try {
-      editing.isApplying = true;
-      await editing.backupOriginal(filePath);
-
-      const s = editing.snapshot;
-
-      if (isVideo) {
-        if (!videoEl || videoEl.videoWidth <= 0 || videoEl.videoHeight <= 0) {
-          throw new Error("Video not ready for export");
-        }
-        await invokeExportEditedMedia(
-          filePath,
-          filePath,
-          s,
-          videoEl.videoWidth,
-          videoEl.videoHeight,
-        );
-      } else if (exportFormatOverride === "png") {
-        const pngPath = filePath.replace(/\.\w+$/, ".png");
-        await exportEditedImage(filePath, s, pngPath);
-        await loadFile(pngPath);
-      } else {
-        await exportEditedImage(filePath, s, filePath);
-      }
-
-      editing.isApplying = false;
-      editing.isApplied = true;
-      exportFormatOverride = null;
-      toast.showFrameCopyToast("Edits applied", "success");
-    } catch (err) {
-      editing.isApplying = false;
-      exportFormatOverride = null;
-      const message =
-        err instanceof Error ? err.message : "Failed to apply edits";
-      toast.showFrameCopyToast(message, "error");
-    }
-  }
-
-  async function performExport() {
-    try {
-      const ext = getFileExt(filePath);
-      const overrideExt = exportFormatOverride === "png" ? "png" : ext;
-      const defaultName =
-        fileName.replace(/\.[^.]+$/, "") + "_edited." + overrideExt;
-
-      const { save } = await import("@tauri-apps/plugin-dialog");
-      const outputPath = await save({
-        defaultPath: defaultName,
-        filters: isVideo
-          ? [{ name: "Video", extensions: [ext] }]
-          : [{ name: "Image", extensions: [overrideExt] }],
-      });
-
-      if (!outputPath) return;
-
-      exportFormatOverride = null;
-
-      editing.isExporting = true;
-      exportToast = {
-        visible: true,
-        phase: "exporting",
-        message: "Exporting...",
-        outputPath,
-      };
-
-      const s = editing.snapshot;
-      if (isVideo) {
-        if (!videoEl || videoEl.videoWidth <= 0 || videoEl.videoHeight <= 0) {
-          throw new Error("Video not ready for export");
-        }
-        await invokeExportEditedMedia(
-          filePath,
-          outputPath,
-          s,
-          videoEl.videoWidth,
-          videoEl.videoHeight,
-        );
-      } else {
-        await exportEditedImage(filePath, s, outputPath);
-      }
-
-      editing.isExporting = false;
-      exportToast = {
-        visible: true,
-        phase: "done",
-        message: "Exported!",
-        outputPath,
-      };
-    } catch (err) {
-      editing.isExporting = false;
-      const message =
-        err instanceof Error ? err.message : "Failed to export file";
-      exportToast = { visible: true, phase: "error", message, outputPath: "" };
-    }
-  }
-
-  async function handleApplyEdits() {
-    if (!editing.getHasEdits() && !editing.getCropBounds()) return;
-    menuStore.editMenuVisible = false;
-    editing.exitCropMode();
-
-    if (needsTransparencyDialog()) {
-      pendingEditAction = "apply";
-      editTransparencyConfirm = true;
-      return;
-    }
-
-    editApplyConfirm = true;
-  }
-
-  async function handleExportEdits() {
-    if (!editing.getHasEdits() && !editing.getCropBounds()) {
-      toast.showFrameCopyToast("No edits to export", "info");
-      return;
-    }
-
-    if (needsTransparencyDialog()) {
-      pendingEditAction = "export";
-      editTransparencyConfirm = true;
-      return;
-    }
-
-    await performExport();
-  }
-
-  async function handleTransparencyChoice(choice: "png" | "keep") {
-    editTransparencyConfirm = false;
-    const action = pendingEditAction;
-    pendingEditAction = null;
-
-    if (choice === "png") {
-      exportFormatOverride = "png";
-    } else {
-      exportFormatOverride = null;
-    }
-
-    if (action === "apply") {
-      editApplyConfirm = true;
-    } else if (action === "export") {
-      await performExport();
-      exportFormatOverride = null;
-    }
-  }
-
-  async function handleApplyConfirm() {
-    editApplyConfirm = false;
-    await performApply();
-  }
-
-  async function handleApplyExportInstead() {
-    editApplyConfirm = false;
-    exportFormatOverride = null;
-    await performExport();
-  }
-
-  function closeEditApplyConfirm() {
-    editApplyConfirm = false;
-    exportFormatOverride = null;
-  }
-
-  function closeEditTransparencyConfirm() {
-    editTransparencyConfirm = false;
-    pendingEditAction = null;
-    exportFormatOverride = null;
-  }
-
-  function handleUndo() {
-    editing.undo();
-  }
-
-  async function handleReset() {
-    await editing.reset();
-    toast.showFrameCopyToast("Edits reset", "info");
-  }
+  const editActions = createEditActions({
+    getFilePath: () => filePath,
+    getFileName: () => fileName,
+    getIsVideo: () => isVideo,
+    getVideoEl: () => videoEl,
+    loadFile,
+    showFrameCopyToast: toast.showFrameCopyToast,
+  });
+  const {
+    performApply,
+    performExport,
+    handleApplyEdits,
+    handleExportEdits,
+    handleTransparencyChoice,
+    handleApplyConfirm,
+    handleApplyExportInstead,
+    closeEditApplyConfirm,
+    closeEditTransparencyConfirm,
+    handleUndo,
+    handleReset,
+  } = editActions;
 
   const { handleMarkupApply, handleMarkupExport } = createMarkupActions({
     getFilePath: () => filePath,
@@ -1538,7 +1365,8 @@
   {maximizeWindow}
   {closeWindow}
   appDropdownVisible={menuStore.appDropdownVisible}
-  toggleAppDropdown={() => (menuStore.appDropdownVisible = !menuStore.appDropdownVisible)}
+  toggleAppDropdown={() =>
+    (menuStore.appDropdownVisible = !menuStore.appDropdownVisible)}
   closeAppDropdown={() => (menuStore.appDropdownVisible = false)}
   openSettings={() => (menuStore.settingsOpen = true)}
   openAccessibility={() => (menuStore.accessibilityOpen = true)}
@@ -1604,8 +1432,12 @@
   }}
   onSelect={navigateToIndex}
   onOpenExportedFile={async () => {
-    if (exportToast.outputPath) loadFile(exportToast.outputPath);
-    exportToast = { ...exportToast, visible: false };
+    if (editDialogStore.exportToast.outputPath)
+      loadFile(editDialogStore.exportToast.outputPath);
+    editDialogStore.exportToast = {
+      ...editDialogStore.exportToast,
+      visible: false,
+    };
   }}
   onSaveClipboardFile={toast.saveClipboardFile}
   onDismissClipboardToast={toast.dismissClipboardToast}
@@ -1617,7 +1449,8 @@
   onCloseProperties={() => (propertiesOpen = false)}
   onCloseShare={() => (shareOpen = false)}
   onUpdateDeleteNoAsk={(v: boolean) => (deleteStore.deleteNoAsk = v)}
-  onUpdateDeletePermanently={(v: boolean) => (deleteStore.deletePermanently = v)}
+  onUpdateDeletePermanently={(v: boolean) =>
+    (deleteStore.deletePermanently = v)}
   onCloseContextMenu={closeContextMenu}
   tsTooltip={markerStore.tsTooltip}
   tsEditMenuVisible={markerStore.tsEditMenu.visible}
@@ -1646,7 +1479,7 @@
   {frameCopyToast}
   {imageCopyToast}
   clipToast={clips.clipToast}
-  {exportToast}
+  exportToast={editDialogStore.exportToast}
   {clipboardToast}
   clipOutputDir={clips.clipOutputDir}
   parentFolder={() => getParentFolder(filePath)}
@@ -2054,7 +1887,8 @@
     {#if viewer.state.isFullscreen && fileSrc}
       <div
         class="fs-overlay"
-        class:visible={viewer.state.fsControlsVisible || markerStore.tsEditMenu.visible}
+        class:visible={viewer.state.fsControlsVisible ||
+          markerStore.tsEditMenu.visible}
         class:audio-fullscreen={isAudio}
         role="button"
         tabindex="0"
@@ -2258,7 +2092,7 @@
 </Shell>
 
 <TransparencyConfirmDialog
-  open={editTransparencyConfirm}
+  open={editDialogStore.editTransparencyConfirm}
   {fileName}
   fileExtUpper={getFileExt(filePath).toUpperCase()}
   onClose={closeEditTransparencyConfirm}
@@ -2266,11 +2100,9 @@
 />
 
 <ApplyEditDialog
-  open={editApplyConfirm}
+  open={editDialogStore.editApplyConfirm}
   {fileName}
   onClose={closeEditApplyConfirm}
   onConfirm={handleApplyConfirm}
   onExportInstead={handleApplyExportInstead}
 />
-
-
