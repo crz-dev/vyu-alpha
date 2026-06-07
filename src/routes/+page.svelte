@@ -1,5 +1,13 @@
-<!-- Layout shell: wires feature modules into the template. State and handlers live in src/lib/features/*/. -->
+<!-- App shell: instantiates all feature modules, wires state into Shell/ViewerArea.
+     To add a new feature:
+       1. Import the module in the Imports section below
+       2. If it needs reactive state, add $state declarations in the State section
+       3. Add its factory call in the correct Feature modules subsection
+       4. If it needs reactive derivations or effects, add them with the feature module
+       5. Wire its outputs into the Prop bundles section
+       6. Pass individual props in the Shell or ViewerArea template call -->
 <script lang="ts">
+  // ── Imports ──
   import {
     createPlaybackUI,
     formatTime,
@@ -30,7 +38,6 @@
     createEnsureFfprobe,
   } from "$lib/features/media/ffmpegHelpers";
   import { invokeOpenDirectory } from "$lib/features/media/tools";
-
   import {
     showFilenameTooltip,
     hideFilenameTooltip,
@@ -45,9 +52,6 @@
   import { editing } from "$lib/features/editing/editing.svelte";
   import { slideshow } from "$lib/features/media/slideshow.svelte";
   import { markup } from "$lib/features/markup/markup.svelte";
-  import ImageView from "$lib/features/viewer/ImageView.svelte";
-  import VideoView from "$lib/features/viewer/VideoView.svelte";
-  import PDFView from "$lib/features/viewer/PDFView.svelte";
   import { createMarkupActions } from "$lib/features/markup/markupActions";
   import Shell from "$lib/shared/Shell.svelte";
   import {
@@ -62,7 +66,6 @@
   import TransparencyConfirmDialog from "$lib/features/dialogs/TransparencyConfirmDialog.svelte";
   import { setupInit } from "./init";
   import { createPdf } from "$lib/features/pdf/pdf.svelte";
-  import AudioPlayer from "$lib/features/media/AudioPlayer.svelte";
   import { corruption } from "$lib/features/media/corruption.svelte";
   import { sort } from "$lib/features/navigation/sort.svelte";
   import {
@@ -90,7 +93,7 @@
     createEditActions,
   } from "$lib/features/edit/editActions.svelte";
 
-  // ── State ──────────────────────────────────────────────
+  // ── State declarations ──
   let filePath = $state("");
   let fileSrc = $state("");
   let fileName = $state("no file open");
@@ -132,18 +135,6 @@
   let isScrubbing = $state(false);
   let propertiesOpen = $state(false);
   let shareOpen = $state(false);
-  const menuActions = createMenuActions({
-    closeContextMenu: () => contextMenuStore.close(),
-    getFilePath: () => filePath,
-  });
-  const {
-    openEditMenu,
-    closeEditMenu,
-    openMarkupMenu,
-    closeMarkupMenu,
-    toggleSlideshowMenu,
-    closeSlideshowMenu,
-  } = menuActions;
   let audioLayoutMode: "retro" | "modern" = $state(loadAudioLayoutMode());
   let cassetteFilenameOverflow = $state(false);
   let cassetteInfoRowEl = $state<HTMLElement | null>(null);
@@ -162,12 +153,21 @@
   let ffmpegInstalling = $state(false);
   let ffmpegInstallError = $state("");
 
-  // ── Menu + media-prop prop bundles ──────────────────────
+  // ── Feature modules: menu and ffmpeg helpers ──
+  const menuActions = createMenuActions({
+    closeContextMenu: () => contextMenuStore.close(),
+    getFilePath: () => filePath,
+  });
+  const {
+    openEditMenu,
+    closeEditMenu,
+    openMarkupMenu,
+    closeMarkupMenu,
+    toggleSlideshowMenu,
+    closeSlideshowMenu,
+  } = menuActions;
   const menuBindings = createMenuBindings();
   const {
-    ffmpegSetters,
-    ffprobeSetters,
-    mediaPropsSetters,
     runInstallFfmpeg,
     runRefreshFfprobe,
     runLoadMediaProperties,
@@ -181,7 +181,7 @@
     setFfprobeAvailable: (v) => (ffprobeAvailable = v),
   });
 
-  // ── Derived ────────────────────────────────────────────
+  // ── Feature modules: viewer and media foundation ──
   const style = createViewerStyle();
   const isGifVideo = $derived(isVideo && getFileExt(filePath) === "gif");
   const clips = createClips({
@@ -203,6 +203,8 @@
       setMediaPropsLoading: (v) => (mediaPropsLoading = v),
     }),
   });
+  const toast = createToastHelpers();
+  const durationDisplay = $derived(formatTime(rawDurationSecs));
   const anyMenuOpen = $derived(
     contextMenuStore.isOpen ||
       menuStore.isAnyOpen ||
@@ -216,12 +218,8 @@
       corruption.state.warning ||
       sort.menuVisible,
   );
-  const durationDisplay = $derived(formatTime(rawDurationSecs));
 
-  // ── Toast helpers ──────────────────────────────────────
-  const toast = createToastHelpers();
-
-  // ── Viewer helpers ─────────────────────────────────────
+  // ── Feature modules: viewer effects and playback poller ──
   const viewerFx = createViewerEffects({
     getVideoEl: () => videoEl,
     getViewerEl: () => viewerEl,
@@ -235,7 +233,6 @@
   $effect(viewerFx.setVideoElEffect);
   $effect(viewerFx.resizeObserverEffect);
   $effect(viewerFx.refitOnChangeEffect);
-  // ── Smooth progress via requestAnimationFrame ──────────
   $effect(
     createPlaybackPoller({
       getIsVideo: () => isVideo,
@@ -257,7 +254,7 @@
     toggleFullscreen,
   } = viewerFx;
 
-  // ── Playback ───────────────────────────────────────────
+  // ── Feature modules: playback and marker controls ──
   const getMediaEl = () => (isVideo ? videoEl : isAudio ? audioEl : null);
   const playbackUI = createPlaybackUI(
     getMediaEl,
@@ -363,7 +360,7 @@
     removeClipBoundary,
   } = markerActions;
 
-  // ── Timeline + playback prop bundles ────────────────────
+  // ── Prop bundles: timeline and playback (must be after state + playback modules) ──
   const timelineProps = $derived({
     progress,
     currentTimeSecs: rawCurrentSecs,
@@ -469,7 +466,7 @@
     speedDragging: playbackUI.speedDragging,
   });
 
-  // ── File loading / navigation ──────────────────────────
+  // ── Feature modules: file operations and navigation ──
   const pdf = createPdf();
   const navigation = createNavigation({
     setFilePath: (v) => (filePath = v),
@@ -563,8 +560,6 @@
     media,
     setMediaState,
   });
-
-  // ── PDF load effect ─────────────────────────────────────
   $effect(() => {
     if (filePath && isPdf && pdfContainerEl) {
       pdf.loadFile(filePath);
@@ -581,7 +576,7 @@
     togglePlay,
   });
 
-  // ── Keybinds ───────────────────────────────────────────
+  // ── Feature modules: input handling (keybind, context menu) ──
   const configuredKeydown = createKeybindHandler({
     areDialogsOpen: () =>
       contextMenuStore.isOpen ||
@@ -620,14 +615,13 @@
   function handleKeydown(e: KeyboardEvent) {
     configuredKeydown(e);
   }
-
-  // ── Context menu ───────────────────────────────────────
   function openContextMenu(e: MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
     const target = e.target as HTMLElement;
     if (target.closest("button, .progress-bar, .fs-progress")) return;
     if (!fileSrc) return;
+    // Pixel estimates for context menu dimensions
     const menuW = 200;
     const menuH = isVideo || isAudio ? 300 : 260;
     contextMenuStore.open(e, menuW, menuH);
@@ -636,7 +630,7 @@
     contextMenuStore.close();
   }
 
-  // ── Context menu actions ───────────────────────────────
+  // ── Feature modules: edit, markup, delete, and context actions ──
   const editActions = createEditActions({
     getFilePath: () => filePath,
     getFileName: () => fileName,
@@ -656,7 +650,6 @@
     handleUndo,
     handleReset,
   } = editActions;
-
   const { handleMarkupApply, handleMarkupExport } = createMarkupActions({
     getFilePath: () => filePath,
     getFileName: () => fileName,
@@ -709,8 +702,6 @@
     setShareOpen: (v) => (shareOpen = v),
     deleteActions,
   });
-
-  // ── Properties dialog ──────────────────────────────────
   const { propsCopyPath, propsOpenFolder, propsCopyAll, copyPropValue } =
     createPropertiesActions({
       showFrameCopyToast: toast.showFrameCopyToast,
@@ -728,8 +719,6 @@
       }),
       getParentFolder,
     });
-
-  // ── Global mouse ───────────────────────────────────────
   const handleGlobalMouseDown = createGlobalMouseHandler({
     contextMenuStore,
     menuStore: {
@@ -757,7 +746,7 @@
     closeTimestampEditor,
   });
 
-  // ── Shell shorthand prop bundle ─────────────────────────
+  // ── Prop bundle: shell (must be after all feature modules) ──
   const _shellProps = $derived({
     fileName,
     fileSrc,
@@ -821,7 +810,7 @@
     invokeOpenDirectory,
   });
 
-  // ── Lifecycle ──────────────────────────────────────────
+  // ── Lifecycle ──
   setupInit({
     volume: { get: () => volume, set: (v) => (volume = v) },
     loopMode: {
