@@ -1,4 +1,5 @@
 import { invokeFixMedia } from "$lib/features/media/tools";
+import { showToast } from "$lib/features/toast/toast.svelte";
 
 export function createCorruption() {
   const state = $state({
@@ -26,7 +27,7 @@ export function createCorruption() {
     const err = audioEl?.error;
     const reason = err
       ? `Audio decode error (code: ${err.code})`
-      : "This audio file may be corrupted.";
+      : "This audio may be corrupted.";
     state.warning = true;
     state.reason = reason;
   }
@@ -46,23 +47,18 @@ export function createCorruption() {
     state.fixError = "";
   }
 
-  async function fixCopy(opts: {
-    filePath: string;
-    showFrameCopyToast: (
-      message: string,
-      tone: "success" | "error" | "info",
-    ) => void;
-  }) {
+  async function fixCopy(opts: { filePath: string }) {
     state.fixing = true;
     state.fixError = "";
     try {
       const result = await invokeFixMedia(opts.filePath, "copy");
       if (result.success) {
         state.warning = false;
-        opts.showFrameCopyToast(
-          `Fixed copy saved: ${result.output_path}`,
-          "success",
-        );
+        showToast({
+          message: `Fixed copy saved: ${result.output_path}`,
+          color: "green",
+          duration: 5000,
+        });
       } else {
         state.fixError = result.error || "Failed to fix media";
       }
@@ -75,10 +71,6 @@ export function createCorruption() {
   async function fixReplace(opts: {
     filePath: string;
     loadFile: (path: string) => Promise<void>;
-    showFrameCopyToast: (
-      message: string,
-      tone: "success" | "error" | "info",
-    ) => void;
   }) {
     state.fixing = true;
     state.fixError = "";
@@ -87,7 +79,7 @@ export function createCorruption() {
       if (result.success) {
         state.warning = false;
         await opts.loadFile(result.output_path);
-        opts.showFrameCopyToast("File fixed and replaced", "success");
+        showToast({ message: "File fixed and replaced", color: "green" });
       } else {
         state.fixError = result.error || "Failed to fix media";
       }

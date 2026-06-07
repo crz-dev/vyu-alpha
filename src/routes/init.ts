@@ -1,6 +1,6 @@
 import { onMount } from "svelte";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { invokeGetClipboardFilePath } from "$lib/features/media/tools";
+import { invokeGetClipboardFilePath, invokeCopyFile } from "$lib/features/media/tools";
 import { theme } from "$lib/features/theme/theme.svelte";
 import {
   cleanupStaleStorageEntries,
@@ -12,6 +12,7 @@ import {
 } from "$lib/services/storage";
 import { ALL_EXTS } from "$lib/shared/constants";
 import { getFileExt } from "$lib/services/files";
+import { showToast } from "$lib/features/toast/toast.svelte";
 import type { LoopMode } from "$lib/shared/constants";
 
 export interface InitState {
@@ -30,10 +31,6 @@ export interface InitState {
   filePath: { get: () => string };
   rawCurrentSecs: { get: () => number };
   rawDurationSecs: { get: () => number };
-  clipboardToast: {
-    get: () => { visible: boolean; filePath: string | null };
-    set: (v: { visible: boolean; filePath: string | null }) => void;
-  };
   playbackUI: { initSliderMode: (v: boolean, s: boolean) => void };
   loadFile: (path: string) => Promise<void>;
   handleKeydown: (e: KeyboardEvent) => void;
@@ -111,7 +108,35 @@ export function setupInit(s: InitState) {
             const dest = await join(vyuTemp, `vyu-paste-${Date.now()}.${ext}`);
             await writeFile(dest, uint8);
             await s.loadFile(dest);
-            s.clipboardToast.set({ visible: true, filePath: dest });
+            showToast({
+              message: "Image pasted from clipboard",
+              color: "blue",
+              duration: 5000,
+              actions: [
+                {
+                  label: "Save",
+                  variant: "accent",
+                  icon: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>',
+                  onClick: async () => {
+                    const { save } = await import("@tauri-apps/plugin-dialog");
+                    const saveExt = getFileExt(dest) || ext;
+                    const defaultName = `vyu-export-${Date.now()}.${saveExt}`;
+                    const outputPath = await save({
+                      defaultPath: defaultName,
+                      filters: [{ name: "Media", extensions: [saveExt] }],
+                    });
+                    if (!outputPath) return;
+                    try {
+                      await invokeCopyFile(dest, outputPath);
+                      showToast({ message: "File saved", color: "green" });
+                    } catch (err) {
+                      console.error("Failed to save file:", err);
+                      showToast({ message: "Failed to save file", color: "red" });
+                    }
+                  },
+                },
+              ],
+            });
           } catch (err) {
             console.error("Failed to paste media:", err);
           }

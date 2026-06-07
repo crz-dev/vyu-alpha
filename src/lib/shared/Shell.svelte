@@ -11,6 +11,7 @@
   import HelpDialog from "$lib/features/dialogs/HelpDialog.svelte";
   import AboutDialog from "$lib/features/dialogs/AboutDialog.svelte";
   import FeedbackDialog from "$lib/features/dialogs/FeedbackDialog.svelte";
+  import Toast from "$lib/shared/Toast.svelte";
   import type { ContextMenu } from "$lib/shared/types";
 
   let {
@@ -109,9 +110,6 @@
     openConvertedFile,
     showInExplorer,
     onSelect,
-    onOpenExportedFile,
-    onSaveClipboardFile,
-    onDismissClipboardToast,
     onCloseClipDeleteConfirm,
     onCloseDeleteConfirm,
     onCloseProperties,
@@ -143,11 +141,6 @@
     timestamps,
     clipBoundaries,
     resumePoint,
-    frameCopyToast,
-    imageCopyToast,
-    clipToast,
-    exportToast,
-    clipboardToast,
     clipOutputDir,
     parentFolder,
     invokeOpenDirectory,
@@ -289,9 +282,6 @@
     openConvertedFile: (path: string) => Promise<void>;
     showInExplorer: (path: string) => Promise<void>;
     onSelect: (index: number) => void;
-    onOpenExportedFile: () => void;
-    onSaveClipboardFile: () => void;
-    onDismissClipboardToast: () => void;
     onCloseClipDeleteConfirm: () => void;
     onCloseDeleteConfirm: () => void;
     onCloseProperties: () => void;
@@ -323,11 +313,6 @@
     timestamps: any[];
     clipBoundaries: any[];
     resumePoint: number | null;
-    frameCopyToast: any;
-    imageCopyToast: any;
-    clipToast: any;
-    exportToast: any;
-    clipboardToast: any;
     clipOutputDir: string;
     parentFolder: () => string;
     invokeOpenDirectory: (path: string) => Promise<void>;
@@ -584,14 +569,6 @@
     {timestamps}
     {clipBoundaries}
     {resumePoint}
-    {frameCopyToast}
-    {imageCopyToast}
-    {clipToast}
-    {exportToast}
-    {clipboardToast}
-    {onOpenExportedFile}
-    {onSaveClipboardFile}
-    {onDismissClipboardToast}
     {clipDeleteConfirm}
     {deleteConfirm}
     {propertiesOpen}
@@ -651,6 +628,8 @@
     {fixCopy}
     {fixReplace}
   />
+
+  <Toast />
 
   <EditMenu
     visible={editMenuVisible}

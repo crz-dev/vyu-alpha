@@ -4,31 +4,30 @@ import {
   copyFrameToClipboard,
   copyPathToClipboard,
 } from "$lib/services/clipboard";
+import { showToast } from "$lib/features/toast/toast.svelte";
 
 export async function ctxCopyImage(opts: {
   filePath: string;
   closeContextMenu: () => void;
-  showImageCopyToast: (msg: string, tone: "success" | "error" | "info") => void;
 }) {
   opts.closeContextMenu();
   try {
     await copyImageToClipboard(opts.filePath);
-    opts.showImageCopyToast("Image copied to clipboard", "success");
+    showToast({ message: "Image copied to clipboard", color: "green" });
   } catch {
-    opts.showImageCopyToast("Failed to copy image", "error");
+    showToast({ message: "Failed to copy image", color: "red" });
   }
 }
 
 export async function ctxCopyFrame(opts: {
   videoEl: HTMLVideoElement | null;
   closeContextMenu: () => void;
-  showFrameCopyToast: (msg: string, tone: "success" | "error" | "info") => void;
 }) {
   opts.closeContextMenu();
   if (!opts.videoEl) return;
   try {
     await copyFrameToClipboard(opts.videoEl);
-    opts.showFrameCopyToast("Current frame copied as PNG", "success");
+    showToast({ message: "Current frame copied as PNG", color: "green" });
   } catch (err) {
     console.error("Failed to copy current frame to clipboard:", err);
     const message =
@@ -37,21 +36,20 @@ export async function ctxCopyFrame(opts: {
         : err instanceof Error
           ? err.message
           : "Could not copy frame to clipboard";
-    opts.showFrameCopyToast(message, "error");
+    showToast({ message, color: "red" });
   }
 }
 
 export async function ctxCopyPath(opts: {
   filePath: string;
   closeContextMenu: () => void;
-  showFrameCopyToast: (msg: string, tone: "success" | "error" | "info") => void;
 }) {
   opts.closeContextMenu();
   try {
     await copyPathToClipboard(opts.filePath);
-    opts.showFrameCopyToast("Copied file path to clipboard", "success");
+    showToast({ message: "Copied file path to clipboard", color: "blue" });
   } catch {
-    opts.showFrameCopyToast("Failed to copy file path", "error");
+    showToast({ message: "Failed to copy file path", color: "red" });
   }
 }
 
@@ -132,5 +130,3 @@ export function ctxShare(opts: {
   opts.closeContextMenu();
   opts.setShareOpen(true);
 }
-
-

@@ -1,137 +1,113 @@
-import { save } from "@tauri-apps/plugin-dialog";
-import { invokeCopyFile } from "$lib/features/media/tools";
-import { getFileExt } from "$lib/services/files";
+export type ToastColor = "green" | "red" | "yellow" | "blue";
 
-export type ToastTone = "success" | "error" | "info";
+export interface ToastAction {
+  label: string;
+  icon?: string;
+  variant?: "default" | "accent";
+  onClick: () => void;
+}
 
-export interface FrameToastState {
-  visible: boolean;
+export interface ToastOptions {
   message: string;
-  tone: ToastTone;
+  color: ToastColor;
+  duration?: number;
+  actions?: ToastAction[];
 }
 
-export interface ClipboardToastState {
-  visible: boolean;
-  filePath: string | null;
+interface ToastItem extends Required<Omit<ToastOptions, "actions">> {
+  id: number;
+  actions: ToastAction[];
+  exiting: boolean;
 }
+
+const EXIT_MS = 200;
+
+let nextId = 0;
 
 function createToastStore() {
-  const frameCopyToast = $state<FrameToastState>({
-    visible: false,
-    message: "",
-    tone: "success",
-  });
-  let frameCopyToastTimer: ReturnType<typeof setTimeout> | undefined;
-  const imageCopyToast = $state<FrameToastState>({
-    visible: false,
-    message: "",
-    tone: "success",
-  });
-  let imageCopyToastTimer: ReturnType<typeof setTimeout> | undefined;
-  const clipboardToast = $state<ClipboardToastState>({
-    visible: false,
-    filePath: null,
-  });
+  const toasts = $state<ToastItem[]>([]);
+  const timers = new Map<number, ReturnType<typeof setTimeout>>();
 
-  function setFrameCopyToast(v: FrameToastState) {
-    frameCopyToast.visible = v.visible;
-    frameCopyToast.message = v.message;
-    frameCopyToast.tone = v.tone;
+  function removeFromDom(id: number) {
+    clearTimeout(timers.get(id));
+    timers.delete(id);
+    const idx = toasts.findIndex((t) => t.id === id);
+    if (idx !== -1) toasts.splice(idx, 1);
   }
-  function setImageCopyToast(v: FrameToastState) {
-    imageCopyToast.visible = v.visible;
-    imageCopyToast.message = v.message;
-    imageCopyToast.tone = v.tone;
+
+  function animateOut(id: number) {
+    const toast = toasts.find((t) => t.id === id);
+    if (!toast) return;
+    toast.exiting = true;
+    setTimeout(() => removeFromDom(id), EXIT_MS);
   }
-  function setClipboardToast(v: ClipboardToastState) {
-    clipboardToast.visible = v.visible;
-    clipboardToast.filePath = v.filePath;
+
+  function showToast(opts: ToastOptions): number {
+    const id = nextId++;
+    const duration = opts.duration ?? 3000;
+    const item: ToastItem = {
+      id,
+      message: opts.message,
+      color: opts.color,
+      duration,
+      actions: opts.actions ?? [],
+      exiting: false,
+    };
+    toasts.push(item);
+
+    if (duration > 0) {
+      timers.set(
+        id,
+        setTimeout(() => animateOut(id), duration),
+      );
+    }
+
+    return id;
+  }
+
+  function updateToast(id: number, changes: Partial<ToastOptions>) {
+    const toast = toasts.find((t) => t.id === id);
+    if (!toast) return;
+    if (changes.message !== undefined) toast.message = changes.message;
+    if (changes.color !== undefined) toast.color = changes.color;
+    if (changes.actions !== undefined) toast.actions = changes.actions;
+    if (changes.duration !== undefined) {
+      toast.duration = changes.duration;
+      toast.exiting = false;
+      clearTimeout(timers.get(id));
+      if (changes.duration > 0) {
+        timers.set(
+          id,
+          setTimeout(() => animateOut(id), changes.duration!),
+        );
+      }
+    }
+  }
+
+  function dismissToast(id: number) {
+    animateOut(id);
   }
 
   return {
-    get frameCopyToast() {
-      return frameCopyToast;
+    get toasts() {
+      return toasts;
     },
-    get imageCopyToast() {
-      return imageCopyToast;
-    },
-    get clipboardToast() {
-      return clipboardToast;
-    },
-    setFrameCopyToast,
-    setImageCopyToast,
-    setClipboardToast,
-    getFrameCopyToastTimer: () => frameCopyToastTimer,
-    setFrameCopyToastTimer: (v: ReturnType<typeof setTimeout> | undefined) => {
-      frameCopyToastTimer = v;
-    },
-    getImageCopyToastTimer: () => imageCopyToastTimer,
-    setImageCopyToastTimer: (v: ReturnType<typeof setTimeout> | undefined) => {
-      imageCopyToastTimer = v;
-    },
+    showToast,
+    updateToast,
+    dismissToast,
   };
 }
 
 export const toastStore = createToastStore();
 
-export function createToastHelpers() {
-  function showFrameCopyToast(message: string, tone: ToastTone) {
-    clearTimeout(toastStore.getFrameCopyToastTimer());
-    toastStore.setFrameCopyToast({ visible: true, message, tone });
-    toastStore.setFrameCopyToastTimer(
-      setTimeout(() => {
-        toastStore.setFrameCopyToast({
-          ...toastStore.frameCopyToast,
-          visible: false,
-        });
-      }, 2200),
-    );
-  }
+export function showToast(opts: ToastOptions): number {
+  return toastStore.showToast(opts);
+}
 
-  function showImageCopyToast(message: string, tone: ToastTone) {
-    clearTimeout(toastStore.getImageCopyToastTimer());
-    toastStore.setImageCopyToast({ visible: true, message, tone });
-    toastStore.setImageCopyToastTimer(
-      setTimeout(() => {
-        toastStore.setImageCopyToast({
-          ...toastStore.imageCopyToast,
-          visible: false,
-        });
-      }, 2200),
-    );
-  }
+export function updateToast(id: number, changes: Partial<ToastOptions>) {
+  toastStore.updateToast(id, changes);
+}
 
-  async function saveClipboardFile() {
-    const toast = toastStore.clipboardToast;
-    if (!toast.filePath) return;
-    const ext = getFileExt(toast.filePath) || "png";
-    const defaultName = `vyu-export-${Date.now()}.${ext}`;
-    const outputPath = await save({
-      defaultPath: defaultName,
-      filters: [{ name: "Media", extensions: [ext] }],
-    });
-    if (!outputPath) return;
-    try {
-      await invokeCopyFile(toast.filePath, outputPath);
-      toastStore.setClipboardToast({ ...toast, visible: false });
-      showFrameCopyToast("File saved", "success");
-    } catch (err) {
-      console.error("Failed to save file:", err);
-      showFrameCopyToast("Failed to save file", "error");
-    }
-  }
-
-  function dismissClipboardToast() {
-    toastStore.setClipboardToast({
-      ...toastStore.clipboardToast,
-      visible: false,
-    });
-  }
-
-  return {
-    showFrameCopyToast,
-    showImageCopyToast,
-    saveClipboardFile,
-    dismissClipboardToast,
-  };
+export function dismissToast(id: number) {
+  toastStore.dismissToast(id);
 }

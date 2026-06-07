@@ -6,18 +6,15 @@ import {
   loadClipPreferences,
   saveClipPreferences,
 } from "$lib/services/storage";
-import { invokeProcessVideoClips } from "$lib/features/media/tools";
+import {
+  invokeProcessVideoClips,
+  invokeOpenDirectory,
+} from "$lib/features/media/tools";
+import { showToast } from "$lib/features/toast/toast.svelte";
 
 export interface ClipDeleteConfirmState {
   visible: boolean;
   mode: "separate" | "merge" | null;
-}
-
-export interface ClipToastState {
-  visible: boolean;
-  tone: "success" | "error";
-  message: string;
-  outputDir: string;
 }
 
 export interface ClipsDeps {
@@ -46,13 +43,6 @@ export function createClips(deps: ClipsDeps) {
     visible: false,
     mode: null,
   });
-  let clipToast = $state<ClipToastState>({
-    visible: false,
-    tone: "success",
-    message: "",
-    outputDir: "",
-  });
-  let clipToastTimer: ReturnType<typeof setTimeout> | undefined;
 
   const clipPairs = $derived.by(() => computePairs(clipBoundaries));
   const clipCount = $derived(clipPairs.length);
@@ -170,11 +160,22 @@ export function createClips(deps: ClipsDeps) {
     tone: "success" | "error",
     outputDir: string = clipOutputDir || deps.getFileParentFolder(),
   ) {
-    clearTimeout(clipToastTimer);
-    clipToast = { visible: true, tone, message, outputDir };
-    clipToastTimer = setTimeout(() => {
-      clipToast = { ...clipToast, visible: false };
-    }, 4200);
+    const actions =
+      tone === "success"
+        ? [
+            {
+              label: "Open in explorer",
+              icon: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
+              onClick: () => invokeOpenDirectory(outputDir),
+            },
+          ]
+        : [];
+    showToast({
+      message,
+      color: tone === "success" ? "green" : "red",
+      duration: tone === "success" ? 5000 : 3000,
+      actions,
+    });
   }
 
   function sanitizeClipPairs(): { start: number; end: number }[] {
@@ -304,9 +305,6 @@ export function createClips(deps: ClipsDeps) {
     },
     get clipDeleteConfirm() {
       return clipDeleteConfirm;
-    },
-    get clipToast() {
-      return clipToast;
     },
     setBoundaries,
     addClipBoundary,

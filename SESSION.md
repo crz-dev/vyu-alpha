@@ -3,22 +3,25 @@ _Overwrite this file completely at end of every session. Never append._
 Updated: 2026-06-07
 
 ## Last change
-Polished the "Delete file" confirmation dialog in `Dialog.svelte` and `overlays.css`. Removed the "This will move the file to the Recycle Bin." body box. Wrapped the "Delete permanently" and "Don't ask again" toggles into the existing `.delete-toggles` card. Wrapped Cancel/Delete buttons into a new `.delete-actions-card` that shrink-wraps to button width. Added inline SVG icons to all four labels/buttons. Added CSS for `.delete-toggles .toggle-label` (inline-flex with gap) and `.edit-confirm-actions .delete-confirm-btn` (inline-flex with gap) to align icons with text.
+Rebuilt toast system from scratch — replaced fragmented 5+ separate toast state objects with a single unified queue-based store. Created Toast.svelte with stacked rendering, semantic color coding (green/red/yellow/blue), action buttons with icons, and animated progress bars. Added pop-out animation so toasts animate out smoothly instead of disappearing instantly. Positioned toasts at bottom:44px to sit above the bottom bar. Eliminated all toast prop drilling through +page → Shell → Dialog chain. All 10+ action modules now import showToast() directly.
 
 ## Status
-- Delete confirmation dialog — toggles and buttons have icons, toggles on a card, buttons on their own card, no more explanation text (working)
-- All other modules — untouched, still working
+- Unified toast system — queued, stacked, color-coded, with action buttons and progress bars (working)
+- Exit animation — toasts pop out with scale+fade before removal (working)
+- Toast position — above bottom bar at 44px (working)
+- Prop drilling — all toast state props removed from +page, Shell, Dialog (clean)
+- Type-check — 0 errors
 
 ## Next
-Extract createNavigation config into a navigationHelpers factory (largest remaining inline config block, ~55 lines of getter/setter closures).
+Add toasts for remaining interactions: rename file, clear markers, undo edit, undo markup stroke, print PDF, settings copy app info.
 
 ## Bugs found this session
 - None.
 
 ## Current commit
-style: polish delete confirmation dialog with cards and icons
+feat: rebuild toast system with stacked queue and exit animation
 
 ## Architecture update
 _Only if a genuinely new module/concern was added this session that has no existing row in ARCHITECTURE.md —
 add the minimum rows needed to the module ownership table. Do not rewrite, reformat, or touch anything else._
-- None — no new modules added
+- None — toast module row was already added last session

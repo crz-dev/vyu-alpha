@@ -29,6 +29,7 @@
     saveShareOutputDir,
   } from "$lib/services/storage";
   import { listen } from "@tauri-apps/api/event";
+  import { showToast } from "$lib/features/toast/toast.svelte";
 
   let {
     contextMenu,
@@ -38,14 +39,6 @@
     timestamps,
     clipBoundaries,
     resumePoint,
-    frameCopyToast,
-    imageCopyToast,
-    clipToast,
-    exportToast,
-    clipboardToast,
-    onOpenExportedFile,
-    onSaveClipboardFile,
-    onDismissClipboardToast,
     clipOutputDir,
     parentFolder,
     invokeOpenDirectory,
@@ -112,35 +105,6 @@
     timestamps: VideoMarker[];
     clipBoundaries: ClipBoundary[];
     resumePoint: number | null;
-    frameCopyToast: {
-      visible: boolean;
-      message: string;
-      tone: "success" | "error" | "info";
-    };
-    imageCopyToast: {
-      visible: boolean;
-      message: string;
-      tone: "success" | "error" | "info";
-    };
-    clipToast: {
-      visible: boolean;
-      tone: "success" | "error";
-      message: string;
-      outputDir: string;
-    };
-    exportToast: {
-      visible: boolean;
-      phase: "exporting" | "done" | "error";
-      message: string;
-      outputPath: string;
-    };
-    clipboardToast: {
-      visible: boolean;
-      filePath: string;
-    };
-    onOpenExportedFile: () => void;
-    onSaveClipboardFile: () => void;
-    onDismissClipboardToast: () => void;
     clipOutputDir: string;
     parentFolder: () => string;
     invokeOpenDirectory: (path: string) => Promise<void>;
@@ -204,15 +168,6 @@
   let pinned = $state(false);
   let deleteMarkersConfirm = $state(false);
   let deleteMarkersTimer: ReturnType<typeof setTimeout> | null = $state(null);
-  let shareToast = $state<{
-    visible: boolean;
-    message: string;
-    tone: "success" | "error";
-    installUrl?: string;
-    appName?: string;
-    outputDir?: string;
-  }>({ visible: false, message: "", tone: "success" });
-  let shareToastTimer: ReturnType<typeof setTimeout> | undefined;
   let shareOutputDir = $state(loadShareOutputDir());
   let shareDeleteOriginal = $state(false);
   let shareConverting = $state(false);
@@ -250,61 +205,46 @@
 
   // Share: Send to handlers
 
-  function showShareToast(
-    message: string,
-    tone: "success" | "error",
-    outputDir?: string,
-  ) {
-    clearTimeout(shareToastTimer);
-    shareToast = { visible: true, message, tone, outputDir };
-    shareToastTimer = setTimeout(() => {
-      shareToast = { ...shareToast, visible: false };
-    }, 4000);
-  }
-
-  function showAppNotInstalledToast(appName: string, installUrl: string) {
-    clearTimeout(shareToastTimer);
-    shareToast = {
-      visible: true,
-      message: `${appName} not installed \u2014 install?`,
-      tone: "error",
-      installUrl,
-      appName,
-    };
-    shareToastTimer = setTimeout(() => {
-      shareToast = { ...shareToast, visible: false };
-    }, 5000);
-  }
-
   async function shareAction(fn: () => Promise<void>, successMsg: string) {
     try {
       await fn();
-      showShareToast(successMsg, "success");
+      showToast({ message: successMsg, color: "green" });
     } catch (e: any) {
       const msg = typeof e === "string" ? e : e?.message || "Action failed";
-      // Detect APP_NOT_FOUND:AppName:InstallUrl pattern from Rust commands
       const appNotFoundMatch = msg.match(
         /^APP_NOT_FOUND:(.+?):(https?:\/\/.+)$/,
       );
       if (appNotFoundMatch) {
-        showAppNotInstalledToast(appNotFoundMatch[1], appNotFoundMatch[2]);
+        const appName = appNotFoundMatch[1];
+        const installUrl = appNotFoundMatch[2];
+        showToast({
+          message: `${appName} not installed \u2014 install?`,
+          color: "red",
+          duration: 5000,
+          actions: [
+            {
+              label: "Install",
+              variant: "accent",
+              onClick: () => window.open(installUrl, "_blank"),
+            },
+          ],
+        });
       } else {
         console.error("Share action failed:", e);
-        showShareToast("Action failed", "error");
+        showToast({ message: "Action failed", color: "red" });
       }
     }
     closeShare();
   }
 
   async function handleSetWallpaper() {
-    // Images: direct call. Video/PDF: extract current frame first.
     if (isVideo || isPdf) {
       try {
         const { openPath } = await import("@tauri-apps/plugin-opener");
         await openPath(filePath);
-        showShareToast("Opened in default app", "success");
+        showToast({ message: "Opened in default app", color: "green" });
       } catch {
-        showShareToast("Failed to open file", "error");
+        showToast({ message: "Failed to open file", color: "red" });
       }
       closeShare();
       return;
@@ -324,7 +264,7 @@
   async function handleSaveAs(format: string) {
     const outputDir = shareOutputDir || parentFolder();
     if (!outputDir) {
-      showShareToast("Pick a save location", "error");
+      showToast({ message: "Pick a save location", color: "yellow" });
       return;
     }
     shareConverting = true;
@@ -352,12 +292,23 @@
       } else {
         await invokeConvertMedia(filePath, outputDir, format, "Balanced");
       }
-      showShareToast("Saved as " + format.toUpperCase(), "success", outputDir);
+      showToast({
+        message: "Saved as " + format.toUpperCase(),
+        color: "green",
+        duration: 5000,
+        actions: [
+          {
+            label: "Open in explorer",
+            icon: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
+            onClick: () => invokeOpenDirectory(outputDir),
+          },
+        ],
+      });
       success = true;
     } catch (e: any) {
       const msg = typeof e === "string" ? e : e?.message || "Conversion failed";
       console.error("Save as failed:", e);
-      showShareToast(msg, "error");
+      showToast({ message: msg, color: "red" });
     } finally {
       shareConverting = false;
       convertingFormat = undefined;
@@ -369,7 +320,7 @@
         await invokeDeleteFile(filePath);
       } catch (e) {
         console.error("Failed to delete original:", e);
-        showShareToast("Converted but couldn't delete original", "error");
+        showToast({ message: "Converted but couldn't delete original", color: "red" });
       }
     }
     closeShare();
@@ -447,7 +398,7 @@
 
     const outputExt = outputPath.split(".").pop()?.toLowerCase() || "";
     if (!outputExt) {
-      showShareToast("No format selected", "error");
+      showToast({ message: "No format selected", color: "yellow" });
       return;
     }
 
@@ -490,16 +441,23 @@
           outputPath,
         );
       }
-      showShareToast(
-        "Saved as " + outputExt.toUpperCase(),
-        "success",
-        outputDirFromSave,
-      );
+      showToast({
+        message: "Saved as " + outputExt.toUpperCase(),
+        color: "green",
+        duration: 5000,
+        actions: [
+          {
+            label: "Open in explorer",
+            icon: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
+            onClick: () => invokeOpenDirectory(outputDirFromSave),
+          },
+        ],
+      });
       success = true;
     } catch (e: any) {
       const msg = typeof e === "string" ? e : e?.message || "Conversion failed";
       console.error("Save as failed:", e);
-      showShareToast(msg, "error");
+      showToast({ message: msg, color: "red" });
     } finally {
       shareConverting = false;
       convertingFormat = undefined;
@@ -511,7 +469,7 @@
         await invokeDeleteFile(filePath);
       } catch (e) {
         console.error("Failed to delete original:", e);
-        showShareToast("Converted but couldn't delete original", "error");
+        showToast({ message: "Converted but couldn't delete original", color: "red" });
       }
     }
     closeShare();

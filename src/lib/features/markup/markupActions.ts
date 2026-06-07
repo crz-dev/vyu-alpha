@@ -2,6 +2,7 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { renderMarkupOnImage } from "$lib/features/media/tools";
 import { getFileExt, getParentFolder } from "$lib/services/files";
 import { markup } from "./markup.svelte";
+import { showToast } from "$lib/features/toast/toast.svelte";
 
 export interface MarkupActionsDeps {
   getFilePath: () => string;
@@ -11,10 +12,6 @@ export interface MarkupActionsDeps {
     stopWatching: () => void;
     startWatching: (path: string) => void;
   };
-  showFrameCopyToast: (
-    message: string,
-    tone: "success" | "error" | "info",
-  ) => void;
 }
 
 export function createMarkupActions(deps: MarkupActionsDeps) {
@@ -32,14 +29,14 @@ export function createMarkupActions(deps: MarkupActionsDeps) {
       deps.folderWatcher.startWatching(
         getParentFolder(deps.getFilePath()) || "",
       );
-      deps.showFrameCopyToast("Markup applied", "success");
+      showToast({ message: "Markup applied", color: "green" });
     } catch (err) {
       deps.folderWatcher.startWatching(
         getParentFolder(deps.getFilePath()) || "",
       );
       const message =
         err instanceof Error ? err.message : "Failed to apply markup";
-      deps.showFrameCopyToast(message, "error");
+      showToast({ message, color: "red" });
     }
   }
 
@@ -55,11 +52,11 @@ export function createMarkupActions(deps: MarkupActionsDeps) {
       });
       if (!outputPath) return;
       await renderMarkupOnImage(deps.getFilePath(), markup.strokes, outputPath);
-      deps.showFrameCopyToast("Markup exported", "success");
+      showToast({ message: "Markup exported", color: "green" });
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to export markup";
-      deps.showFrameCopyToast(message, "error");
+      showToast({ message, color: "red" });
     }
   }
 

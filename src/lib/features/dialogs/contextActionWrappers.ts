@@ -21,16 +21,6 @@ export interface ContextActionDeps {
   filePath: () => string;
   videoEl: () => HTMLVideoElement | null;
   closeContextMenu: () => void;
-  toast: {
-    showImageCopyToast: (
-      msg: string,
-      tone: "success" | "error" | "info",
-    ) => void;
-    showFrameCopyToast: (
-      msg: string,
-      tone: "success" | "error" | "info",
-    ) => void;
-  };
   editing: { pushUndo: () => void };
   viewer: { rotate: () => void; flip: () => void };
   clips: { clearBoundaries: () => void };
@@ -55,21 +45,18 @@ export function createContextActionFns(deps: ContextActionDeps) {
     await ctxCopyImage({
       filePath: deps.filePath(),
       closeContextMenu: deps.closeContextMenu,
-      showImageCopyToast: deps.toast.showImageCopyToast,
     });
   }
   async function ctxCopyFrameFn() {
     await ctxCopyFrame({
       videoEl: deps.videoEl(),
       closeContextMenu: deps.closeContextMenu,
-      showFrameCopyToast: deps.toast.showFrameCopyToast,
     });
   }
   async function ctxCopyPathFn() {
     await ctxCopyPath({
       filePath: deps.filePath(),
       closeContextMenu: deps.closeContextMenu,
-      showFrameCopyToast: deps.toast.showFrameCopyToast,
     });
   }
   async function ctxShowInExplorerFn() {

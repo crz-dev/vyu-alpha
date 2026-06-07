@@ -6,28 +6,16 @@ import {
   invokeExportEditedMedia,
 } from "$lib/features/media/tools";
 import { menuStore } from "$lib/features/dialogs/menuVisibility.svelte";
+import { showToast, updateToast } from "$lib/features/toast/toast.svelte";
 
 export type PendingEditAction = "apply" | "export" | null;
 export type ExportFormatOverride = "png" | null;
-
-export interface ExportToastState {
-  visible: boolean;
-  phase: string;
-  message: string;
-  outputPath: string;
-}
 
 function createEditDialogStore() {
   let editApplyConfirm = $state(false);
   let editTransparencyConfirm = $state(false);
   let pendingEditAction = $state<PendingEditAction>(null);
   let exportFormatOverride = $state<ExportFormatOverride>(null);
-  let exportToast = $state<ExportToastState>({
-    visible: false,
-    phase: "",
-    message: "",
-    outputPath: "",
-  });
 
   return {
     get editApplyConfirm() {
@@ -54,12 +42,6 @@ function createEditDialogStore() {
     set exportFormatOverride(v: ExportFormatOverride) {
       exportFormatOverride = v;
     },
-    get exportToast() {
-      return exportToast;
-    },
-    set exportToast(v: ExportToastState) {
-      exportToast = v;
-    },
     closeAll() {
       editApplyConfirm = false;
       editTransparencyConfirm = false;
@@ -77,10 +59,6 @@ export interface EditActionsDeps {
   getIsVideo: () => boolean;
   getVideoEl: () => HTMLVideoElement | null;
   loadFile: (path: string) => Promise<void>;
-  showFrameCopyToast: (
-    message: string,
-    tone: "success" | "error" | "info",
-  ) => void;
 }
 
 export function createEditActions(deps: EditActionsDeps) {
@@ -124,13 +102,13 @@ export function createEditActions(deps: EditActionsDeps) {
       editing.isApplying = false;
       editing.isApplied = true;
       editDialogStore.exportFormatOverride = null;
-      deps.showFrameCopyToast("Edits applied", "success");
+      showToast({ message: "Edits applied", color: "green" });
     } catch (err) {
       editing.isApplying = false;
       editDialogStore.exportFormatOverride = null;
       const message =
         err instanceof Error ? err.message : "Failed to apply edits";
-      deps.showFrameCopyToast(message, "error");
+      showToast({ message, color: "red" });
     }
   }
 
@@ -158,12 +136,11 @@ export function createEditActions(deps: EditActionsDeps) {
       editDialogStore.exportFormatOverride = null;
 
       editing.isExporting = true;
-      editDialogStore.exportToast = {
-        visible: true,
-        phase: "exporting",
+      const toastId = showToast({
         message: "Exporting...",
-        outputPath,
-      };
+        color: "yellow",
+        duration: 0,
+      });
 
       const s = editing.snapshot;
       if (isVideo) {
@@ -182,22 +159,23 @@ export function createEditActions(deps: EditActionsDeps) {
       }
 
       editing.isExporting = false;
-      editDialogStore.exportToast = {
-        visible: true,
-        phase: "done",
+      updateToast(toastId, {
         message: "Exported!",
-        outputPath,
-      };
+        color: "green",
+        duration: 5000,
+        actions: [
+          {
+            label: "Open file",
+            icon: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+            onClick: () => deps.loadFile(outputPath),
+          },
+        ],
+      });
     } catch (err) {
       editing.isExporting = false;
       const message =
         err instanceof Error ? err.message : "Failed to export file";
-      editDialogStore.exportToast = {
-        visible: true,
-        phase: "error",
-        message,
-        outputPath: "",
-      };
+      showToast({ message, color: "red" });
     }
   }
 
@@ -217,7 +195,7 @@ export function createEditActions(deps: EditActionsDeps) {
 
   async function handleExportEdits() {
     if (!editing.getHasEdits() && !editing.getCropBounds()) {
-      deps.showFrameCopyToast("No edits to export", "info");
+      showToast({ message: "No edits to export", color: "yellow" });
       return;
     }
 
@@ -277,7 +255,7 @@ export function createEditActions(deps: EditActionsDeps) {
 
   async function handleReset() {
     await editing.reset();
-    deps.showFrameCopyToast("Edits reset", "info");
+    showToast({ message: "Edits reset", color: "yellow" });
   }
 
   return {

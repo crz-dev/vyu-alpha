@@ -46,10 +46,6 @@
   import { markup } from "$lib/features/markup/markup.svelte";
   import { createMarkupActions } from "$lib/features/markup/markupActions";
   import Shell from "$lib/shared/Shell.svelte";
-  import {
-    createToastHelpers,
-    toastStore,
-  } from "$lib/features/toast/toast.svelte";
   import { createContextActionFns } from "$lib/features/dialogs/contextActionWrappers";
   import { createPropertiesActions } from "$lib/features/dialogs/propertiesActions";
   import { contextMenuStore } from "$lib/features/dialogs/contextMenu.svelte";
@@ -195,7 +191,6 @@
       setMediaPropsLoading: (v) => (mediaPropsLoading = v),
     }),
   });
-  const toast = createToastHelpers();
   const durationDisplay = $derived(formatTime(rawDurationSecs));
   const anyMenuOpen = $derived(
     contextMenuStore.isOpen ||
@@ -629,7 +624,6 @@
     getIsVideo: () => isVideo,
     getVideoEl: () => videoEl,
     loadFile,
-    showFrameCopyToast: toast.showFrameCopyToast,
   });
   const {
     handleApplyEdits,
@@ -647,7 +641,6 @@
     getFileName: () => fileName,
     loadFile,
     folderWatcher,
-    showFrameCopyToast: toast.showFrameCopyToast,
   });
   const deleteActions = createDeleteActions({
     getFilePath: () => filePath,
@@ -655,7 +648,6 @@
     getCurrentIndex: () => currentIndex,
     loadFile,
     closeFile,
-    showFrameCopyToast: toast.showFrameCopyToast,
   });
   const { performDelete } = deleteActions;
   const {
@@ -675,7 +667,6 @@
     filePath: () => filePath,
     videoEl: () => videoEl,
     closeContextMenu,
-    toast,
     editing,
     viewer,
     clips,
@@ -696,7 +687,6 @@
   });
   const { propsCopyPath, propsOpenFolder, propsCopyAll, copyPropValue } =
     createPropertiesActions({
-      showFrameCopyToast: toast.showFrameCopyToast,
       getFile: () => ({
         fileName,
         filePath,
@@ -830,10 +820,6 @@
     filePath: { get: () => filePath },
     rawCurrentSecs: { get: () => rawCurrentSecs },
     rawDurationSecs: { get: () => rawDurationSecs },
-    clipboardToast: {
-      get: () => toastStore.clipboardToast,
-      set: (v) => toastStore.setClipboardToast(v),
-    },
     playbackUI,
     loadFile,
     handleKeydown,
@@ -888,16 +874,6 @@
     await loadFile(newPath);
   }}
   onSelect={navigateToIndex}
-  onOpenExportedFile={async () => {
-    if (editDialogStore.exportToast.outputPath)
-      loadFile(editDialogStore.exportToast.outputPath);
-    editDialogStore.exportToast = {
-      ...editDialogStore.exportToast,
-      visible: false,
-    };
-  }}
-  onSaveClipboardFile={toast.saveClipboardFile}
-  onDismissClipboardToast={toast.dismissClipboardToast}
   onCloseClipDeleteConfirm={() => {
     clips.clipDeleteConfirm.visible = false;
     clips.clipDeleteConfirm.mode = null;
@@ -925,11 +901,6 @@
   timestamps={markerStore.timestamps}
   clipBoundaries={clips.clipBoundaries}
   resumePoint={markerStore.resumePoint}
-  frameCopyToast={toastStore.frameCopyToast}
-  imageCopyToast={toastStore.imageCopyToast}
-  clipToast={clips.clipToast}
-  exportToast={editDialogStore.exportToast}
-  clipboardToast={toastStore.clipboardToast}
   clipOutputDir={clips.clipOutputDir}
   parentFolder={() => getParentFolder(filePath)}
   {invokeOpenDirectory}
@@ -957,13 +928,11 @@
   fixCopy={() =>
     corruption.fixCopy({
       filePath,
-      showFrameCopyToast: toast.showFrameCopyToast,
     })}
   fixReplace={() =>
     corruption.fixReplace({
       filePath,
       loadFile,
-      showFrameCopyToast: toast.showFrameCopyToast,
     })}
 >
   {#snippet children()}

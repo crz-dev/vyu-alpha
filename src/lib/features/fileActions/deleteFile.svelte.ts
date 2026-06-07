@@ -3,6 +3,7 @@ import {
   loadSkipDeleteConfirmation,
   saveSkipDeleteConfirmation,
 } from "$lib/services/storage";
+import { showToast } from "$lib/features/toast/toast.svelte";
 
 export interface DeleteActionsDeps {
   getFilePath: () => string;
@@ -10,10 +11,6 @@ export interface DeleteActionsDeps {
   getCurrentIndex: () => number;
   loadFile: (path: string) => Promise<void>;
   closeFile: () => void | Promise<void>;
-  showFrameCopyToast: (
-    message: string,
-    tone: "success" | "error" | "info",
-  ) => void;
 }
 
 function createDeleteStore() {
@@ -56,14 +53,14 @@ export function createDeleteActions(deps: DeleteActionsDeps) {
     try {
       if (deleteStore.deletePermanently) await invokeDeleteFile(pathToDelete);
       else await invokeTrashFile(pathToDelete);
-      deps.showFrameCopyToast(
-        deleteStore.deletePermanently
+      showToast({
+        message: deleteStore.deletePermanently
           ? "File deleted permanently"
           : "File moved to trash",
-        "error",
-      );
+        color: "red",
+      });
     } catch {
-      deps.showFrameCopyToast("Failed to delete file", "error");
+      showToast({ message: "Failed to delete file", color: "red" });
     }
     const remaining = prevList.filter((p) => p !== pathToDelete);
     if (remaining.length > 0)

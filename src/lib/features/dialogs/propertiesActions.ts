@@ -5,7 +5,7 @@ import {
 import { invokeOpenDirectory } from "$lib/features/media/tools";
 import { getFileExt } from "$lib/services/files";
 import type { MediaProperties } from "$lib/shared/types";
-import type { ToastTone } from "$lib/features/toast/toast.svelte";
+import { showToast } from "$lib/features/toast/toast.svelte";
 
 export interface PropertiesFileSnapshot {
   fileName: string;
@@ -21,7 +21,6 @@ export interface PropertiesFileSnapshot {
 }
 
 export interface PropertiesActionsDeps {
-  showFrameCopyToast: (message: string, tone: ToastTone) => void;
   getFile: () => PropertiesFileSnapshot;
   getParentFolder: (path: string) => string;
 }
@@ -30,9 +29,9 @@ export function createPropertiesActions(deps: PropertiesActionsDeps) {
   async function propsCopyPath() {
     try {
       await copyPathToClipboard(deps.getFile().filePath);
-      deps.showFrameCopyToast("Copied file path to clipboard", "info");
+      showToast({ message: "Copied file path to clipboard", color: "yellow" });
     } catch {
-      deps.showFrameCopyToast("Failed to copy file path", "error");
+      showToast({ message: "Failed to copy file path", color: "red" });
     }
   }
 
@@ -59,18 +58,21 @@ export function createPropertiesActions(deps: PropertiesActionsDeps) {
         deps.getParentFolder(f.filePath),
         f.mediaProps,
       );
-      deps.showFrameCopyToast("Copied all properties to clipboard", "info");
+      showToast({
+        message: "Copied all properties to clipboard",
+        color: "yellow",
+      });
     } catch {
-      deps.showFrameCopyToast("Failed to copy properties", "error");
+      showToast({ message: "Failed to copy properties", color: "red" });
     }
   }
 
   async function copyPropValue(value: string) {
     try {
       await navigator.clipboard.writeText(value);
-      deps.showFrameCopyToast("Property copied to clipboard", "info");
+      showToast({ message: "Property copied to clipboard", color: "yellow" });
     } catch {
-      deps.showFrameCopyToast("Failed to copy property", "error");
+      showToast({ message: "Failed to copy property", color: "red" });
     }
   }
 
