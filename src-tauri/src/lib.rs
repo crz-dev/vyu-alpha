@@ -1062,6 +1062,11 @@ fn cleanup_temp_folder() {
 }
 
 #[tauri::command]
+fn open_devtools(window: tauri::WebviewWindow) {
+    window.open_devtools();
+}
+
+#[tauri::command]
 fn backup_file(source: String) -> Result<String, String> {
     let source_path = canonicalize_path(&source)?;
     let temp_dir = std::env::temp_dir().join("Vyu-temp").join("originals");
@@ -1882,6 +1887,7 @@ pub fn run() {
             open_in_vlc,
             open_in_spotify,
             open_in_browser,
+            open_devtools,
             open_with_dialog,
             convert_audio_to_waveform_video,
             convert_image_to_pdf,

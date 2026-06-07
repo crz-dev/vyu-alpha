@@ -2039,6 +2039,7 @@
 .settings-control {
   display: flex;
   align-items: center;
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -2143,6 +2144,12 @@
   background: var(--yellow-bg-hover);
   border-color: var(--yellow-border-strong);
   color: var(--yellow-soft);
+}
+
+.settings-action-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
 }
 
 .settings-dialog .toggle-track.on {
@@ -3851,4 +3858,46 @@
 .feedback-privacy svg {
   flex-shrink: 0;
   color: var(--text-dim);
+}
+
+/* Debug section — inline status text */
+.debug-status {
+  font-size: 11px;
+  color: var(--text-mid);
+  font-family: var(--font-family);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/* Debug section — toggle flags list */
+.flags-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 16px 8px 50px;
+  background: var(--bg-primary);
+  border-bottom: 0.5px solid var(--bg-border);
+}
+
+.flag-row {
+  display: flex;
+  gap: 12px;
+  font-size: 10px;
+  line-height: 1.4;
+  align-items: baseline;
+}
+
+.flag-row code {
+  font-family: "Cascadia Code", "JetBrains Mono", "Fira Code", monospace;
+  color: var(--text-mid);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 50%;
+}
+
+.flag-row code:first-child {
+  color: var(--text-secondary);
+  min-width: 160px;
+  flex-shrink: 0;
 }

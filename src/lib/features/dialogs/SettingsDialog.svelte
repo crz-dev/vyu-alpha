@@ -1,5 +1,11 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
+  import { getVersion, getTauriVersion } from "@tauri-apps/api/app";
+  import {
+    invokeCheckFfprobe,
+    invokeInstallFfmpeg,
+    invokeCleanupTempFolder,
+  } from "$lib/features/media/tools";
 
   let {
     settingsOpen,
@@ -35,6 +41,39 @@
     }
   });
 
+  let appInfoTimeout: ReturnType<typeof setTimeout> | null = null;
+  let resetConfirmTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  $effect(() => {
+    if (appInfoCopied) {
+      appInfoTimeout = setTimeout(() => {
+        appInfoCopied = false;
+        appInfoTimeout = null;
+      }, 2000);
+    }
+    return () => {
+      if (appInfoTimeout) {
+        clearTimeout(appInfoTimeout);
+        appInfoTimeout = null;
+      }
+    };
+  });
+
+  $effect(() => {
+    if (resetConfirming) {
+      resetConfirmTimeout = setTimeout(() => {
+        resetConfirming = false;
+        resetConfirmTimeout = null;
+      }, 5000);
+    }
+    return () => {
+      if (resetConfirmTimeout) {
+        clearTimeout(resetConfirmTimeout);
+        resetConfirmTimeout = null;
+      }
+    };
+  });
+
   const sections = [
     { id: "appearance", label: "Appearance" },
     { id: "playback", label: "Playback" },
@@ -55,7 +94,7 @@
     library: "Manage your media library and history.",
     system: "System-level app behavior and updates.",
     keybinds: "View and customize keyboard shortcuts.",
-    debug: "Diagnostic tools and developer options.",
+    debug: "Inspect environment, cache, and internal state.",
     "danger-zone": "Destructive actions that cannot be undone.",
   };
 
@@ -206,12 +245,88 @@
     clearingThumbnailCache = false;
   }
 
+  async function handleCheckFfmpeg() {
+    ffmpegChecking = true;
+    ffmpegStatusText = "";
+    try {
+      const available = await invokeCheckFfprobe();
+      ffmpegStatusText = available ? "Available" : "Not found";
+    } catch {
+      ffmpegStatusText = "Error";
+    }
+    ffmpegChecking = false;
+  }
+
+  async function handleReinstallFfmpeg() {
+    ffmpegInstalling = true;
+    try {
+      await invokeInstallFfmpeg();
+      ffmpegStatusText = "Installed";
+    } catch (e) {
+      ffmpegStatusText = "Failed";
+      console.error(e);
+    }
+    ffmpegInstalling = false;
+  }
+
+  async function handleCopyAppInfo() {
+    try {
+      const [version, tauriVersion] = await Promise.all([
+        getVersion(),
+        getTauriVersion(),
+      ]);
+      const text = `Vyu v${version} · Tauri ${tauriVersion} · ${navigator.platform}`;
+      await navigator.clipboard.writeText(text);
+      appInfoCopied = true;
+    } catch {
+      // clipboard write may fail in some contexts
+    }
+  }
+
+  async function handleCleanTempFolder() {
+    cleaningTempFolder = true;
+    try {
+      await invokeCleanupTempFolder();
+    } catch {
+      // temp cleanup is best-effort
+    }
+    cleaningTempFolder = false;
+  }
+
+  async function handleOpenDevTools() {
+    try {
+      await invoke("open_devtools");
+    } catch {
+      // DevTools only available in debug builds unless devtools flag is set
+    }
+  }
+
+  function handleToggleFlags() {
+    flagsOpen = !flagsOpen;
+  }
+
+  function handleResetConfirm() {
+    if (!resetConfirming) {
+      resetConfirming = true;
+      return;
+    }
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key?.startsWith("vyu-")) localStorage.removeItem(key);
+    }
+    window.location.reload();
+  }
+
   let editorOutputFolder = $state("~/Videos/Editor");
   let processOutputFolder = $state("~/Videos/Exports");
 
-  let experimentalFeatures = $state(false);
-  let showFpsCounter = $state(false);
-  let forceSoftwareRendering = $state(false);
+  let ffmpegChecking = $state(false);
+  let ffmpegStatusText = $state("");
+  let ffmpegInstalling = $state(false);
+  let appInfoCopied = $state(false);
+  let cleaningTempFolder = $state(false);
+  let flagsOpen = $state(false);
+  let resetConfirming = $state(false);
 
   type KeybindEntry = { action: string; key: string; id: string };
   let keybinds = $state<KeybindEntry[]>([
@@ -2248,139 +2363,88 @@
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
+                  ><polyline points="16 18 22 12 16 6" /><polyline
+                    points="8 6 2 12 8 18"
+                  /></svg
+                >
+                <div class="settings-label-text">
+                  <span class="settings-label">FFmpeg Status</span>
+                  <span class="settings-hint"
+                    >ffmpeg and ffprobe availability</span
+                  >
+                </div>
+              </div>
+              <div class="settings-control">
+                <button class="settings-action-btn" onclick={handleCheckFfmpeg} disabled={ffmpegChecking}>
+                  {ffmpegChecking ? "Checking\u2026" : "Check"}
+                </button>
+                <button class="settings-action-btn" onclick={handleReinstallFfmpeg} disabled={ffmpegInstalling}>
+                  {ffmpegInstalling ? "Installing\u2026" : "Reinstall"}
+                </button>
+                {#if ffmpegStatusText}
+                  <span class="debug-status">{ffmpegStatusText}</span>
+                {/if}
+              </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-label-col">
+                <svg
+                  class="settings-row-icon"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  ><circle cx="12" cy="12" r="10" /><line
+                    x1="12"
+                    y1="16"
+                    x2="12"
+                    y2="12"
+                  /><line x1="12" y1="8" x2="12.01"
+                  y2="8" /></svg
+                >
+                <div class="settings-label-text">
+                  <span class="settings-label">App Info</span>
+                  <span class="settings-hint"
+                    >Version, platform, architecture</span
+                  >
+                </div>
+              </div>
+              <div class="settings-control">
+                <button class="settings-action-btn" onclick={handleCopyAppInfo}>
+                  {appInfoCopied ? "Copied" : "Copy"}
+                </button>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-label-col">
+                <svg
+                  class="settings-row-icon"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
                   ><path
                     d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
-                  /><polyline points="14 2 14 8 20 8" /><line
-                    x1="16"
-                    y1="13"
-                    x2="8"
-                    y2="13"
-                  /><line x1="16" y1="17" x2="8" y2="17" /><polyline
-                    points="10 9 9 9 8 9"
-                  /></svg
+                  /><polyline points="14 2 14 8 20 8" /></svg
                 >
                 <div class="settings-label-text">
-                  <span class="settings-label">Logs</span>
-                  <span class="settings-hint">Application runtime logs</span>
-                </div>
-              </div>
-              <div class="settings-control">
-                <button class="settings-action-btn">
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    ><path
-                      d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
-                    /><circle cx="12" cy="12" r="3" /></svg
-                  >
-                  View
-                </button>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div class="settings-label-col">
-                <svg
-                  class="settings-row-icon"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  ><rect
-                    x="9"
-                    y="9"
-                    width="13"
-                    height="13"
-                    rx="2"
-                    ry="2"
-                  /><path
-                    d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"
-                  /></svg
-                >
-                <div class="settings-label-text">
-                  <span class="settings-label">Copy Logs</span>
+                  <span class="settings-label">Thumbnail Cache</span>
                   <span class="settings-hint"
-                    >Copy latest logs to clipboard</span
+                    >{thumbnailCacheSizeText} stored on disk</span
                   >
                 </div>
               </div>
               <div class="settings-control">
-                <button class="settings-action-btn">
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    ><rect
-                      x="9"
-                      y="9"
-                      width="13"
-                      height="13"
-                      rx="2"
-                      ry="2"
-                    /><path
-                      d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"
-                    /></svg
-                  >
-                  Copy
-                </button>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div class="settings-label-col">
-                <svg
-                  class="settings-row-icon"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  ><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline
-                    points="7 10 12 15 17 10"
-                  /><line x1="12" y1="15" x2="12" y2="3" /></svg
-                >
-                <div class="settings-label-text">
-                  <span class="settings-label">Export Logs</span>
-                  <span class="settings-hint">Save logs to a file</span>
-                </div>
-              </div>
-              <div class="settings-control">
-                <button class="settings-action-btn">
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    ><path
-                      d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"
-                    /><polyline points="7 10 12 15 17 10" /><line
-                      x1="12"
-                      y1="15"
-                      x2="12"
-                      y2="3"
-                    /></svg
-                  >
-                  Export
+                <button class="settings-action-btn" onclick={handleClearThumbnailCache} disabled={clearingThumbnailCache}>
+                  {clearingThumbnailCache ? "Clearing\u2026" : "Clear"}
                 </button>
               </div>
             </div>
@@ -2403,28 +2467,15 @@
                   /></svg
                 >
                 <div class="settings-label-text">
-                  <span class="settings-label">Clear Logs</span>
-                  <span class="settings-hint">Delete all stored log files</span>
+                  <span class="settings-label">Temp Folder</span>
+                  <span class="settings-hint"
+                    >Temporary processing files</span
+                  >
                 </div>
               </div>
               <div class="settings-control">
-                <button class="settings-action-btn">
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    ><polyline points="3 6 5 6 21 6" /><path
-                      d="M19 6l-1 14H6L5 6"
-                    /><path d="M10 11v6" /><path d="M14 11v6" /><path
-                      d="M9 6V4h6v2"
-                    /></svg
-                  >
-                  Clear
+                <button class="settings-action-btn" onclick={handleCleanTempFolder} disabled={cleaningTempFolder}>
+                  {cleaningTempFolder ? "Cleaning\u2026" : "Clean"}
                 </button>
               </div>
             </div>
@@ -2460,22 +2511,7 @@
                 </div>
               </div>
               <div class="settings-control">
-                <button class="settings-action-btn">
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    ><polyline points="16 18 22 12 16 6" /><polyline
-                      points="8 6 2 12 8 18"
-                    /></svg
-                  >
-                  Open
-                </button>
+                <button class="settings-action-btn" onclick={handleOpenDevTools}>Open</button>
               </div>
             </div>
             <div class="settings-row">
@@ -2490,28 +2526,35 @@
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  ><path d="M12 2a10 10 0 100 20 10 10 0 000-20z" /><path
-                    d="M12 6v6l4 2"
+                  ><line x1="8" y1="6" x2="21" y2="6" /><line
+                    x1="8" y1="12" x2="21" y2="12" /><line
+                    x1="8" y1="18" x2="21" y2="18" /><line
+                    x1="3" y1="6" x2="3.01" y2="6" /><line
+                    x1="3" y1="12" x2="3.01" y2="12" /><line
+                    x1="3" y1="18" x2="3.01" y2="18"
                   /></svg
                 >
                 <div class="settings-label-text">
-                  <span class="settings-label">Show FPS Counter</span>
-                  <span class="settings-hint">Display frame rate overlay</span>
+                  <span class="settings-label">Toggle Flags</span>
+                  <span class="settings-hint"
+                    >View all localStorage keys</span
+                  >
                 </div>
               </div>
               <div class="settings-control">
-                <label class="toggle-row">
-                  <input
-                    type="checkbox"
-                    checked={showFpsCounter}
-                    onchange={(e) => (showFpsCounter = e.currentTarget.checked)}
-                  />
-                  <span class="toggle-track" class:on={showFpsCounter}
-                    ><span class="toggle-thumb"></span></span
-                  >
-                </label>
+                <button class="settings-action-btn" onclick={handleToggleFlags}>{flagsOpen ? "Close" : "View"}</button>
               </div>
             </div>
+            {#if flagsOpen}
+              <div class="flags-list">
+                {#each Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i)).filter((k): k is string => k !== null && k.startsWith("vyu-")) as key}
+                  <div class="flag-row">
+                    <code>{key}</code>
+                    <code>{(localStorage.getItem(key) ?? "").slice(0, 120)}</code>
+                  </div>
+                {/each}
+              </div>
+            {/if}
             <div class="settings-row">
               <div class="settings-label-col">
                 <svg
@@ -2524,116 +2567,19 @@
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  ><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg
+                  ><polyline points="23 4 23 10 17 10" /><path
+                    d="M20.49 15a9 9 0 11-2.12-9.36L23 10"
+                  /></svg
                 >
                 <div class="settings-label-text">
-                  <span class="settings-label">Experimental Features</span>
+                  <span class="settings-label">Reset All Settings</span>
                   <span class="settings-hint"
-                    >Enable unfinished functionality</span
+                    >Clear all preferences and reload</span
                   >
                 </div>
               </div>
               <div class="settings-control">
-                <label class="toggle-row">
-                  <input
-                    type="checkbox"
-                    checked={experimentalFeatures}
-                    onchange={(e) =>
-                      (experimentalFeatures = e.currentTarget.checked)}
-                  />
-                  <span class="toggle-track" class:on={experimentalFeatures}
-                    ><span class="toggle-thumb"></span></span
-                  >
-                </label>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div class="settings-label-col">
-                <svg
-                  class="settings-row-icon"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  ><path
-                    d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
-                  /><polyline points="14 2 14 8 20 8" /><line
-                    x1="12"
-                    y1="18"
-                    x2="12"
-                    y2="12"
-                  /><line x1="9" y1="15" x2="15" y2="15" /></svg
-                >
-                <div class="settings-label-text">
-                  <span class="settings-label">Force Software Rendering</span>
-                  <span class="settings-hint"
-                    >Disable GPU acceleration for testing</span
-                  >
-                </div>
-              </div>
-              <div class="settings-control">
-                <label class="toggle-row">
-                  <input
-                    type="checkbox"
-                    checked={forceSoftwareRendering}
-                    onchange={(e) =>
-                      (forceSoftwareRendering = e.currentTarget.checked)}
-                  />
-                  <span class="toggle-track" class:on={forceSoftwareRendering}
-                    ><span class="toggle-thumb"></span></span
-                  >
-                </label>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div class="settings-label-col">
-                <svg
-                  class="settings-row-icon"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  ><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline
-                    points="17 8 12 3 7 8"
-                  /><line x1="12" y1="3" x2="12" y2="15" /></svg
-                >
-                <div class="settings-label-text">
-                  <span class="settings-label">Reinstall FFmpeg</span>
-                  <span class="settings-hint"
-                    >Download and replace bundled binary</span
-                  >
-                </div>
-              </div>
-              <div class="settings-control">
-                <button class="settings-action-btn">
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    ><path
-                      d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"
-                    /><polyline points="17 8 12 3 7 8" /><line
-                      x1="12"
-                      y1="3"
-                      x2="12"
-                      y2="15"
-                    /></svg
-                  >
-                  Reinstall
-                </button>
+                <button class="settings-action-btn red" onclick={handleResetConfirm}>{resetConfirming ? "Confirm?" : "Reset"}</button>
               </div>
             </div>
           </div>
