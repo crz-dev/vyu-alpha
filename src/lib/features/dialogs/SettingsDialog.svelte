@@ -174,7 +174,7 @@
   let autoScanFolders = $state(false);
   let showThumbnails = $state(true);
 
-  // ── Cache state ──
+  // Cache state
   let thumbnailCacheSizeText = $state("Calculating…");
   let clearingThumbnailCache = $state(false);
 

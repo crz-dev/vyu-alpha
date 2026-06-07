@@ -248,7 +248,7 @@
     window.print();
   }
 
-  // ── Share: Send to handlers ───────────────────────────────────────────────
+  // Share: Send to handlers
 
   function showShareToast(
     message: string,

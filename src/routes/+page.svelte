@@ -1,13 +1,5 @@
-<!-- App shell: instantiates all feature modules, wires state into Shell/ViewerArea.
-     To add a new feature:
-       1. Import the module in the Imports section below
-       2. If it needs reactive state, add $state declarations in the State section
-       3. Add its factory call in the correct Feature modules subsection
-       4. If it needs reactive derivations or effects, add them with the feature module
-       5. Wire its outputs into the Prop bundles section
-       6. Pass individual props in the Shell or ViewerArea template call -->
 <script lang="ts">
-  // ── Imports ──
+  // Imports
   import {
     createPlaybackUI,
     formatTime,
@@ -93,7 +85,7 @@
     createEditActions,
   } from "$lib/features/edit/editActions.svelte";
 
-  // ── State declarations ──
+  // State declarations
   let filePath = $state("");
   let fileSrc = $state("");
   let fileName = $state("no file open");
@@ -153,7 +145,7 @@
   let ffmpegInstalling = $state(false);
   let ffmpegInstallError = $state("");
 
-  // ── Feature modules: menu and ffmpeg helpers ──
+  // Feature modules: menu and ffmpeg helpers
   const menuActions = createMenuActions({
     closeContextMenu: () => contextMenuStore.close(),
     getFilePath: () => filePath,
@@ -181,7 +173,7 @@
     setFfprobeAvailable: (v) => (ffprobeAvailable = v),
   });
 
-  // ── Feature modules: viewer and media foundation ──
+  // Feature modules: viewer and media foundation
   const style = createViewerStyle();
   const isGifVideo = $derived(isVideo && getFileExt(filePath) === "gif");
   const clips = createClips({
@@ -219,7 +211,7 @@
       sort.menuVisible,
   );
 
-  // ── Feature modules: viewer effects and playback poller ──
+  // Feature modules: viewer effects and playback poller
   const viewerFx = createViewerEffects({
     getVideoEl: () => videoEl,
     getViewerEl: () => viewerEl,
@@ -254,7 +246,7 @@
     toggleFullscreen,
   } = viewerFx;
 
-  // ── Feature modules: playback and marker controls ──
+  // Feature modules: playback and marker controls
   const getMediaEl = () => (isVideo ? videoEl : isAudio ? audioEl : null);
   const playbackUI = createPlaybackUI(
     getMediaEl,
@@ -360,7 +352,7 @@
     removeClipBoundary,
   } = markerActions;
 
-  // ── Prop bundles: timeline and playback (must be after state + playback modules) ──
+  // Prop bundles: timeline and playback (must be after state + playback modules)
   const timelineProps = $derived({
     progress,
     currentTimeSecs: rawCurrentSecs,
@@ -466,7 +458,7 @@
     speedDragging: playbackUI.speedDragging,
   });
 
-  // ── Feature modules: file operations and navigation ──
+  // Feature modules: file operations and navigation
   const pdf = createPdf();
   const navigation = createNavigation({
     setFilePath: (v) => (filePath = v),
@@ -576,7 +568,7 @@
     togglePlay,
   });
 
-  // ── Feature modules: input handling (keybind, context menu) ──
+  // Feature modules: input handling (keybind, context menu)
   const configuredKeydown = createKeybindHandler({
     areDialogsOpen: () =>
       contextMenuStore.isOpen ||
@@ -604,7 +596,7 @@
     toggleFullscreen,
     setVolume,
     getVolume: () => volume,
-    isTimedMedia: () => isVideo || isAudio,
+    isTimedMedia: () => (isVideo || isAudio) && !isGifVideo,
     isVideo: () => isVideo,
     getMediaEl: () => (isVideo ? videoEl : isAudio ? audioEl : null),
     getHoverZone: () => hoverZone,
@@ -630,7 +622,7 @@
     contextMenuStore.close();
   }
 
-  // ── Feature modules: edit, markup, delete, and context actions ──
+  // Feature modules: edit, markup, delete, and context actions
   const editActions = createEditActions({
     getFilePath: () => filePath,
     getFileName: () => fileName,
@@ -746,7 +738,7 @@
     closeTimestampEditor,
   });
 
-  // ── Prop bundle: shell (must be after all feature modules) ──
+  // Prop bundle: shell (must be after all feature modules)
   const _shellProps = $derived({
     fileName,
     fileSrc,
@@ -810,7 +802,7 @@
     invokeOpenDirectory,
   });
 
-  // ── Lifecycle ──
+  // Lifecycle
   setupInit({
     volume: { get: () => volume, set: (v) => (volume = v) },
     loopMode: {

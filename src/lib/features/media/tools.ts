@@ -58,14 +58,6 @@ export async function invokeGetThumbnail(path: string): Promise<string> {
   return invoke("get_thumbnail", { path });
 }
 
-export async function invokeGetThumbnailCacheSize(): Promise<number> {
-  return invoke("get_thumbnail_cache_size");
-}
-
-export async function invokeClearThumbnailCache(): Promise<number> {
-  return invoke("clear_thumbnail_cache");
-}
-
 export async function invokeGetMediaProperties(
   path: string,
 ): Promise<MediaProperties> {
@@ -108,10 +100,6 @@ export async function invokeShowInExplorer(path: string): Promise<void> {
   return invoke("show_in_explorer", { path });
 }
 
-export async function invokeOpenFolder(path: string): Promise<void> {
-  return invoke("open_directory", { path });
-}
-
 export async function invokeOpenDirectory(path: string): Promise<void> {
   return invoke("open_directory", { path });
 }
@@ -141,30 +129,8 @@ export async function invokeCopyImageToClipboard(path: string): Promise<void> {
   return invoke("copy_image_to_clipboard", { path });
 }
 
-/** Convert a browser-unsupported image (TIFF, PSD, JXL, HEIC) to a cached PNG for display.
- *  Returns the PNG path on success, or null if the format doesn't need conversion. */
-export async function invokePrepareDisplayImage(
-  path: string,
-): Promise<string | null> {
-  return invoke("prepare_display_image", { path });
-}
-
-/** Remux a browser-unsupported video (TS, M2TS) to a cached MP4 for playback.
- *  Returns the MP4 path on success, or null if the format doesn't need remuxing. */
-export async function invokePrepareVideoDisplay(
-  path: string,
-): Promise<string | null> {
-  return invoke("prepare_video_display", { path });
-}
-
 export async function invokeCleanupTempFolder(): Promise<void> {
   return invoke("cleanup_temp_folder");
-}
-
-export async function invokeCheckMediaIntegrity(
-  path: string,
-): Promise<{ corrupted: boolean; reason: string }> {
-  return invoke("check_media_integrity", { path });
 }
 
 export async function invokeFixMedia(
@@ -471,7 +437,7 @@ export async function invokeExportEditedMedia(
   });
 }
 
-// ── Share: Send to ──────────────────────────────────────────────────────────
+// Share: Send to
 
 export async function invokePrintFile(path: string): Promise<void> {
   return invoke("print_file", { path });
@@ -493,7 +459,7 @@ export async function invokeCreateDesktopShortcut(path: string): Promise<void> {
   return invoke("create_desktop_shortcut", { path });
 }
 
-// ── Share: Open with ─────────────────────────────────────────────────────────
+// Share: Open with
 
 export async function invokeOpenInPhotos(path: string): Promise<void> {
   return invoke("open_in_photos", { path });

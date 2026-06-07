@@ -30,7 +30,6 @@ export function createPlaybackActions(
 
     if (mediaEl) {
       mediaEl.volume = volume;
-      mediaEl.muted = volume === 0;
     }
 
     set({
@@ -46,11 +45,20 @@ export function createPlaybackActions(
   };
 }
 
+function applyVolume(el: HTMLMediaElement, vol: number) {
+  el.volume = Math.max(0, Math.min(1, vol));
+}
+
 export function createPlaybackUI(
   mediaElRef: () => HTMLMediaElement | null,
   getVolume: () => number,
   setVolume: (v: number) => void,
 ) {
+  function setVolumeOnMedia(val: number) {
+    const mediaEl = mediaElRef();
+    if (mediaEl) applyVolume(mediaEl, val);
+    setVolume(val);
+  }
   let volumeHovered = $state(false);
   let speedHovered = $state(false);
   let playbackSpeed = $state(1);
@@ -95,6 +103,7 @@ export function createPlaybackUI(
     const container = e.currentTarget as HTMLElement;
     const containerRect = container.getBoundingClientRect();
     const diamonds = container.querySelectorAll(".volume-diamond");
+    if (diamonds.length === 0) return;
     const first = diamonds[0].getBoundingClientRect();
     const last = diamonds[diamonds.length - 1].getBoundingClientRect();
     const ratio = getVolume();
@@ -121,6 +130,7 @@ export function createPlaybackUI(
     const container = e.currentTarget as HTMLElement;
     const containerRect = container.getBoundingClientRect();
     const diamonds = container.querySelectorAll(".volume-diamond");
+    if (diamonds.length === 0) return;
 
     function dragTo(clientX: number, clientY: number) {
       const first = diamonds[0].getBoundingClientRect();
@@ -133,7 +143,7 @@ export function createPlaybackUI(
           0,
           Math.min(1, (clientY - first.top) / (last.bottom - first.top)),
         );
-        setVolume(Math.ceil(ratio * VOLUME_SEGMENTS) / VOLUME_SEGMENTS);
+        setVolumeOnMedia(Math.ceil(ratio * VOLUME_SEGMENTS) / VOLUME_SEGMENTS);
         const valRatio = getVolume();
         volumeTooltipY = firstCenter + valRatio * (lastCenter - firstCenter);
         volumeTooltipX = containerRect.right;
@@ -144,7 +154,7 @@ export function createPlaybackUI(
           0,
           Math.min(1, (clientX - first.left) / (last.right - first.left)),
         );
-        setVolume(Math.ceil(ratio * VOLUME_SEGMENTS) / VOLUME_SEGMENTS);
+        setVolumeOnMedia(Math.ceil(ratio * VOLUME_SEGMENTS) / VOLUME_SEGMENTS);
         const valRatio = getVolume();
         volumeTooltipX = firstCenter + valRatio * (lastCenter - firstCenter);
         volumeTooltipY = containerRect.top;
@@ -170,7 +180,7 @@ export function createPlaybackUI(
 
   function handleVolumeScroll(e: WheelEvent) {
     e.preventDefault();
-    setVolume(getVolume() + (e.deltaY > 0 ? -0.125 : 0.125));
+    setVolumeOnMedia(getVolume() + (e.deltaY > 0 ? -0.125 : 0.125));
   }
 
   function setPlaybackSpeed(val: number) {
@@ -194,6 +204,7 @@ export function createPlaybackUI(
     const container = e.currentTarget as HTMLElement;
     const containerRect = container.getBoundingClientRect();
     const diamonds = container.querySelectorAll(".speed-diamond");
+    if (diamonds.length === 0) return;
     const first = diamonds[0].getBoundingClientRect();
     const last = diamonds[diamonds.length - 1].getBoundingClientRect();
     const steps = SPEED_STEPS;
@@ -222,6 +233,7 @@ export function createPlaybackUI(
     const container = e.currentTarget as HTMLElement;
     const containerRect = container.getBoundingClientRect();
     const diamonds = container.querySelectorAll(".speed-diamond");
+    if (diamonds.length === 0) return;
 
     function dragTo(clientX: number, clientY: number) {
       const first = diamonds[0].getBoundingClientRect();
@@ -305,7 +317,7 @@ export function createPlaybackUI(
 
   function handleVolumeSliderChange(val: number) {
     volumeSliderValue = val;
-    setVolume(val);
+    setVolumeOnMedia(val);
   }
 
   function handleSpeedSliderChange(val: number) {
@@ -316,7 +328,7 @@ export function createPlaybackUI(
     if (mediaEl) mediaEl.playbackRate = speed;
   }
 
-  // ── Continuous slider tooltip helpers ──────────────────
+  // Continuous slider tooltip helpers
 
   function showVolumeSliderTooltip(
     trackEl: HTMLDivElement | null,

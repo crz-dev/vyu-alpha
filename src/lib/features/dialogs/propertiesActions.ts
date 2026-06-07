@@ -2,7 +2,7 @@ import {
   copyPathToClipboard,
   copyAllPropertiesToClipboard,
 } from "$lib/services/clipboard";
-import { invokeOpenFolder } from "$lib/features/media/tools";
+import { invokeOpenDirectory } from "$lib/features/media/tools";
 import { getFileExt } from "$lib/services/files";
 import type { MediaProperties } from "$lib/shared/types";
 import type { ToastTone } from "$lib/features/toast/toast.svelte";
@@ -38,7 +38,7 @@ export function createPropertiesActions(deps: PropertiesActionsDeps) {
 
   async function propsOpenFolder() {
     try {
-      await invokeOpenFolder(deps.getFile().filePath);
+      await invokeOpenDirectory(deps.getFile().filePath);
     } catch {}
   }
 

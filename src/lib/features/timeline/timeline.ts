@@ -66,36 +66,6 @@ export function createTimeline() {
     return (time / duration) * 100;
   }
 
-  function findTouchTarget(
-    timestamps: VideoMarker[],
-    time: number,
-    tolerance = 0.6,
-  ): VideoMarker | null {
-    let found: VideoMarker | null = null;
-    let best = Number.POSITIVE_INFINITY;
-    for (const ts of timestamps) {
-      const d = Math.abs(ts.time - time);
-      if (d <= tolerance && d < best) {
-        found = ts;
-        best = d;
-      }
-    }
-    return found;
-  }
-
-  function seekToTimestamp(
-    index: number,
-    timestamps: VideoMarker[],
-    videoEl: HTMLVideoElement | null,
-  ) {
-    if (!videoEl) return;
-
-    const t = timestamps[index];
-    if (t) {
-      videoEl.currentTime = t.time;
-    }
-  }
-
   return {
     addTimestamp,
     removeTimestamp,
@@ -104,7 +74,5 @@ export function createTimeline() {
     updateTimestampTime,
     getTimestampById,
     getTimestampPct,
-    findTouchTarget,
-    seekToTimestamp,
   };
 }

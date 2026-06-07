@@ -1,5 +1,5 @@
 <script lang="ts">
-  // ── Module-level analyser tracking ──────────────────────
+  // Module-level analyser tracking
   // Shared AudioContext (lazy singleton) and per-element analyser map.
   // createMediaElementSource() can only be called once per <audio> element,
   // so we track connected elements to avoid double-connection errors when
@@ -149,7 +149,7 @@
     }
   });
 
-  // ── Bass-reactive scale pulse ───────────────────────────
+  // Bass-reactive scale pulse
   $effect(() => {
     const el = audioEl();
     if (!el) return;

@@ -223,10 +223,6 @@ export function saveCdColor(filePath: string, index: number): void {
   localStorage.setItem(`vyu-cd-color-${filePath}`, String(index));
 }
 
-export function deleteCdColor(filePath: string): void {
-  if (filePath) localStorage.removeItem(`vyu-cd-color-${filePath}`);
-}
-
 const VALID_SORT_MODES = [
   "name",
   "date-modified",
@@ -260,9 +256,8 @@ export function saveSortDesc(desc: boolean): void {
   localStorage.setItem("vyu-sort-desc", desc ? "true" : "false");
 }
 
-// ── Audio customize ──────────────────────────────────────
+// Audio customize
 export type AudioLayoutMode = "retro" | "modern";
-export type AudioVisualizerMode = "waveform" | "progress";
 
 export function loadAudioLayoutMode(): AudioLayoutMode {
   const v = localStorage.getItem("vyu-audio-layout-mode");
@@ -274,16 +269,6 @@ export function saveAudioLayoutMode(mode: AudioLayoutMode): void {
   localStorage.setItem("vyu-audio-layout-mode", mode);
 }
 
-export function loadAudioVisualizerMode(): AudioVisualizerMode {
-  const v = localStorage.getItem("vyu-audio-visualizer-mode");
-  if (v === "waveform" || v === "progress") return v;
-  return "waveform";
-}
-
-export function saveAudioVisualizerMode(mode: AudioVisualizerMode): void {
-  localStorage.setItem("vyu-audio-visualizer-mode", mode);
-}
-
 export function loadShareOutputDir(): string {
   return localStorage.getItem("vyu-share-output-dir") ?? "";
 }
@@ -292,7 +277,7 @@ export function saveShareOutputDir(dir: string): void {
   localStorage.setItem("vyu-share-output-dir", dir);
 }
 
-// ── Markup custom draw colors ────────────────────────────
+// Markup custom draw colors
 export function loadMarkupCustomColors(): string[] {
   try {
     const raw = localStorage.getItem("vyu-markup-custom-colors");

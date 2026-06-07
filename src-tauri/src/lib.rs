@@ -125,7 +125,8 @@ fn restore_window_state(window: &tauri::WebviewWindow, skip: &Arc<AtomicBool>) {
         if state.width > 0 && state.height > 0 {
             let _ = window.set_size(Size::Physical(PhysicalSize::new(state.width, state.height)));
         }
-        let plausible = state.x > -3840 && state.x < 7680 && state.y > -2160 && state.y < 4320;
+        // Accept up to dual 6K (2 x 6144 x 2 x 3456 ≈ 12288 x 6912) plus some slack.
+        let plausible = state.x > -12288 && state.x < 12288 && state.y > -6912 && state.y < 6912;
         if plausible {
             let _ =
                 window.set_position(Position::Physical(PhysicalPosition::new(state.x, state.y)));
@@ -133,7 +134,8 @@ fn restore_window_state(window: &tauri::WebviewWindow, skip: &Arc<AtomicBool>) {
         let _ = window.maximize();
     } else {
         let valid_size = state.width >= 400 && state.height >= 300;
-        let plausible = state.x > -3840 && state.x < 7680 && state.y > -2160 && state.y < 4320;
+        // Accept up to dual 6K (2 x 6144 x 2 x 3456 ≈ 12288 x 6912) plus some slack.
+        let plausible = state.x > -12288 && state.x < 12288 && state.y > -6912 && state.y < 6912;
 
         if valid_size {
             let _ = window.set_size(Size::Physical(PhysicalSize::new(state.width, state.height)));
@@ -220,7 +222,7 @@ fn unique_path(path: PathBuf) -> PathBuf {
 }
 
 fn ffmpeg_extract_segment(input: &Path, output: &Path, start: f64, end: f64) -> Result<(), String> {
-    let output_run = Command::new("ffmpeg")
+    let fast_err = match Command::new("ffmpeg")
         .creation_flags(CREATE_NO_WINDOW)
         .args([
             "-y",
@@ -238,12 +240,13 @@ fn ffmpeg_extract_segment(input: &Path, output: &Path, start: f64, end: f64) -> 
             &output.to_string_lossy(),
         ])
         .output()
-        .map_err(|e| format!("Failed to start ffmpeg: {e}"))?;
+    {
+        Ok(out) if out.status.success() => return Ok(()),
+        Ok(out) => String::from_utf8_lossy(&out.stderr).trim().to_string(),
+        Err(e) => format!("Failed to start ffmpeg: {e}"),
+    };
 
-    if output_run.status.success() {
-        return Ok(());
-    }
-
+    // Stream-copy failed (e.g. codec mismatch in segment). Fall back to a full re-encode.
     let fallback = Command::new("ffmpeg")
         .creation_flags(CREATE_NO_WINDOW)
         .args([
@@ -265,37 +268,41 @@ fn ffmpeg_extract_segment(input: &Path, output: &Path, start: f64, end: f64) -> 
     if fallback.status.success() {
         Ok(())
     } else {
-        Err(String::from_utf8_lossy(&fallback.stderr).trim().to_string())
+        let fallback_err = String::from_utf8_lossy(&fallback.stderr).trim().to_string();
+        Err(format!(
+            "Stream copy failed ({fast_err}); fallback re-encode also failed ({fallback_err})"
+        ))
     }
 }
 
 #[tauri::command]
 fn delete_file(path: String) -> Result<(), String> {
-    let p = PathBuf::from(&path);
-    if !p.exists() {
-        return Err("File does not exist".into());
-    }
+    let p = canonicalize_path(&path)?;
     std::fs::remove_file(&p).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 fn rename_file(old_path: String, new_path: String) -> Result<(), String> {
-    std::fs::rename(&old_path, &new_path).map_err(|e| format!("Failed to rename file: {e}"))
+    let _old = canonicalize_path(&old_path)?;
+    let dest = Path::new(&new_path);
+    // Don't silently overwrite an existing destination.
+    if dest.exists() {
+        return Err("Destination already exists".into());
+    }
+    std::fs::rename(&_old, dest).map_err(|e| format!("Failed to rename file: {e}"))
 }
 
 #[tauri::command]
 fn copy_file(source: String, destination: String) -> Result<(), String> {
-    std::fs::copy(&source, &destination)
+    let src = canonicalize_path(&source)?;
+    std::fs::copy(&src, &destination)
         .map(|_| ())
         .map_err(|e| format!("Failed to copy file: {e}"))
 }
 
 #[tauri::command]
 fn copy_file_unique(source: String, output_dir: String) -> Result<String, String> {
-    let src = PathBuf::from(&source);
-    if !src.exists() {
-        return Err("Source file does not exist".into());
-    }
+    let src = canonicalize_path(&source)?;
     let out_dir = PathBuf::from(&output_dir);
     if !out_dir.exists() {
         fs::create_dir_all(&out_dir).map_err(|e| format!("Failed to create output folder: {e}"))?;
@@ -321,13 +328,26 @@ fn copy_file_unique(source: String, output_dir: String) -> Result<String, String
         .map_err(|e| format!("Failed to copy file: {e}"))
 }
 
+/// Resolve a user-supplied path to its canonical form.
+/// Returns an error if the path doesn't exist or contains suspicious components.
+fn canonicalize_path(path: &str) -> Result<PathBuf, String> {
+    let p = Path::new(path);
+    if !p.exists() {
+        return Err("File does not exist".into());
+    }
+    // Resolve symlinks, '..', and '.' to an absolute canonical path.
+    std::fs::canonicalize(p).map_err(|e| format!("Failed to resolve path: {e}"))
+}
+
+/// ⚠ Non-deterministic across process runs (uses per-process random seed).
+/// Prefer `hash_path_xxh3` for any path that needs a persistent cache key.
 fn hash_path(path: &str) -> String {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     path.hash(&mut hasher);
     format!("{:016x}", hasher.finish())
 }
 
-/// Deterministic hash for thumbnail cache filenames (xxh3 is fast and consistent across runs).
+/// Deterministic hash for cache filenames (xxh3 is fast and consistent across runs).
 fn hash_path_xxh3(path: &str) -> String {
     format!("{:016x}", xxh3_64(path.as_bytes()))
 }
@@ -638,7 +658,7 @@ async fn get_thumbnail(
 
     let jpeg_bytes = tauri::async_runtime::spawn_blocking(move || -> Result<Vec<u8>, String> {
         if use_image_crate {
-            // ── In-process image crate decode ──
+            // In-process image crate decode
             let img = image::open(&path_c).map_err(|e| format!("Failed to open image: {e}"))?;
             let (w, h) = img.dimensions();
             let short: u32 = 120;
@@ -676,7 +696,7 @@ async fn get_thumbnail(
             let _ = fs::write(&src_path_c, &path_c);
             Ok(jpeg_bytes)
         } else {
-            // ── FFmpeg path (video / audio / unsupported image) ──
+            // FFmpeg path (video / audio / unsupported image)
             let result = if is_video {
                 generate_video_frame(&path_c, &thumb_path_c)
             } else if is_ffmpeg_image || is_raw {
@@ -796,7 +816,7 @@ async fn prepare_display_image(
         .join("displays");
     let _ = fs::create_dir_all(&display_dir);
 
-    let hash = hash_path(&path);
+    let hash = hash_path_xxh3(&path);
     let cached_png = display_dir.join(format!("{hash}.png"));
 
     // Check if cached PNG is up-to-date
@@ -888,7 +908,7 @@ async fn prepare_video_display(
         .join("displays");
     let _ = fs::create_dir_all(&remux_dir);
 
-    let hash = hash_path(&path);
+    let hash = hash_path_xxh3(&path);
     let cached_mp4 = remux_dir.join(format!("{hash}.mp4"));
 
     // Check if cached MP4 is up-to-date
@@ -1043,10 +1063,7 @@ fn cleanup_temp_folder() {
 
 #[tauri::command]
 fn backup_file(source: String) -> Result<String, String> {
-    let source_path = PathBuf::from(&source);
-    if !source_path.exists() {
-        return Err("Source file does not exist".into());
-    }
+    let source_path = canonicalize_path(&source)?;
     let temp_dir = std::env::temp_dir().join("Vyu-temp").join("originals");
     std::fs::create_dir_all(&temp_dir).map_err(|e| format!("Failed to create backup dir: {e}"))?;
 
@@ -1054,7 +1071,7 @@ fn backup_file(source: String) -> Result<String, String> {
         .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("bak");
-    let hash = hash_path(&source);
+    let hash = hash_path_xxh3(&source);
     let backup_path = temp_dir.join(format!("{}.{}", hash, ext));
     if backup_path.exists() {
         let _ = std::fs::remove_file(&backup_path);
@@ -1065,30 +1082,25 @@ fn backup_file(source: String) -> Result<String, String> {
 
 #[tauri::command]
 fn trash_file(path: String) -> Result<(), String> {
-    let p = PathBuf::from(&path);
-    if !p.exists() {
-        return Err("File does not exist".into());
-    }
+    let p = canonicalize_path(&path)?;
     trash::delete(&p).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 fn show_in_explorer(path: String) -> Result<(), String> {
-    let p = PathBuf::from(&path);
-    if !p.exists() {
-        return Err("File does not exist".into());
-    }
+    let p = canonicalize_path(&path)?;
+    let path_str = p.to_string_lossy().to_string();
     #[cfg(target_os = "windows")]
     {
         std::process::Command::new("explorer")
-            .args(["/select,", &path])
+            .args(["/select,", &path_str])
             .spawn()
             .map_err(|e| e.to_string())?;
     }
     #[cfg(target_os = "macos")]
     {
         std::process::Command::new("open")
-            .args(["-R", &path])
+            .args(["-R", &path_str])
             .spawn()
             .map_err(|e| e.to_string())?;
     }
@@ -1197,7 +1209,7 @@ fn check_ffprobe() -> bool {
 fn install_ffmpeg() -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
-        Command::new("winget")
+        let status = Command::new("winget")
             .creation_flags(CREATE_NO_WINDOW)
             .args([
                 "install",
@@ -1206,8 +1218,11 @@ fn install_ffmpeg() -> Result<(), String> {
                 "--accept-package-agreements",
                 "--accept-source-agreements",
             ])
-            .spawn()
+            .status()
             .map_err(|e| format!("Failed to start FFmpeg install: {e}"))?;
+        if !status.success() {
+            return Err(format!("FFmpeg install exited with code {:?}", status.code()));
+        }
         return Ok(());
     }
     #[cfg(not(target_os = "windows"))]
@@ -1388,6 +1403,8 @@ fn export_edited_media(
         filters.push(format!("eq={}", eq_parts.join(":")));
     }
 
+    // Skip hue shifts smaller than 1 degree — visually imperceptible and avoids
+    // pushing a trivial ffmpeg filter that would force a re-encode.
     if hue.abs() > 1.0 {
         filters.push(format!("hue=h={}", hue));
     }
@@ -1450,7 +1467,7 @@ fn copy_image_to_clipboard(path: String) -> Result<(), String> {
 
     let img = if is_raw {
         // Decode RAW to temp PNG via ffmpeg, then load with image crate
-        let temp_png = std::env::temp_dir().join(format!("vyu_clipboard_{}.png", hash_path(&path)));
+        let temp_png = std::env::temp_dir().join(format!("vyu_clipboard_{}.png", hash_path_xxh3(&path)));
         Command::new("ffmpeg")
             .creation_flags(CREATE_NO_WINDOW)
             .args([
@@ -1501,10 +1518,14 @@ fn get_clipboard_file_path() -> Option<String> {
             .ok()?;
         let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
         if path.is_empty() {
-            None
-        } else {
-            Some(path)
+            return None;
         }
+        // Validate that the result is a well-formed absolute path.
+        let p = Path::new(&path);
+        if !p.has_root() || path.contains('\n') {
+            return None;
+        }
+        Some(path)
     }
     #[cfg(not(target_os = "windows"))]
     None
@@ -1547,9 +1568,12 @@ fn check_media_integrity(path: String) -> Result<MediaIntegrity, String> {
     let is_raw = RAW_IMAGE_EXTS_RUST.contains(&ext.as_str());
 
     if is_document {
-        // For PDF, check magic bytes (%PDF-)
-        let bytes = fs::read(&path).unwrap_or_default();
-        if bytes.len() < 5 || &bytes[0..5] != b"%PDF-" {
+        // For PDF, check magic bytes (%PDF-) without reading the entire file.
+        let mut magic = [0u8; 5];
+        let bytes_ok = fs::File::open(&path)
+            .and_then(|mut f| std::io::Read::read_exact(&mut f, &mut magic))
+            .is_ok();
+        if !bytes_ok || &magic != b"%PDF-" {
             return Ok(MediaIntegrity {
                 corrupted: true,
                 reason: "Not a valid PDF file (missing %PDF- header)".into(),
@@ -1899,7 +1923,9 @@ pub fn run() {
             }
 
             let mut args: Vec<String> = std::env::args().collect();
-            let window = app.get_webview_window("main").unwrap();
+            let window = app
+                .get_webview_window("main")
+                .expect("main webview window should exist at startup");
 
             let skip_save = Arc::new(AtomicBool::new(false));
 
@@ -1911,9 +1937,15 @@ pub fn run() {
 
             window.on_window_event(move |event| match event {
                 WindowEvent::Moved(_) | WindowEvent::Resized(_) => {
-                    let mut last = last_save
-                        .lock()
-                        .expect("window state save mutex should not be poisoned");
+                    let mut last = match last_save.lock() {
+                        Ok(guard) => guard,
+                        Err(poisoned) => {
+                            // Recover from a poisoned mutex — a prior panicking thread
+                            // corrupted the lock but we can continue with a fresh timestamp.
+                            eprintln!("window state mutex was poisoned, recovering");
+                            poisoned.into_inner()
+                        }
+                    };
                     if last.elapsed() > Duration::from_millis(300) {
                         persist_window_state(&window_for_events, &skip_for_events);
                         *last = Instant::now();
@@ -1948,10 +1980,7 @@ pub fn run() {
 
 #[tauri::command]
 fn open_directory(path: String) -> Result<(), String> {
-    let p = PathBuf::from(&path);
-    if !p.exists() {
-        return Err("Directory does not exist".into());
-    }
+    let p = canonicalize_path(&path)?;
     let dir = if p.is_dir() {
         p
     } else {
@@ -1988,7 +2017,7 @@ fn write_psd_flat(path: &Path, width: u32, height: u32, rgb: &[u8]) -> Result<()
 
     let mut f = fs::File::create(path).map_err(|e| format!("Failed to create PSD: {e}"))?;
 
-    // ── Header (26 bytes) ──
+    // Header (26 bytes)
     f.write_all(b"8BPS").map_err(|e| e.to_string())?; // signature
     f.write_all(&1u16.to_be_bytes()).map_err(|e| e.to_string())?; // version 1 (PSD, not PSB)
     f.write_all(&[0u8; 6]).map_err(|e| e.to_string())?; // reserved
@@ -2001,22 +2030,25 @@ fn write_psd_flat(path: &Path, width: u32, height: u32, rgb: &[u8]) -> Result<()
     f.write_all(&3u16.to_be_bytes())
         .map_err(|e| e.to_string())?; // color mode = RGB
 
-    // ── Color mode data (empty) ──
+    // Color mode data (empty)
     f.write_all(&0u32.to_be_bytes()).map_err(|e| e.to_string())?;
 
-    // ── Image resources (empty) ──
+    // Image resources (empty)
     f.write_all(&0u32.to_be_bytes()).map_err(|e| e.to_string())?;
 
-    // ── Layer and mask info (empty) ──
+    // Layer and mask info (empty)
     f.write_all(&0u32.to_be_bytes()).map_err(|e| e.to_string())?;
 
-    // ── Image data: raw planar compression ──
+    // Image data: raw planar compression
     f.write_all(&0u16.to_be_bytes())
         .map_err(|e| e.to_string())?; // compression = 0 (Raw)
 
     // Raw PSD stores planes separately: RRR...GGG...BBB
     // rgb from image crate is interleaved RGBRGB..., so deinterleave:
-    let n = (width * height) as usize;
+    let n = match (width as usize).checked_mul(height as usize) {
+        Some(n) if n <= 1_000_000_000 => n,
+        _ => return Err("Image dimensions too large for PSD export".into()),
+    };
     let mut r_plane = Vec::with_capacity(n);
     let mut g_plane = Vec::with_capacity(n);
     let mut b_plane = Vec::with_capacity(n);
@@ -2283,7 +2315,7 @@ fn convert_audio_to_waveform_video(
         }
     };
 
-    // ── Step 1: Generate background image to temp file ────────────────────────
+    // Step 1: Generate background image to temp file
     let temp_dir = std::env::temp_dir().join("Vyu-temp");
     let _ = fs::create_dir_all(&temp_dir);
     let temp_image = temp_dir.join(format!("vyu_wave_{}.jpg", hash_path(&path)));
@@ -2327,7 +2359,7 @@ fn convert_audio_to_waveform_video(
         }
     }
 
-    // ── Step 2: Probe audio duration ──────────────────────────────────────────
+    // Step 2: Probe audio duration
     let duration_ms: f64 = Command::new("ffprobe")
         .creation_flags(CREATE_NO_WINDOW)
         .args([
@@ -2352,7 +2384,7 @@ fn convert_audio_to_waveform_video(
         })
         .unwrap_or(0.0);
 
-    // ── Step 3: Create video from image + audio with progress ─────────────────
+    // Step 3: Create video from image + audio with progress
     //    -loop 1 on the image input creates an infinite video stream from the
     //    still image.  -shortest ends the output when the audio stream finishes,
     //    so the MP4 duration matches the audio exactly.
@@ -2712,7 +2744,7 @@ fn process_video_clips(
     })
 }
 
-// ── Share: Send to ──────────────────────────────────────────────────────────
+// Share: Send to
 
 #[tauri::command]
 fn print_file(path: String) -> Result<(), String> {
@@ -2832,7 +2864,7 @@ fn set_lock_screen(path: String) -> Result<(), String> {
 
             let data_bytes =
                 std::slice::from_raw_parts(wide_dest.as_ptr() as *const u8, wide_dest.len() * 2);
-            let set_err = RegSetValueExW(key, w!("WallPaper"), 0, REG_SZ, Some(data_bytes));
+            let set_err = RegSetValueExW(key, w!("Wallpaper"), 0, REG_SZ, Some(data_bytes));
             if set_err.0 != 0 {
                 return Err(format!(
                     "Failed to set registry value: error {:#x}",
@@ -2850,10 +2882,7 @@ fn set_lock_screen(path: String) -> Result<(), String> {
 
 #[tauri::command]
 fn create_desktop_shortcut(path: String) -> Result<(), String> {
-    let p = PathBuf::from(&path);
-    if !p.exists() {
-        return Err("File does not exist".into());
-    }
+    let p = canonicalize_path(&path)?;
     #[cfg(target_os = "windows")]
     {
         use windows::core::Interface;
@@ -2861,61 +2890,75 @@ fn create_desktop_shortcut(path: String) -> Result<(), String> {
         use windows::Win32::UI::Shell::{IShellLinkW, ShellLink};
 
         unsafe {
-            let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
+            // Initialize COM. A non-S_OK return (e.g. already initialized in a different
+            // concurrency model) will cause subsequent calls to fail — propagate the error
+            // so the user sees a clear message instead of a silent API failure.
+            let hr = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
+            if hr.is_err() && hr.0 != 0 {
+                return Err(format!(
+                    "COM initialization failed: HRESULT {:#x}",
+                    hr.0
+                ));
+            }
 
-            let shell_link: IShellLinkW = CoCreateInstance(&ShellLink, None, CLSCTX_INPROC_SERVER)
-                .map_err(|e| format!("Failed to create IShellLink: {e}"))?;
+            let com_result = (|| -> Result<(), String> {
+                let shell_link: IShellLinkW =
+                    CoCreateInstance(&ShellLink, None, CLSCTX_INPROC_SERVER)
+                        .map_err(|e| format!("Failed to create IShellLink: {e}"))?;
 
-            let wide_path = windows::core::HSTRING::from(&path);
-            shell_link
-                .SetPath(&wide_path)
-                .map_err(|e| format!("SetPath failed: {e}"))?;
-            shell_link
-                .SetDescription(w!("Shortcut created by Vyu"))
-                .map_err(|e| format!("SetDescription failed: {e}"))?;
+                let wide_path = windows::core::HSTRING::from(&path);
+                shell_link
+                    .SetPath(&wide_path)
+                    .map_err(|e| format!("SetPath failed: {e}"))?;
+                shell_link
+                    .SetDescription(w!("Shortcut created by Vyu"))
+                    .map_err(|e| format!("SetDescription failed: {e}"))?;
 
-            let persist: IPersistFile = shell_link
-                .cast()
-                .map_err(|e| format!("IPersistFile cast failed: {e}"))?;
+                let persist: IPersistFile = shell_link
+                    .cast()
+                    .map_err(|e| format!("IPersistFile cast failed: {e}"))?;
 
-            // Build .lnk path on the Desktop
-            let user_profile = std::env::var("USERPROFILE").unwrap_or_default();
-            let file_stem = p.file_stem().and_then(|s| s.to_str()).unwrap_or("shortcut");
-            let lnk_path = format!("{user_profile}\\Desktop\\{file_stem}.lnk");
+                let user_profile = std::env::var("USERPROFILE").unwrap_or_default();
+                let file_stem =
+                    p.file_stem().and_then(|s| s.to_str()).unwrap_or("shortcut");
+                let lnk_path = format!("{user_profile}\\Desktop\\{file_stem}.lnk");
 
-            // Handle duplicates by appending a counter
-            let final_lnk = if Path::new(&lnk_path).exists() {
-                let mut counter = 2u32;
-                loop {
-                    let candidate = format!("{user_profile}\\Desktop\\{file_stem} ({counter}).lnk");
-                    if !Path::new(&candidate).exists() {
-                        break candidate;
+                let final_lnk = if Path::new(&lnk_path).exists() {
+                    let mut counter = 2u32;
+                    loop {
+                        let candidate =
+                            format!("{user_profile}\\Desktop\\{file_stem} ({counter}).lnk");
+                        if !Path::new(&candidate).exists() {
+                            break candidate;
+                        }
+                        counter += 1;
+                        if counter > 999 {
+                            return Err("Too many duplicates on Desktop".into());
+                        }
                     }
-                    counter += 1;
-                    if counter > 999 {
-                        return Err("Too many duplicates on Desktop".into());
-                    }
-                }
-            } else {
-                lnk_path
-            };
+                } else {
+                    lnk_path
+                };
 
-            let wide_lnk = windows::core::HSTRING::from(&final_lnk);
-            persist
-                .Save(&wide_lnk, true)
-                .map_err(|e| format!("IPersistFile::Save failed: {e}"))?;
+                let wide_lnk = windows::core::HSTRING::from(&final_lnk);
+                persist
+                    .Save(&wide_lnk, true)
+                    .map_err(|e| format!("IPersistFile::Save failed: {e}"))?;
+
+                Ok(())
+            })();
 
             CoUninitialize();
+            return com_result;
         }
     }
     #[cfg(not(target_os = "windows"))]
     {
         return Err("Creating shortcuts is only supported on Windows.".into());
     }
+    #[allow(unreachable_code)]
     Ok(())
 }
-
-// ── Share: Open with ─────────────────────────────────────────────────────────
 
 #[tauri::command]
 fn open_in_photos(path: String) -> Result<(), String> {
@@ -3181,7 +3224,12 @@ fn open_in_browser(path: String) -> Result<(), String> {
         use windows::Win32::UI::Shell::ShellExecuteW;
         use windows::Win32::UI::WindowsAndMessaging::SW_SHOWDEFAULT;
 
-        let url = format!("file:///{}", open_path.replace('\\', "/"));
+        // Basic percent-encoding for file:// URLs — encode '#' and '?' to avoid fragment/query splits.
+        let web_path = open_path
+            .replace('\\', "/")
+            .replace('#', "%23")
+            .replace('?', "%3F");
+        let url = format!("file:///{}", web_path);
         let wide_url = windows::core::HSTRING::from(&url);
         unsafe {
             let hinst = ShellExecuteW(None, w!("open"), &wide_url, None, None, SW_SHOWDEFAULT);
