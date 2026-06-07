@@ -250,10 +250,6 @@ export function createClips(deps: ClipsDeps) {
     }
   }
 
-  async function runClipAction(_mode: "separate" | "merge") {
-    // planned feature — not yet implemented
-  }
-
   return {
     get clipBoundaries() {
       return clipBoundaries;
@@ -332,7 +328,6 @@ export function createClips(deps: ClipsDeps) {
     toggleDeleteOriginal,
     toggleMergeSegments,
     triggerSegments,
-    runClipAction,
   };
 }
 

@@ -183,7 +183,6 @@
     propsCopyAll,
     copyPropValue,
     performDelete,
-    runClipAction,
     corruptionWarning,
     corruptionReason,
     corruptionFixing,
@@ -364,7 +363,6 @@
     propsCopyAll: () => void;
     copyPropValue: (v: string) => void;
     performDelete: () => void;
-    runClipAction: (mode: "separate" | "merge") => void;
     corruptionWarning: boolean;
     corruptionReason: string;
     corruptionFixing: boolean;
@@ -622,7 +620,6 @@
     {propsCopyAll}
     {copyPropValue}
     {performDelete}
-    {runClipAction}
     {parentFolder}
     {invokeOpenDirectory}
     {ctxCopyImage}

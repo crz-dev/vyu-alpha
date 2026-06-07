@@ -3,10 +3,17 @@ _Overwrite this file completely at end of every session. Never append._
 Updated: 2026-06-06
 
 ## Last change
-Reorganized +page.svelte script into dependency-ordered sections with clear comments for AI-readability. Removed 4 dead imports (ImageView, VideoView, PDFView, AudioPlayer). Fixed top comment and section banner style to match conventions. Split was attempted into appState.svelte.ts + appProps.ts but abandoned — Svelte 5 prevents bind:/assignment to imports from .svelte.ts modules, so state must stay in +page.svelte.
+Deleted 2 dead files (ProcessMenu.svelte, FileProperties.svelte — ~1,550 lines), removed orphaned Rust commands (compress_media, write_cover_art, add_dir_to_zip — 175 lines), removed runClipAction stub from clips.svelte.ts, removed their invoke wrappers from tools.ts, stripped runClipAction prop wiring through +page.svelte/Shell/Dialog, and made Cast/Transcriptor share buttons placeholder no-ops. Both pnpm check and cargo check pass with 0 errors.
 
 ## Status
-- +page.svelte — working (1068 lines, reordered by dependency flow, 0 errors/warnings)
+- ProcessMenu.svelte — deleted (dead convert/compress UI, never imported)
+- FileProperties.svelte — deleted (dead standalone dialog, never imported)
+- compress_media / write_cover_art / add_dir_to_zip — removed from Rust backend
+- invokeCompressMedia / invokeWriteCoverArt — removed from tools.ts
+- runClipAction — removed from clips.svelte.ts and prop chain (was a no-op stub)
+- Cast button — changed to placeholder no-op (was misleadingly calling openInDefaultApp)
+- Transcriptor button — changed to placeholder no-op (was showing placeholder toast)
+- FeedbackDialog / AccessibilityDialog / SettingsDialog / AboutDialog — left as-is (intentional placeholders)
 - All other modules — working
 
 ## Next
@@ -16,9 +23,9 @@ Extract createNavigation config into a navigationHelpers factory (largest remain
 - None
 
 ## Current commit
-refactor: reorganize +page.svelte into dependency-ordered sections
+chore: strip dead process menu, file props, compress, cover art, clip
 
 ## Architecture update
 _Only if a genuinely new module/concern was added this session that has no existing row in ARCHITECTURE.md —
 add the minimum rows needed to the module ownership table. Do not rewrite, reformat, or touch anything else._
-- None — no new modules
+- None — no new modules added

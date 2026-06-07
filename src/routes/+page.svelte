@@ -957,7 +957,6 @@
   deleteNoAsk={deleteStore.deleteNoAsk}
   deletePermanently={deleteStore.deletePermanently}
   fileExt={() => getFileExt(filePath)}
-  runClipAction={clips.runClipAction}
   corruptionWarning={corruption.state.warning}
   corruptionReason={corruption.state.reason}
   corruptionFixing={corruption.state.fixing}

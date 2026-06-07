@@ -91,7 +91,6 @@
     propsCopyAll,
     copyPropValue,
     performDelete,
-    runClipAction,
     closeClipDeleteConfirm,
     closeDeleteConfirm,
     closeProperties,
@@ -187,7 +186,6 @@
     propsCopyAll: () => void;
     copyPropValue: (value: string) => void;
     performDelete: () => void;
-    runClipAction: (mode: "separate" | "merge") => void;
     closeClipDeleteConfirm: () => void;
     closeDeleteConfirm: () => void;
     closeProperties: () => void;
@@ -1892,11 +1890,7 @@
           </p>
           <div class="share-grid share-grid-4">
             {#if isVideo || isAudio}
-              <button
-                class="share-btn"
-                onclick={() =>
-                  shareAction(() => openInDefaultApp(), "Cast opened")}
-              >
+              <button class="share-btn" onclick={() => {}}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                   ><path
                     d="M2 16.1A5 5 0 015.9 20M2 12.05A9 9 0 019.95 20M2 8V6a2 2 0 012-2h16a2 2 0 012 2v12a2 2 0 01-2 2h-6"
@@ -2030,13 +2024,7 @@
               </button>
             {/if}
             {#if isAudio}
-              <button
-                class="share-btn"
-                onclick={() => {
-                  showShareToast("Transcription coming soon", "success");
-                  closeShare();
-                }}
-              >
+              <button class="share-btn" onclick={() => {}}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                   ><path
                     d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"

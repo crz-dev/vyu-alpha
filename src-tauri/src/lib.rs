@@ -1031,74 +1031,6 @@ async fn extract_cover_art(app: tauri::AppHandle, path: String) -> Result<Option
     Ok(result?.map(|p| p.to_string_lossy().to_string()))
 }
 
-/// Embeds a cover image into an audio file permanently using ffmpeg.
-/// Creates a temporary backup before modifying the original.
-/// Returns the audio file path on success.
-#[tauri::command]
-fn write_cover_art(audio_path: String, image_path: String) -> Result<String, String> {
-    let audio = PathBuf::from(&audio_path);
-    if !audio.exists() {
-        return Err("Audio file does not exist".into());
-    }
-    let image = PathBuf::from(&image_path);
-    if !image.exists() {
-        return Err("Image file does not exist".into());
-    }
-
-    // Create a backup in Vyu-temp
-    let temp_dir = std::env::temp_dir().join("Vyu-temp").join("originals");
-    fs::create_dir_all(&temp_dir).map_err(|e| format!("Failed to create backup dir: {e}"))?;
-    let hash = hash_path_xxh3(&audio_path);
-    let backup_path = temp_dir.join(format!("{hash}_original_cover"));
-    let _ = fs::copy(&audio, &backup_path);
-
-    // Create temp output file alongside original
-    let stamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis())
-        .unwrap_or(0);
-    let temp_output = audio
-        .parent()
-        .unwrap_or(Path::new("."))
-        .join(format!(".vyu-cover-temp-{stamp}"))
-        .with_extension(audio.extension().and_then(|e| e.to_str()).unwrap_or("tmp"));
-
-    let status = Command::new("ffmpeg")
-        .creation_flags(CREATE_NO_WINDOW)
-        .args([
-            "-y",
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            "-i",
-            &audio_path,
-            "-i",
-            &image_path,
-            "-map",
-            "0:a",
-            "-map",
-            "1:v",
-            "-c",
-            "copy",
-            "-disposition:v",
-            "attached_pic",
-            &temp_output.to_string_lossy(),
-        ])
-        .status()
-        .map_err(|e| format!("Failed to run ffmpeg: {e}"))?;
-
-    if !status.success() {
-        let _ = fs::remove_file(&temp_output);
-        return Err("ffmpeg failed to embed cover art".into());
-    }
-
-    // Replace original with temp output
-    fs::rename(&temp_output, &audio)
-        .map_err(|e| format!("Failed to replace original file: {e}"))?;
-
-    Ok(audio_path)
-}
-
 fn cleanup_vyu_temp() {
     let temp_dir = std::env::temp_dir().join("Vyu-temp");
     let _ = std::fs::remove_dir_all(&temp_dir);
@@ -1907,14 +1839,12 @@ pub fn run() {
             export_cropped_media,
             export_edited_media,
             convert_media,
-            compress_media,
             get_thumbnail,
             get_thumbnail_cache_size,
             clear_thumbnail_cache,
             prepare_display_image,
             prepare_video_display,
             extract_cover_art,
-            write_cover_art,
             copy_image_to_clipboard,
             check_media_integrity,
             fix_media,
@@ -2638,111 +2568,6 @@ fn convert_image_to_pdf(
     fs::write(&output_path, &pdf).map_err(|e| format!("Failed to write PDF: {e}"))?;
 
     Ok(output_path.to_string_lossy().to_string())
-}
-
-fn add_dir_to_zip(
-    zip: &mut zip::ZipWriter<std::fs::File>,
-    base: &Path,
-    current: &Path,
-    options: zip::write::FileOptions<()>,
-) -> Result<(), String> {
-    for entry in fs::read_dir(current).map_err(|e| format!("Read dir error: {e}"))? {
-        let entry = entry.map_err(|e| format!("Dir entry error: {e}"))?;
-        let path = entry.path();
-        let rel = path
-            .strip_prefix(base)
-            .map_err(|e| format!("Strip prefix error: {e}"))?;
-        let name = rel.to_string_lossy().replace('\\', "/");
-        if path.is_file() {
-            zip.start_file(name, options)
-                .map_err(|e| format!("Zip start file error: {e}"))?;
-            let mut file = fs::File::open(&path).map_err(|e| format!("Open file error: {e}"))?;
-            std::io::copy(&mut file, zip).map_err(|e| format!("Zip write error: {e}"))?;
-        } else if path.is_dir() {
-            zip.add_directory(name + "/", options)
-                .map_err(|e| format!("Zip add dir error: {e}"))?;
-            add_dir_to_zip(zip, base, &path, options)?;
-        }
-    }
-    Ok(())
-}
-
-#[tauri::command]
-fn compress_media(
-    path: String,
-    output_dir: String,
-    target: String,
-    preset: String,
-) -> Result<String, String> {
-    let input = PathBuf::from(&path);
-    if !input.exists() {
-        return Err("Source file does not exist".into());
-    }
-
-    let out_dir = PathBuf::from(&output_dir);
-    if !out_dir.exists() {
-        fs::create_dir_all(&out_dir).map_err(|e| format!("Failed to create output folder: {e}"))?;
-    }
-
-    let compression_level: i64 = match preset.as_str() {
-        "Fast" => 1,
-        "Balanced" => 5,
-        "Quality" => 8,
-        "Lossless" => 9,
-        _ => 5,
-    };
-
-    let (source_path, zip_name) = if target == "folder" {
-        let parent = input.parent().unwrap_or(&input).to_path_buf();
-        let name = parent
-            .file_name()
-            .and_then(|s| s.to_str())
-            .unwrap_or("archive")
-            .to_string();
-        (parent, format!("{name}.zip"))
-    } else {
-        let name = input
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or("archive")
-            .to_string();
-        (input.clone(), format!("{name}.zip"))
-    };
-
-    let zip_path = unique_path(out_dir.join(&zip_name));
-    let file =
-        fs::File::create(&zip_path).map_err(|e| format!("Failed to create zip file: {e}"))?;
-    let mut zip = zip::ZipWriter::new(file);
-
-    let options = zip::write::FileOptions::<()>::default()
-        .compression_method(zip::CompressionMethod::Deflated)
-        .compression_level(Some(compression_level));
-
-    if source_path.is_file() {
-        let name = source_path
-            .file_name()
-            .and_then(|s| s.to_str())
-            .unwrap_or("file");
-        zip.start_file(name, options)
-            .map_err(|e| format!("Zip start file error: {e}"))?;
-        let mut f = fs::File::open(&source_path).map_err(|e| format!("Open file error: {e}"))?;
-        std::io::copy(&mut f, &mut zip).map_err(|e| format!("Zip write error: {e}"))?;
-    } else {
-        let name = source_path
-            .file_name()
-            .and_then(|s| s.to_str())
-            .unwrap_or("archive")
-            .to_string();
-        if name != "." {
-            zip.add_directory(name.clone() + "/", options)
-                .map_err(|e| format!("Zip add dir error: {e}"))?;
-        }
-        add_dir_to_zip(&mut zip, &source_path, &source_path, options)?;
-    }
-
-    zip.finish()
-        .map_err(|e| format!("Failed to finish zip: {e}"))?;
-    Ok(zip_path.to_string_lossy().to_string())
 }
 
 #[tauri::command]

@@ -242,31 +242,10 @@ export async function invokeConvertImageToPdf(
   });
 }
 
-export async function invokeCompressMedia(
-  path: string,
-  outputDir: string,
-  target: string,
-  preset: string,
-): Promise<string> {
-  return invoke("compress_media", {
-    path,
-    outputDir,
-    target,
-    preset,
-  });
-}
-
 export async function invokeExtractCoverArt(
   path: string,
 ): Promise<string | null> {
   return invoke("extract_cover_art", { path });
-}
-
-export async function invokeWriteCoverArt(
-  audioPath: string,
-  imagePath: string,
-): Promise<string> {
-  return invoke("write_cover_art", { audioPath, imagePath });
 }
 
 export async function exportEditedImage(
