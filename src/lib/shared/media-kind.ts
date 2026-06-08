@@ -23,10 +23,6 @@ export function isTimedMedia(path: string): boolean {
   return isVideo(path) || isAudio(path);
 }
 
-export function isDocument(path: string): boolean {
-  return isPdf(path);
-}
-
 export function isBrowserUnsupportedImage(path: string): boolean {
   return BROWSER_UNSUPPORTED_IMAGE_EXTS.has(getFileExt(path));
 }

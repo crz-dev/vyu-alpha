@@ -42,6 +42,13 @@ export interface MediaProperties {
   frame_rate?: string;
 }
 
+export interface CropBounds {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
 export interface VideoMarkerDragRange {
   visible: boolean;
   start: number;

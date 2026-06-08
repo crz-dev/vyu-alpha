@@ -3,7 +3,7 @@ use std::time::Duration;
 pub const IMAGE_EXTS_RUST: &[&str] = &[
     "jpg", "jpeg", "png", "gif", "webp", "bmp", "avif", "tiff", "tif", "psd", "jxl", "heic",
     "heif", "dng", "cr2", "cr3", "nef", "nrw", "arw", "srf", "sr2", "raf", "rw2", "orf", "pef",
-    "3fr", "fff", "iiq", "kdc", "mef", "mos", "x3f", "gpr",
+    "3fr", "fff", "iiq", "kdc", "mef", "mos", "x3f", "gpr", // NOTE: "svg" is intentionally absent — browser-native, never needs server-side processing
 ];
 pub const VIDEO_EXTS_RUST: &[&str] = &[
     "mp4", "webm", "mkv", "avi", "mov", "wmv", "mpeg", "mpg", "ts", "m2ts", "m4v",

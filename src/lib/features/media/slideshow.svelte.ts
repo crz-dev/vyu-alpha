@@ -1,4 +1,4 @@
-import { isDocument, isTimedMedia } from "$lib/shared/media-kind";
+import { isPdf, isTimedMedia } from "$lib/shared/media-kind";
 
 export type SlideshowOrder = "next" | "shuffle";
 export type SlideshowVideoMode = "skip" | "full";
@@ -71,7 +71,7 @@ export function createSlideshow() {
     if (fileList.length === 0) return;
     const path = fileList[currentIndex];
     const timed = isTimedMedia(path);
-    const document = isDocument(path);
+    const document = isPdf(path);
 
     // Always skip documents (PDFs) in slideshow
     if (document) {

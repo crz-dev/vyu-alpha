@@ -1,6 +1,7 @@
 mod constants;
 mod types;
 mod util;
+mod window_state;
 mod commands;
 use commands::*;
 
@@ -101,7 +102,7 @@ pub fn run() {
 
             let skip_save = Arc::new(AtomicBool::new(false));
 
-            util::restore_window_state(&window, &skip_save);
+            window_state::restore_window_state(&window, &skip_save);
 
             let window_for_events = window.clone();
             let skip_for_events = skip_save.clone();
@@ -117,12 +118,12 @@ pub fn run() {
                         }
                     };
                     if last.elapsed() > Duration::from_millis(300) {
-                        util::persist_window_state(&window_for_events, &skip_for_events);
+                        window_state::persist_window_state(&window_for_events, &skip_for_events);
                         *last = Instant::now();
                     }
                 }
                 WindowEvent::CloseRequested { .. } => {
-                    util::persist_window_state(&window_for_events, &skip_for_events);
+                    window_state::persist_window_state(&window_for_events, &skip_for_events);
                 }
                 _ => {}
             });
@@ -130,7 +131,7 @@ pub fn run() {
             let window_for_close = window.clone();
             let skip_for_close = skip_save.clone();
             app.listen("tauri://close-requested", move |_event| {
-                util::persist_window_state(&window_for_close, &skip_for_close);
+                window_state::persist_window_state(&window_for_close, &skip_for_close);
                 util::cleanup_vyu_temp();
             });
 

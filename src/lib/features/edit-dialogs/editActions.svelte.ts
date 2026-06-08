@@ -5,7 +5,7 @@ import {
   exportEditedImage,
   invokeExportEditedMedia,
 } from "$lib/features/media/tools";
-import { menuStore } from "$lib/features/dialogs/menuVisibility.svelte";
+import { menuStore } from "$lib/features/stores/menuVisibility.svelte";
 import { showToast, updateToast } from "$lib/features/toast/toast.svelte";
 
 export type PendingEditAction = "apply" | "export" | null;

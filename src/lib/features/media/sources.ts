@@ -4,6 +4,10 @@ import {
   invokeGetMediaProperties,
   invokeInstallFfmpeg,
 } from "$lib/features/media/tools";
+import {
+  isBrowserUnsupportedImage,
+  needsRemux,
+} from "$lib/shared/media-kind";
 
 export async function fetchMediaProperties(
   filePath: string,
@@ -50,4 +54,32 @@ export async function installFfmpegWithPolling(options?: {
     available: false,
     error: "Install still running. Reopen Properties in a moment.",
   };
+}
+
+export async function prepareDisplayPath(path: string): Promise<string> {
+  if (isBrowserUnsupportedImage(path)) {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const displayPath = await invoke<string | null>("prepare_display_image", {
+        path,
+      });
+      return displayPath ?? path;
+    } catch (e) {
+      console.error("prepare_display_image failed:", e);
+      return path;
+    }
+  }
+  if (needsRemux(path)) {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const displayPath = await invoke<string | null>("prepare_video_display", {
+        path,
+      });
+      return displayPath ?? path;
+    } catch (e) {
+      console.error("prepare_video_display failed:", e);
+      return path;
+    }
+  }
+  return path;
 }

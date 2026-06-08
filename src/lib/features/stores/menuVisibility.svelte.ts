@@ -190,3 +190,30 @@ export function createMenuBindings() {
     closeFeedback: () => (menuStore.feedbackOpen = false),
   };
 }
+
+export function areDialogsOpen(deps: {
+  contextMenuStore: { isOpen: boolean };
+  menuStore: { isAnyOpen: boolean };
+  markerStore: { tsEditMenu: { visible: boolean } };
+  deleteStore: { deleteConfirm: boolean };
+  propertiesOpen: boolean;
+  shareOpen: boolean;
+  clips: { clipDeleteConfirm: { visible: boolean } };
+  editDialogStore: { editApplyConfirm: boolean; editTransparencyConfirm: boolean };
+  corruption: { state: { warning: boolean } };
+  sort: { menuVisible: boolean };
+}): boolean {
+  return (
+    deps.contextMenuStore.isOpen ||
+    deps.menuStore.isAnyOpen ||
+    deps.markerStore.tsEditMenu.visible ||
+    deps.deleteStore.deleteConfirm ||
+    deps.propertiesOpen ||
+    deps.shareOpen ||
+    deps.clips.clipDeleteConfirm.visible ||
+    deps.editDialogStore.editApplyConfirm ||
+    deps.editDialogStore.editTransparencyConfirm ||
+    deps.corruption.state.warning ||
+    deps.sort.menuVisible
+  );
+}

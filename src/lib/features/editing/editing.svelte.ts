@@ -1,11 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-
-export type CropBounds = {
-  left: number;
-  top: number;
-  right: number;
-  bottom: number;
-};
+import type { CropBounds } from "$lib/shared/types";
 
 export interface EditSnapshot {
   rotation: number;

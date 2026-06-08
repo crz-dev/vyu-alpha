@@ -1,13 +1,6 @@
 import { editing } from "$lib/features/editing/editing.svelte";
 import { ZOOM_MIN } from "$lib/shared/constants";
 
-type CropBounds = {
-  left: number;
-  top: number;
-  right: number;
-  bottom: number;
-};
-
 type ViewerState = {
   videoEl: HTMLVideoElement | null;
   isFullscreen: boolean;

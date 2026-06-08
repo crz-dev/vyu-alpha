@@ -1,7 +1,7 @@
 # Architecture
 
 Frontend: `src/` — Svelte 5 runes, single-page app, no SSR, no routes beyond `+page.svelte`.
-Backend: `src-tauri/src/commands/` — one module per domain (thumbnail, display, editing, conversion, clips, file_ops, clipboard, integrity, external_apps). Shared helpers in `util.rs`, types in `types.rs`, constants in `constants.rs`. `lib.rs` is only `run()` + `setup()`.
+Backend: `src-tauri/src/commands/` — one module per domain (thumbnail, display, editing, conversion, clips, file_ops, clipboard, integrity, external_apps). Shared helpers in `util.rs` and `window_state.rs`, types in `types.rs`, constants in `constants.rs`. `lib.rs` is only `run()` + `setup()`.
 
 ## Module ownership
 
@@ -33,6 +33,11 @@ Find the closest existing module before creating anything new.
 | Media-kind detection                            | `shared/media-kind.ts`                                                                                   |
 | Generic primitives (Shell, Tooltip, Marquee)    | `shared/*.svelte`                                                                                        |
 | Dialogs (settings, about, help, feedback, …)    | `features/dialogs/*`                                                                                     |
+| Dialog/menu state (visibility, context menus)   | `features/stores/*`                                                                                      |
+| Context actions, properties, global mouse       | `features/actions/*`                                                                                     |
+| Edit apply/export orchestration, dialogs        | `features/edit-dialogs/editActions.svelte.ts`                                                            |
+| Window state save/restore                       | `window_state.rs`                                                                                        |
+| File metadata formatting                        | `shared/file-meta.ts`                                                                                    |
 | Menus (edit, process, slideshow, …)             | `features/menus/*`                                                                                       |
 | Timeline (markers, scrubber)                    | `features/timeline/*`                                                                                    |
 | Navigation (thumbnail bar, sort menu)           | `features/navigation/*`                                                                                  |

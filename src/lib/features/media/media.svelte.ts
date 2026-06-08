@@ -1,6 +1,7 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { stat } from "@tauri-apps/plugin-fs";
 import { getFileName } from "$lib/services/files";
+import { prepareDisplayPath } from "./sources";
 import {
   readTimestamps,
   readClipBoundaries,
@@ -10,10 +11,9 @@ import {
   isVideo as pathIsVideo,
   isAudio as pathIsAudio,
   isPdf as pathIsPdf,
-  isBrowserUnsupportedImage,
-  needsRemux,
 } from "$lib/shared/media-kind";
 import type { VideoMarker, ClipBoundary } from "$lib/shared/types";
+import { formatMetaDate, getMetaValue } from "$lib/shared/file-meta";
 
 export interface MediaState {
   filePath: string;
@@ -48,21 +48,6 @@ export interface MediaState {
 function formatFileSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatMetaDate(value: unknown): string {
-  if (value === null || value === undefined) return "Unknown";
-  const asNumber = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(asNumber)) return "Unknown";
-  const ms = asNumber < 10_000_000_000 ? asNumber * 1000 : asNumber;
-  const d = new Date(ms);
-  if (Number.isNaN(d.getTime())) return "Unknown";
-  return d.toLocaleString();
-}
-
-function getMetaValue(obj: unknown, key: string): unknown {
-  if (!obj || typeof obj !== "object") return undefined;
-  return (obj as Record<string, unknown>)[key];
 }
 
 export function createMedia(
@@ -313,32 +298,4 @@ export function createMedia(
     onVideoLoad,
     finishLoading,
   };
-}
-
-async function prepareDisplayPath(path: string): Promise<string> {
-  if (isBrowserUnsupportedImage(path)) {
-    try {
-      const { invoke } = await import("@tauri-apps/api/core");
-      const displayPath = await invoke<string | null>("prepare_display_image", {
-        path,
-      });
-      return displayPath ?? path;
-    } catch (e) {
-      console.error("prepare_display_image failed:", e);
-      return path;
-    }
-  }
-  if (needsRemux(path)) {
-    try {
-      const { invoke } = await import("@tauri-apps/api/core");
-      const displayPath = await invoke<string | null>("prepare_video_display", {
-        path,
-      });
-      return displayPath ?? path;
-    } catch (e) {
-      console.error("prepare_video_display failed:", e);
-      return path;
-    }
-  }
-  return path;
 }

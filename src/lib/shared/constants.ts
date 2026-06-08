@@ -5,7 +5,7 @@ export const IMAGE_EXTS = [
   "gif",
   "webp",
   "bmp",
-  "svg",
+  "svg", // browser-native — not in backend IMAGE_EXTS_RUST (no Rust-side processing needed)
   "avif",
   "tiff",
   "tif",

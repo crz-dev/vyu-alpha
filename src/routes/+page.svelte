@@ -47,10 +47,10 @@
   import { createMarkupActions } from "$lib/features/markup/markupActions";
   import { showToast } from "$lib/features/toast/toast.svelte";
   import Shell from "$lib/shared/Shell.svelte";
-  import { createContextActionFns } from "$lib/features/dialogs/contextActionWrappers";
-  import { createPropertiesActions } from "$lib/features/dialogs/propertiesActions";
-  import { contextMenuStore } from "$lib/features/dialogs/contextMenu.svelte";
-  import { createGlobalMouseHandler } from "$lib/features/dialogs/globalMouseHandler";
+  import { createContextActionFns } from "$lib/features/actions/contextActionWrappers";
+  import { createPropertiesActions } from "$lib/features/actions/propertiesActions";
+  import { contextMenuStore } from "$lib/features/stores/contextMenu.svelte";
+  import { createGlobalMouseHandler } from "$lib/features/actions/globalMouseHandler";
   import ApplyEditDialog from "$lib/features/dialogs/ApplyEditDialog.svelte";
   import TransparencyConfirmDialog from "$lib/features/dialogs/TransparencyConfirmDialog.svelte";
   import { setupInit } from "./init";
@@ -76,11 +76,12 @@
     menuStore,
     createMenuActions,
     createMenuBindings,
-  } from "$lib/features/dialogs/menuVisibility.svelte";
+    areDialogsOpen,
+  } from "$lib/features/stores/menuVisibility.svelte";
   import {
     editDialogStore,
     createEditActions,
-  } from "$lib/features/edit/editActions.svelte";
+  } from "$lib/features/edit-dialogs/editActions.svelte";
 
   // State declarations
   let filePath = $state("");
@@ -191,17 +192,18 @@
   });
   const durationDisplay = $derived(formatTime(rawDurationSecs));
   const anyMenuOpen = $derived(
-    contextMenuStore.isOpen ||
-      menuStore.isAnyOpen ||
-      markerStore.tsEditMenu.visible ||
-      deleteStore.deleteConfirm ||
-      propertiesOpen ||
-      shareOpen ||
-      clips.clipDeleteConfirm.visible ||
-      editDialogStore.editApplyConfirm ||
-      editDialogStore.editTransparencyConfirm ||
-      corruption.state.warning ||
-      sort.menuVisible,
+    areDialogsOpen({
+      contextMenuStore,
+      menuStore,
+      markerStore,
+      deleteStore,
+      propertiesOpen,
+      shareOpen,
+      clips,
+      editDialogStore,
+      corruption,
+      sort,
+    }),
   );
 
   // Feature modules: viewer effects and playback poller
@@ -565,14 +567,18 @@
   // Feature modules: input handling (keybind, context menu)
   const configuredKeydown = createKeybindHandler({
     areDialogsOpen: () =>
-      contextMenuStore.isOpen ||
-      menuStore.isAnyOpen ||
-      markerStore.tsEditMenu.visible ||
-      deleteStore.deleteConfirm ||
-      propertiesOpen ||
-      shareOpen ||
-      clips.clipDeleteConfirm.visible ||
-      corruption.state.warning,
+      areDialogsOpen({
+        contextMenuStore,
+        menuStore,
+        markerStore,
+        deleteStore,
+        propertiesOpen,
+        shareOpen,
+        clips,
+        editDialogStore,
+        corruption,
+        sort,
+      }),
     closeDialogs: () => {
       contextMenuStore.close();
       menuStore.closeAll();
