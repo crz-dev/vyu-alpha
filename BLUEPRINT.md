@@ -1,7 +1,7 @@
 # Architecture
 
 Frontend: `src/` — Svelte 5 runes, single-page app, no SSR, no routes beyond `+page.svelte`.
-Backend: `src-tauri/src/lib.rs` — all Tauri commands (fs, FFmpeg, thumbnails, clipboard, integrity).
+Backend: `src-tauri/src/commands/` — one module per domain (thumbnail, display, editing, conversion, clips, file_ops, clipboard, integrity, external_apps). Shared helpers in `util.rs`, types in `types.rs`, constants in `constants.rs`. `lib.rs` is only `run()` + `setup()`.
 
 ## Module ownership
 

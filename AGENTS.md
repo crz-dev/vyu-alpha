@@ -32,7 +32,7 @@ See `BLUEPRINT.md` for module map and where new code goes.
 - No SSR — `+layout.ts` exports `ssr = false`.
 - `localStorage` keys use `vyu-` prefix.
 - Vite port 1420, `strictPort: true`. Window decorations disabled — app draws its own title bar.
-- `IMAGE_EXTS`, `VIDEO_EXTS`, `AUDIO_EXTS`, `DOCUMENT_EXTS` in `shared/constants.ts` must stay in sync with `*_RUST` constants in `src-tauri/src/lib.rs`.
+- `IMAGE_EXTS`, `VIDEO_EXTS`, `AUDIO_EXTS`, `DOCUMENT_EXTS` in `shared/constants.ts` must stay in sync with `*_RUST` constants in `src-tauri/src/constants.rs`.
 - Cache: thumbnails → `%LOCALAPPDATA%/vyu/cache/thumbnails/`, displays → `%LOCALAPPDATA%/vyu/cache/displays/`, temp → `%TEMP%/Vyu-temp/`.
 - `pdfjs-dist` is dynamically imported — only loads when a PDF opens.
 
@@ -52,13 +52,14 @@ See `BLUEPRINT.md` for module map and where new code goes.
 
 ## Backend (Rust)
 
-All Tauri commands in `src-tauri/src/lib.rs` — known wart, will split by domain later.
+Tauri commands live in `src-tauri/src/commands/`, one file per domain. Shared helpers in `util.rs`, types in `types.rs`, constants in `constants.rs`.
 Covers: thumbnails, display image prep (TIFF/PSD/JXL/RAW/HEIC → PNG), video remuxing, clip extraction, conversion, compression, crop/edit, integrity check, file ops, window state.
 
 ## Agent Rules
 
 - Reply `Done.` and stop. No follow-up questions unless the task requires it.
 - When you need to ask something/require a design decision, use the `questions` tool.
+- If a skill/command is used without the user giving any input, ask what to implement to with options.
 - No re-checking completed steps. No summarizing unless asked.
 - `Token-efficient` — no redundant reads, no restating known context.
 

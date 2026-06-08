@@ -3,22 +3,25 @@ _Overwrite this file completely at end of every session. Never append._
 Updated: 2026-06-07
 
 ## Last change
-Extracted `run_ffmpeg` polling-loop helper (replaces 5 duplicated loops), `MediaKind` struct (replaces 3 boolean chains), `thumbnail_via_image_crate`/`thumbnail_via_ffmpeg` helpers (split monolithic `get_thumbnail` body). Named thumbnail magic numbers. Capped `sessionEdits` at 100 entries. Typed `onRenamed` in Shell.svelte. Removed empty `features/ui/` directory.
+Split 3219-line `lib.rs` into 13 files under `src-tauri/src/`: `constants.rs`, `types.rs`, `util.rs`, `commands/{thumbnail,display,editing,conversion,clips,file_ops,clipboard,integrity,external_apps}.rs`. Fixed non-deterministic `hash_path` bug (replaced `DefaultHasher` with `hash_path_xxh3`). Removed duplicate `ts`/`m2ts` from `BROWSER_UNSUPPORTED_VIDEO_EXTS_RUST`. Extracted `check_cache()` and `resolve_output_path()` helpers. Added 16 unit tests. Updated AGENTS.md, BLUEPRINT.md, README.md references.
 
 ## Status
-- Rust backend: `run_ffmpeg`, `MediaKind`, thumbnail helpers extracted — working
-- `editing.svelte.ts`: `sessionEdits` LRU cap added — working
-- `Shell.svelte`: `onRenamed` type tightened — working
+- Rust backend: fully modular — `lib.rs` is ~170 lines (only `run()` + `setup()`)
+- 16 unit tests passing, zero warnings
+- Doc references updated
 
 ## Next
 Pick up the next open issue or feature request.
 
 ## Bugs found this session
-- `navigation.svelte.ts` lines 77–78: `markup.cleanup()` called twice consecutively
-- `lib.rs` `hash_path` line 344: uses non-deterministic `DefaultHasher` but still called by `convert_audio_to_waveform_video`; prefer `hash_path_xxh3`
+- `navigation.svelte.ts` lines 77–78: `markup.cleanup()` called twice consecutively (pre-existing)
 
 ## Current commit
-refactor: extract run_ffmpeg helper, MediaKind struct, cap sessionEdits
+refactor: split lib.rs into domain modules, fix hash_path bug, add tests
 
 ## Architecture update
-None — no new modules added.
+Rust backend now uses domain modules under `src-tauri/src/`:
+- `constants.rs` — extension lists, magic numbers
+- `types.rs` — shared structs (`MediaKind`, `ThumbState`, etc.)
+- `util.rs` — helpers (`run_ffmpeg`, `hash_path_xxh3`, `check_cache`, etc.)
+- `commands/` — one module per command group

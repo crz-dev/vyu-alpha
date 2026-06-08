@@ -134,7 +134,12 @@ src/                    # Frontend (Svelte + TypeScript)
 └── static/             # Static assets
 
 src-tauri/              # Backend (Rust)
-├── src/lib.rs          # All Tauri commands (~1,750 lines)
+├── src/
+│   ├── lib.rs          # run() + setup() — ~170 lines
+│   ├── constants.rs    # Extension lists, magic numbers
+│   ├── types.rs        # Shared structs (MediaKind, ThumbState, etc.)
+│   ├── util.rs         # Helpers (run_ffmpeg, hash_path_xxh3, check_cache, etc.)
+│   └── commands/       # One file per domain: thumbnail, display, editing, conversion, clips, file_ops, clipboard, integrity, external_apps
 ├── tauri.conf.json     # App config, file associations, bundle
 ├── Cargo.toml          # Rust dependencies
 └── capabilities/       # Tauri 2 capability permissions
