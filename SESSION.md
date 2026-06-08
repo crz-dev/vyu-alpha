@@ -3,10 +3,10 @@ _Overwrite this file completely at end of every session. Never append._
 Updated: 2026-06-07
 
 ## Last change
-Tweaked README heading from `# View **Your** Universe (Vyu)` to `# View YOUR Universe (Vyu)` — all-caps "YOUR" for emphasis.
+Lowercased "Universe" in README heading: `# View YOUR universe (Vyu)`.
 
 ## Status
-- README.md: heading text tweaked
+- README.md: heading text tweaked (lowercase "universe")
 
 ## Next
 Pick up the next open issue or feature request.
@@ -15,7 +15,7 @@ Pick up the next open issue or feature request.
 - None.
 
 ## Current commit
-style: update README heading to all-caps "YOUR"
+style: lowercase "universe" in README heading
 
 ## Architecture update
 None — no new modules added.
