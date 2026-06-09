@@ -2215,6 +2215,7 @@ main.fs-controls-hidden .thumbnail-bar.fullscreen {
   flex-direction: row;
   gap: 4px;
   align-items: center;
+  padding: 6px 0;
 }
 
 .text-font-anchor {
@@ -2322,7 +2323,7 @@ main.fs-controls-hidden .thumbnail-bar.fullscreen {
   flex-direction: row;
   gap: 4px;
   align-items: stretch;
-  padding: 0 2px 0 4px;
+  padding: 6px 2px 6px 4px;
 }
 
 .text-color-row .markup-color-card {
@@ -2536,7 +2537,7 @@ main.fs-controls-hidden .thumbnail-bar.fullscreen {
 .color-slider-panel {
   width: 100%;
   margin: 0;
-  padding: 12px 6px 10px;
+  padding: 6px 6px;
   background: var(--bg-elevated);
   border: 0.5px solid var(--bg-border);
   border-radius: 7px;
@@ -2611,8 +2612,8 @@ main.fs-controls-hidden .thumbnail-bar.fullscreen {
 .color-slider-marker {
   position: absolute;
   top: 50%;
-  width: 7px;
-  height: 7px;
+  width: 10px;
+  height: 10px;
   background: var(--text-primary);
   opacity: 0.3;
   transform: translate(-50%, -50%) rotate(45deg) scale(0.85);
@@ -3622,7 +3623,7 @@ main.fs-controls-hidden .thumbnail-bar.fullscreen {
 .markup-slider-panel {
   width: 100%;
   margin: 0;
-  padding: 6px 6px 8px;
+  padding: 6px 6px;
   background: var(--bg-elevated);
   border: 0.5px solid var(--bg-border);
   border-radius: 7px;
