@@ -3,9 +3,9 @@ _Overwrite this file completely at end of every session. Never append._
 Updated: 2026-06-09
 
 ## Last change
-Fixed file navigation not loading next/prev files when skipping through a folder. Root cause: two separate issues. (1) Security hardening in commit faa654f narrowed fs:scope and assetProtocol.scope from `"**"` to `$HOME/**`, breaking `readDir`/`stat` + `convertFileSrc` URLs for files outside the home directory — reverted both to `"**"`. (2) `displayFile()` was called without `await` in `navigate`, `navigateToEdge`, `navigateToIndex`, and `advanceSlide`, leaving `fileSrc` stuck at `""` on unhandled async errors — made all four functions async with proper `await`. Added `{#key fileSrc}` in ImageView and VideoView to force element recreation on src change.
+Two fixes in text markup. (1) Live font size display: when dragging diamond handles on a text box to resize, `markup.textFontSize` now updates in real time so the font menu number input reflects the current size. Added a `set textFontSize` setter to the markup store (matching `drawActive`/`highlightActive` pattern). (2) Underline and strikethrough Y positions were calculated relative to the em-square middle without accounting for the baseline offset — both appeared too high on the text. Changed underline from `textMid + 2px` to `textMid + fontSize * 0.4` (near baseline), and strikethrough from `textMid - fontSize * 0.3` to `textMid + fontSize * 0.05` (through x-height region).
 
-Files changed: `capabilities/default.json`, `tauri.conf.json`, `media.svelte.ts`, `navigation.svelte.ts`, `playbackHelpers.ts`, `ImageView.svelte`, `VideoView.svelte`.
+Files changed: `DrawOverlay.svelte`, `markup.svelte.ts`.
 
 ## Status
 - Type check: clean
@@ -16,12 +16,11 @@ Files changed: `capabilities/default.json`, `tauri.conf.json`, `media.svelte.ts`
 Text word wrapping / multi-line support.
 
 ## Bugs found this session
-- Fixed: fs:scope restricted to `$HOME/**` broke `readDir`/`stat` for files outside home directory — folder scanning failed silently, leaving `fileList` empty.
-- Fixed: assetProtocol.scope restricted to `$HOME/**` broke `convertFileSrc` URLs for files outside home directory.
-- Fixed: `displayFile` not awaited in `navigate`/`navigateToEdge`/`navigateToIndex`/`advanceSlide` — unhandled async errors left `fileSrc` at `""`, preventing next file from loading.
+- Fixed: font menu size input did not update live when dragging diamond handles to resize text.
+- Fixed: underline positioned at em-square middle + 2px (way above baseline); strikethrough positioned at em-square middle - 30% font size (above x-height).
 
 ## Current commit
-fix: await displayFile in navigation, widen fs and asset protocol scopes
+fix: live font size display on drag, reposition underline/strikethrough
 
 ## Architecture update
 - None.

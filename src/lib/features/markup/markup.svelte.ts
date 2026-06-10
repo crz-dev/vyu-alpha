@@ -723,6 +723,9 @@ function createMarkupStore() {
     get textFontSize() {
       return textFontSize;
     },
+    set textFontSize(v: number) {
+      textFontSize = v;
+    },
     get textBold() {
       return textBold;
     },

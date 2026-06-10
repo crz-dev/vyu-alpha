@@ -451,7 +451,7 @@
 
     // Underline
     if (t.underline) {
-      const underlineY = drawY + lineHeight / 2 + 2;
+      const underlineY = drawY + lineHeight / 2 + fontSize * 0.4;
       ctx.strokeStyle = t.color;
       ctx.lineWidth = Math.max(1, fontSize / 14);
       ctx.beginPath();
@@ -468,7 +468,7 @@
 
     // Strikethrough
     if (t.strikethrough) {
-      const strikeY = drawY + lineHeight / 2 - fontSize * 0.3;
+      const strikeY = drawY + lineHeight / 2 + fontSize * 0.05;
       ctx.strokeStyle = t.color;
       ctx.lineWidth = Math.max(1, fontSize / 14);
       ctx.beginPath();
@@ -1400,6 +1400,7 @@
             Math.min(200, Math.round(textDragStartFontSize + delta * dir)),
           );
           update.fontSize = newSize;
+          markup.textFontSize = newSize;
           break;
         }
         case "topLeft":
@@ -1431,6 +1432,7 @@
             ),
           );
           update.fontSize = newSize;
+          markup.textFontSize = newSize;
           break;
         }
         case "rotate": {
