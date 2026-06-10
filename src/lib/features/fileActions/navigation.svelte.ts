@@ -111,12 +111,12 @@ export function createNavigation(deps: NavigationDeps) {
     if (folder) folderWatcher.startWatching(folder);
   }
 
-  function navigate(direction: number) {
+  async function navigate(direction: number) {
     if (deps.getFileList().length === 0) return;
     slideshow.stop();
     editing.exitCropMode();
     deps.setCurrentIndex(
-      media.navigate(
+      await media.navigate(
         direction,
         deps.getFileList(),
         deps.getCurrentIndex(),
@@ -125,21 +125,21 @@ export function createNavigation(deps: NavigationDeps) {
     );
   }
 
-  function navigateToIndex(index: number) {
+  async function navigateToIndex(index: number) {
     const fileList = deps.getFileList();
     if (fileList.length === 0 || index === deps.getCurrentIndex()) return;
     slideshow.stop();
     editing.exitCropMode();
     deps.setCurrentIndex(index);
-    media.displayFile(fileList[index], setMediaState);
+    await media.displayFile(fileList[index], setMediaState);
   }
 
-  function navigateToEdge(first: boolean) {
+  async function navigateToEdge(first: boolean) {
     if (deps.getFileList().length === 0) return;
     slideshow.stop();
     editing.exitCropMode();
     deps.setCurrentIndex(
-      media.navigateToEdge(first, deps.getFileList(), setMediaState),
+      await media.navigateToEdge(first, deps.getFileList(), setMediaState),
     );
   }
 
@@ -283,11 +283,11 @@ export function createNavigation(deps: NavigationDeps) {
     }
   }
 
-  function advanceSlide(nextIndex: number) {
+  async function advanceSlide(nextIndex: number) {
     if (deps.getFileList().length === 0) return;
     editing.exitCropMode();
     deps.setCurrentIndex(nextIndex);
-    media.displayFile(deps.getFileList()[nextIndex], setMediaState);
+    await media.displayFile(deps.getFileList()[nextIndex], setMediaState);
   }
 
   return {

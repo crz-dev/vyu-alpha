@@ -27,7 +27,7 @@
       "csp": "default-src 'self'; img-src 'self' asset: data:; media-src 'self' asset:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; connect-src 'self'",
       "assetProtocol": {
         "enable": true,
-        "scope": ["$APPCACHE/**", "$APPDATA/**", "$TEMP/**", "$HOME/**"]
+        "scope": ["**"]
       }
     }
   },

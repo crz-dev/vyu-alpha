@@ -13,11 +13,11 @@ export function createOnMediaEnded(deps: {
       list: string[],
       idx: number,
       setState: (data: Partial<MediaState>) => void,
-    ) => number;
+    ) => Promise<number>;
   };
   setMediaState: (data: Partial<MediaState>) => void;
 }) {
-  return function onMediaEnded() {
+  return async function onMediaEnded() {
     if (deps.slideshow.active) return;
     const mode = deps.loopModeStore.loopMode;
     if (mode === "stop") {
@@ -29,7 +29,7 @@ export function createOnMediaEnded(deps: {
       if (list.length > 1) {
         const idx = Math.floor(Math.random() * list.length);
         const currentIndex = deps.getCurrentIndex();
-        deps.media.navigate(
+        await deps.media.navigate(
           idx - currentIndex,
           list,
           currentIndex,

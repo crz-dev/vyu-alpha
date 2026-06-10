@@ -62,7 +62,7 @@
     : panCursor}"
 >
   <div class="video-inner" bind:this={videoInnerEl} style={videoInnerStyle}>
-    {#key slideshowActive && slideshowTransition !== "none" ? currentIndex : null}
+    {#key slideshowActive && slideshowTransition !== "none" ? currentIndex : fileSrc}
       <div
         class={slideshowActive && slideshowTransition !== "none"
           ? `transition-${slideshowTransition}`

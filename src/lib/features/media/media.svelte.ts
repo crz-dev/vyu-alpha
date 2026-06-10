@@ -192,26 +192,26 @@ export function createMedia(
     }
   }
 
-  function navigate(
+  async function navigate(
     direction: number,
     fileList: string[],
     currentIndex: number,
     set: (data: Partial<MediaState>) => void,
-  ): number {
+  ): Promise<number> {
     if (fileList.length === 0) return currentIndex;
     const next = (currentIndex + direction + fileList.length) % fileList.length;
-    displayFile(fileList[next], set);
+    await displayFile(fileList[next], set);
     return next;
   }
 
-  function navigateToEdge(
+  async function navigateToEdge(
     first: boolean,
     fileList: string[],
     set: (data: Partial<MediaState>) => void,
-  ): number {
+  ): Promise<number> {
     if (fileList.length === 0) return 0;
     const next = first ? 0 : fileList.length - 1;
-    displayFile(fileList[next], set);
+    await displayFile(fileList[next], set);
     return next;
   }
 

@@ -18,12 +18,7 @@
     "core:window:allow-is-fullscreen",
     {
       "identifier": "fs:scope",
-      "allow": [
-        { "path": "$APPDATA/**" },
-        { "path": "$APPCACHE/**" },
-        { "path": "$TEMP/**" },
-        { "path": "$HOME/**" }
-      ]
+      "allow": [{ "path": "**" }]
     },
     "dialog:default",
     "dialog:allow-open",

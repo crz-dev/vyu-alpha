@@ -32,7 +32,7 @@
   bind:this={cropContainerEl}
   style="position: relative; display: flex; align-items: center; justify-content: center; max-width: 100%; max-height: 100%;"
 >
-  {#key slideshowActive && slideshowTransition !== "none" ? currentIndex : null}
+  {#key slideshowActive && slideshowTransition !== "none" ? currentIndex : fileSrc}
     <div
       class={slideshowActive && slideshowTransition !== "none"
         ? `transition-${slideshowTransition}`
