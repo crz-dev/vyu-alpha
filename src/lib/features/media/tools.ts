@@ -622,7 +622,7 @@ function renderText(
   const textWidth = metrics.width;
   const lineHeight = fontSize * 1.2;
   const pad = 6 * (fontSize / 16);
-  const boxW = textWidth + pad * 2;
+  const boxW = textWidth + pad * 2 + (t.boxExtraWidth || 0);
   const boxH = lineHeight + pad;
 
   const boxLeft = px - boxW / 2;
@@ -634,6 +634,14 @@ function renderText(
   else drawX = px;
 
   const drawY = boxTop + pad;
+
+  // Rotation
+  ctx.save();
+  if (t.rotation !== 0) {
+    ctx.translate(px, py);
+    ctx.rotate(t.rotation);
+    ctx.translate(-px, -py);
+  }
 
   // Background
   if (t.bgEnabled) {
@@ -680,6 +688,8 @@ function renderText(
     ctx.lineTo(stX + textWidth, strikeY);
     ctx.stroke();
   }
+
+  ctx.restore();
 }
 
 export async function invokeExportEditedMedia(

@@ -3,7 +3,7 @@ _Overwrite this file completely at end of every session. Never append._
 Updated: 2026-06-09
 
 ## Last change
-Added inline text editing: newly placed text boxes are empty, accept keystrokes immediately, auto-delete if nothing typed on exit. Text boxes remain visible on the overlay after closing the text menu.
+Added text transform handles (white solid outline, 4 side diamonds, rotate circle, delete icon) matching shape handle UX in DrawOverlay.svelte. Left/right diamonds resize box width, top/bottom change fontSize. Text boxes are draggable in text mode (click body to edit, drag to move). Blinking caret during inline editing. Handle hover animation. Text rotation supported in both overlay and export render.
 
 ## Status
 - Type check: clean
@@ -11,13 +11,14 @@ Added inline text editing: newly placed text boxes are empty, accept keystrokes 
 - Rust build: untested
 
 ## Next
-Drag to move/resize text boxes. Strikethrough text rendering for export.
+Text word wrapping / multi-line support.
 
 ## Bugs found this session
+- Fixed: clicking on an empty text box created a new one instead of entering editing (exitEditing auto-deleted empty text before hit detection).
 - None.
 
 ## Current commit
-feat: add inline text editing and persistent text box visibility
+feat: add text transform handles, drag-to-move, box resize, blinking cursor
 
 ## Architecture update
 - None.

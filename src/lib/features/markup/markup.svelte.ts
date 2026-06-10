@@ -112,6 +112,8 @@ export interface PlacedText {
   color: string;
   fontFamily: string;
   fontSize: number;
+  rotation: number;
+  boxExtraWidth: number;
   bold: boolean;
   italic: boolean;
   underline: boolean;
@@ -331,6 +333,8 @@ function createMarkupStore() {
       color: textColor,
       fontFamily: textFontFamily,
       fontSize: textFontSize,
+      rotation: 0,
+      boxExtraWidth: 0,
       bold: textBold,
       italic: textItalic,
       underline: textUnderline,

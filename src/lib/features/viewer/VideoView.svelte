@@ -57,7 +57,9 @@
   onmouseenter={() => (hoverZone = "video")}
   onmouseleave={() => (hoverZone = "none")}
   onmousedown={drawActive ? undefined : startPan}
-  style="{videoWrapperTransform} cursor: {drawActive ? markupCursor : panCursor}"
+  style="{videoWrapperTransform} cursor: {drawActive
+    ? markupCursor
+    : panCursor}"
 >
   <div class="video-inner" bind:this={videoInnerEl} style={videoInnerStyle}>
     {#key slideshowActive && slideshowTransition !== "none" ? currentIndex : null}

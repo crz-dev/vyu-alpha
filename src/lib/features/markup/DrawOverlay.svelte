@@ -67,12 +67,44 @@
   let moveStartCx = $state(0);
   let moveStartCy = $state(0);
 
+  // Text handle drag state
+  let textDragOrigin = $state<{ x: number; y: number } | null>(null);
+  let textDragStartFontSize = $state(16);
+  let textDragStartRotation = $state(0);
+  let textDragStartBoxExtra = $state(0);
+
+  // Text move drag state
+  let isTextMoving = $state(false);
+  let textMoveStartPos = $state<{ x: number; y: number } | null>(null);
+  let textMoveStartX = $state(0);
+  let textMoveStartY = $state(0);
+
   // Text box sizing constants
   const TEXT_PADDING = 6; // CSS px padding around text for hit area
   let hasTextStrokes = $derived(markup.strokes.some((s) => s.type === "text"));
 
   // Inline editing state
   let editingTextIndex = $state<number | null>(null);
+  let editingCaretVisible = $state(false);
+  let editingCaretInterval: ReturnType<typeof setInterval> | null =
+    $state(null);
+
+  function startCaretBlink() {
+    stopCaretBlink();
+    editingCaretVisible = true;
+    editingCaretInterval = setInterval(() => {
+      editingCaretVisible = !editingCaretVisible;
+      redrawAll();
+    }, 530);
+  }
+
+  function stopCaretBlink() {
+    if (editingCaretInterval !== null) {
+      clearInterval(editingCaretInterval);
+      editingCaretInterval = null;
+    }
+    editingCaretVisible = false;
+  }
 
   function exitEditing() {
     if (editingTextIndex === null) return;
@@ -81,6 +113,7 @@
       markup.deleteSelectedShape();
     }
     editingTextIndex = null;
+    stopCaretBlink();
   }
 
   // ── Helpers ───────────────────────────────────────────
@@ -339,6 +372,8 @@
     t: PlacedText,
     w: number,
     h: number,
+    isEditing = false,
+    caretVisible = false,
   ) {
     const px = t.x * w;
     const py = t.y * h;
@@ -357,7 +392,7 @@
     const textWidth = metrics.width;
     const lineHeight = fontSize * 1.2;
     const pad = TEXT_PADDING * (fontSize / 16);
-    const boxW = textWidth + pad * 2;
+    const boxW = textWidth + pad * 2 + (t.boxExtraWidth || 0);
     const boxH = lineHeight + pad;
 
     const boxLeft = px - boxW / 2;
@@ -370,6 +405,14 @@
 
     const drawY = boxTop + pad;
 
+    // Rotation
+    ctx.save();
+    if (t.rotation !== 0) {
+      ctx.translate(px, py);
+      ctx.rotate(t.rotation);
+      ctx.translate(-px, -py);
+    }
+
     // Background
     if (t.bgEnabled) {
       ctx.fillStyle = t.bgColor;
@@ -381,6 +424,24 @@
     // Text
     ctx.fillStyle = t.color;
     ctx.fillText(text, drawX, drawY + lineHeight / 2);
+
+    // Caret
+    if (isEditing && caretVisible) {
+      const caretX =
+        align === "left"
+          ? drawX + textWidth
+          : align === "right"
+            ? drawX
+            : drawX + textWidth / 2;
+      const caretY1 = drawY;
+      const caretY2 = drawY + lineHeight;
+      ctx.strokeStyle = t.color;
+      ctx.lineWidth = Math.max(1, fontSize / 12);
+      ctx.beginPath();
+      ctx.moveTo(caretX, caretY1);
+      ctx.lineTo(caretX, caretY2);
+      ctx.stroke();
+    }
 
     // Underline
     if (t.underline) {
@@ -415,6 +476,8 @@
       ctx.lineTo(stX + textWidth, strikeY);
       ctx.stroke();
     }
+
+    ctx.restore();
   }
 
   /** Estimate text width in CSS px (capped by char count × font size). */
@@ -446,31 +509,139 @@
       textWidth = estimateTextWidth(t, w, h);
     }
     const pad = TEXT_PADDING * (fontSize / 16);
-    const boxW = textWidth + pad * 2;
+    const boxW = textWidth + pad * 2 + (t.boxExtraWidth || 0);
     const boxH = fontSize * 1.2 + pad;
     const left = t.x * w - boxW / 2;
     const top = t.y * h - boxH / 2;
     return { left, right: left + boxW, top, bottom: top + boxH };
   }
 
-  function drawTextSelectionHighlight(
+  function drawTextTransformHandles(
     ctx: CanvasRenderingContext2D,
     t: PlacedText,
     w: number,
     h: number,
   ) {
     const bbox = getTextBbox(t, w, h, ctx);
+    const boxW = bbox.right - bbox.left;
+    const boxH = bbox.bottom - bbox.top;
+    const cx = bbox.left + boxW / 2;
+    const cy = bbox.top + boxH / 2;
+
     ctx.save();
-    ctx.strokeStyle = "#3b82f6";
+    if (t.rotation !== 0) {
+      ctx.translate(cx, cy);
+      ctx.rotate(t.rotation);
+      ctx.translate(-cx, -cy);
+    }
+
+    // White solid outline
+    ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 1.5;
-    ctx.setLineDash([4, 3]);
-    ctx.strokeRect(
-      bbox.left,
-      bbox.top,
-      bbox.right - bbox.left,
-      bbox.bottom - bbox.top,
-    );
+    ctx.setLineDash([]);
+    ctx.strokeRect(bbox.left, bbox.top, boxW, boxH);
+
+    const tAnim = hoverScale;
+    const edgeSize = 4 + tAnim * 1.5;
+    const rotR = 5 + tAnim;
+    const delR = 6 + tAnim;
+
+    // Side handles
+    const left: { x: number; y: number } = { x: bbox.left, y: cy };
+    const right: { x: number; y: number } = { x: bbox.right, y: cy };
+    const top: { x: number; y: number } = { x: cx, y: bbox.top };
+    const bottom: { x: number; y: number } = { x: cx, y: bbox.bottom };
+
+    drawDiamond(ctx, left.x, left.y, edgeSize, "#ffffff", "#ffffff");
+    drawDiamond(ctx, right.x, right.y, edgeSize, "#ffffff", "#ffffff");
+    drawDiamond(ctx, top.x, top.y, edgeSize, "#ffffff", "#ffffff");
+    drawDiamond(ctx, bottom.x, bottom.y, edgeSize, "#ffffff", "#ffffff");
+
+    // Rotate handle — white circle above top
+    const rotGap = 22;
+    const rotY = top.y - rotGap;
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(top.x, rotY, rotR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Delete handle — red circle with X below bottom
+    const delGap = 22;
+    const delY = bottom.y + delGap;
+    ctx.fillStyle = "#ef4444";
+    ctx.strokeStyle = "#ef4444";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(bottom.x, delY, delR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    // Draw X
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(bottom.x - 3, delY - 3);
+    ctx.lineTo(bottom.x + 3, delY + 3);
+    ctx.moveTo(bottom.x + 3, delY - 3);
+    ctx.lineTo(bottom.x - 3, delY + 3);
+    ctx.stroke();
+
     ctx.restore();
+  }
+
+  /** Compute text handle positions in CSS px. Requires a canvas context for measurement. */
+  function getTextHandlePositions(
+    t: PlacedText,
+    w: number,
+    h: number,
+    ctx: CanvasRenderingContext2D,
+  ) {
+    const bbox = getTextBbox(t, w, h, ctx);
+    const boxW = bbox.right - bbox.left;
+    const boxH = bbox.bottom - bbox.top;
+    const cx = bbox.left + boxW / 2;
+    const cy = bbox.top + boxH / 2;
+    const rotGap = 22;
+    const delGap = 22;
+
+    return {
+      left: { x: bbox.left, y: cy },
+      right: { x: bbox.right, y: cy },
+      top: { x: cx, y: bbox.top },
+      bottom: { x: cx, y: bbox.bottom },
+      rotate: { x: cx, y: bbox.top - rotGap },
+      delete: { x: cx, y: bbox.bottom + delGap },
+    };
+  }
+
+  /** Returns which text handle is within HIT_RADIUS CSS px of (px, py), or null. */
+  function hitTestTextHandle(
+    t: PlacedText,
+    w: number,
+    h: number,
+    px: number,
+    py: number,
+    ctx: CanvasRenderingContext2D,
+  ): HandleType | null {
+    const cx = t.x * w;
+    const cy = t.y * h;
+    // Un-rotate mouse into text-local coordinate space
+    const cos = Math.cos(-t.rotation);
+    const sin = Math.sin(-t.rotation);
+    const dx = px - cx;
+    const dy = py - cy;
+    const localPx = cos * dx - sin * dy + cx;
+    const localPy = sin * dx + cos * dy + cy;
+
+    const handles = getTextHandlePositions(t, w, h, ctx);
+    for (const [key, pos] of Object.entries(handles)) {
+      const hx = localPx - pos.x;
+      const hy = localPy - pos.y;
+      if (Math.sqrt(hx * hx + hy * hy) <= HIT_RADIUS) return key as HandleType;
+    }
+    return null;
   }
 
   function drawCurrentStrokePathPreview(
@@ -870,7 +1041,17 @@
           );
         }
       } else if (stroke.type === "text") {
-        drawPlacedText(ctx, stroke, w, h);
+        const isEditing =
+          editingTextIndex !== null &&
+          markup.strokes[editingTextIndex] === stroke;
+        drawPlacedText(
+          ctx,
+          stroke,
+          w,
+          h,
+          isEditing,
+          isEditing && editingCaretVisible,
+        );
       }
     }
 
@@ -932,14 +1113,14 @@
       );
     }
 
-    // Draw transform handles for selected shape or selection highlight for text
+    // Draw transform handles for selected shape or text
     const sel = markup.selectedIndex;
     if (sel !== null) {
       const stroke = markup.strokes[sel];
       if (stroke && stroke.type === "shape") {
         drawTransformHandles(ctx, stroke, w, h);
       } else if (stroke && stroke.type === "text") {
-        drawTextSelectionHighlight(ctx, stroke, w, h);
+        drawTextTransformHandles(ctx, stroke, w, h);
       }
     }
 
@@ -1005,6 +1186,9 @@
     ) {
       canvasEl.focus();
     }
+    return () => {
+      stopCaretBlink();
+    };
   });
 
   // ── Coordinate helpers ───────────────────────────────
@@ -1028,99 +1212,148 @@
     e.preventDefault();
     const p = toNormal(e.clientX, e.clientY);
     const sel = markup.selectedIndex;
-    if (sel === null || !dragStartShape) return;
+    if (sel === null) return;
     const stroke = markup.strokes[sel];
-    if (!stroke || stroke.type !== "shape") return;
+    if (!stroke) return;
 
-    const update: Partial<PlacedShape> = {};
     const dx = p.x - (dragOrigin?.x ?? 0);
     const dy = p.y - (dragOrigin?.y ?? 0);
 
-    // Un-rotate drag delta into shape-local coordinate space
-    const cos = Math.cos(-stroke.rotation);
-    const sin = Math.sin(-stroke.rotation);
-    const ldx = cos * dx - sin * dy;
-    const ldy = sin * dx + cos * dy;
+    if (stroke.type === "shape") {
+      if (!dragStartShape) return;
+      const update: Partial<PlacedShape> = {};
 
-    switch (dragHandle) {
-      case "left": {
-        const newW = Math.max(0.01, dragStartShape.width - ldx);
-        update.width = newW;
-        update.cx = dragStartShape.cx + ldx / 2;
-        break;
+      // Un-rotate drag delta into shape-local coordinate space
+      const cos = Math.cos(-stroke.rotation);
+      const sin = Math.sin(-stroke.rotation);
+      const ldx = cos * dx - sin * dy;
+      const ldy = sin * dx + cos * dy;
+
+      switch (dragHandle) {
+        case "left": {
+          const newW = Math.max(0.01, dragStartShape.width - ldx);
+          update.width = newW;
+          update.cx = dragStartShape.cx + ldx / 2;
+          break;
+        }
+        case "right": {
+          const newW = Math.max(0.01, dragStartShape.width + ldx);
+          update.width = newW;
+          update.cx = dragStartShape.cx + ldx / 2;
+          break;
+        }
+        case "top": {
+          const newH = Math.max(0.01, dragStartShape.height - ldy);
+          update.height = newH;
+          update.cy = dragStartShape.cy + ldy / 2;
+          break;
+        }
+        case "bottom": {
+          const newH = Math.max(0.01, dragStartShape.height + ldy);
+          update.height = newH;
+          update.cy = dragStartShape.cy + ldy / 2;
+          break;
+        }
+        case "topLeft": {
+          // Bottom-right corner stays fixed
+          const newW = Math.max(0.01, dragStartShape.width - ldx);
+          const newH = Math.max(0.01, dragStartShape.height - ldy);
+          update.width = newW;
+          update.height = newH;
+          update.cx = dragStartShape.cx + ldx / 2;
+          update.cy = dragStartShape.cy + ldy / 2;
+          break;
+        }
+        case "topRight": {
+          // Bottom-left corner stays fixed
+          const newW = Math.max(0.01, dragStartShape.width + ldx);
+          const newH = Math.max(0.01, dragStartShape.height - ldy);
+          update.width = newW;
+          update.height = newH;
+          update.cx = dragStartShape.cx + ldx / 2;
+          update.cy = dragStartShape.cy + ldy / 2;
+          break;
+        }
+        case "bottomLeft": {
+          // Top-right corner stays fixed
+          const newW = Math.max(0.01, dragStartShape.width - ldx);
+          const newH = Math.max(0.01, dragStartShape.height + ldy);
+          update.width = newW;
+          update.height = newH;
+          update.cx = dragStartShape.cx + ldx / 2;
+          update.cy = dragStartShape.cy + ldy / 2;
+          break;
+        }
+        case "bottomRight": {
+          // Top-left corner stays fixed
+          const newW = Math.max(0.01, dragStartShape.width + ldx);
+          const newH = Math.max(0.01, dragStartShape.height + ldy);
+          update.width = newW;
+          update.height = newH;
+          update.cx = dragStartShape.cx + ldx / 2;
+          update.cy = dragStartShape.cy + ldy / 2;
+          break;
+        }
+        case "rotate": {
+          const ocx = dragStartShape.cx;
+          const ocy = dragStartShape.cy;
+          const currentAngle = Math.atan2(p.y - ocy, p.x - ocx);
+          const startAngle = Math.atan2(
+            (dragOrigin?.y ?? 0) - ocy,
+            (dragOrigin?.x ?? 0) - ocx,
+          );
+          update.rotation =
+            dragStartShape.rotation + (currentAngle - startAngle);
+          break;
+        }
       }
-      case "right": {
-        const newW = Math.max(0.01, dragStartShape.width + ldx);
-        update.width = newW;
-        update.cx = dragStartShape.cx + ldx / 2;
-        break;
+      if (Object.keys(update).length > 0) {
+        markup.updateShape(sel, update);
       }
-      case "top": {
-        const newH = Math.max(0.01, dragStartShape.height - ldy);
-        update.height = newH;
-        update.cy = dragStartShape.cy + ldy / 2;
-        break;
+    } else if (stroke.type === "text") {
+      if (!textDragOrigin) return;
+      const update: Partial<PlacedText> = {};
+
+      switch (dragHandle) {
+        case "left":
+        case "right": {
+          // Left/right diamonds change box width
+          const delta = dx * 60; // horizontal drag sensitivity
+          const dir = dragHandle === "left" ? -1 : 1;
+          const newExtra = Math.max(
+            0,
+            Math.round(textDragStartBoxExtra + delta * dir),
+          );
+          update.boxExtraWidth = newExtra;
+          break;
+        }
+        case "top":
+        case "bottom": {
+          // Top/bottom diamonds change font size
+          const delta = dy * 40; // vertical drag sensitivity
+          const dir = dragHandle === "top" ? -1 : 1;
+          const newSize = Math.max(
+            6,
+            Math.min(72, Math.round(textDragStartFontSize + delta * dir)),
+          );
+          update.fontSize = newSize;
+          break;
+        }
+        case "rotate": {
+          const ocx = stroke.x;
+          const ocy = stroke.y;
+          const currentAngle = Math.atan2(p.y - ocy, p.x - ocx);
+          const startAngle = Math.atan2(
+            (textDragOrigin?.y ?? 0) - ocy,
+            (textDragOrigin?.x ?? 0) - ocx,
+          );
+          update.rotation = textDragStartRotation + (currentAngle - startAngle);
+          break;
+        }
       }
-      case "bottom": {
-        const newH = Math.max(0.01, dragStartShape.height + ldy);
-        update.height = newH;
-        update.cy = dragStartShape.cy + ldy / 2;
-        break;
+      if (Object.keys(update).length > 0) {
+        markup.updateText(sel, update);
       }
-      case "topLeft": {
-        // Bottom-right corner stays fixed
-        const newW = Math.max(0.01, dragStartShape.width - ldx);
-        const newH = Math.max(0.01, dragStartShape.height - ldy);
-        update.width = newW;
-        update.height = newH;
-        update.cx = dragStartShape.cx + ldx / 2;
-        update.cy = dragStartShape.cy + ldy / 2;
-        break;
-      }
-      case "topRight": {
-        // Bottom-left corner stays fixed
-        const newW = Math.max(0.01, dragStartShape.width + ldx);
-        const newH = Math.max(0.01, dragStartShape.height - ldy);
-        update.width = newW;
-        update.height = newH;
-        update.cx = dragStartShape.cx + ldx / 2;
-        update.cy = dragStartShape.cy + ldy / 2;
-        break;
-      }
-      case "bottomLeft": {
-        // Top-right corner stays fixed
-        const newW = Math.max(0.01, dragStartShape.width - ldx);
-        const newH = Math.max(0.01, dragStartShape.height + ldy);
-        update.width = newW;
-        update.height = newH;
-        update.cx = dragStartShape.cx + ldx / 2;
-        update.cy = dragStartShape.cy + ldy / 2;
-        break;
-      }
-      case "bottomRight": {
-        // Top-left corner stays fixed
-        const newW = Math.max(0.01, dragStartShape.width + ldx);
-        const newH = Math.max(0.01, dragStartShape.height + ldy);
-        update.width = newW;
-        update.height = newH;
-        update.cx = dragStartShape.cx + ldx / 2;
-        update.cy = dragStartShape.cy + ldy / 2;
-        break;
-      }
-      case "rotate": {
-        const ocx = dragStartShape.cx;
-        const ocy = dragStartShape.cy;
-        const currentAngle = Math.atan2(p.y - ocy, p.x - ocx);
-        const startAngle = Math.atan2(
-          (dragOrigin?.y ?? 0) - ocy,
-          (dragOrigin?.x ?? 0) - ocx,
-        );
-        update.rotation = dragStartShape.rotation + (currentAngle - startAngle);
-        break;
-      }
-    }
-    if (Object.keys(update).length > 0) {
-      markup.updateShape(sel, update);
     }
     redrawAll();
   }
@@ -1180,20 +1413,88 @@
     // Text mode — click to place, click to select, enter inline editing
     if (markup.textActive) {
       isPointerDown = false;
-      // Finalize any in-progress edit first
-      if (editingTextIndex !== null) exitEditing();
+
+      // 1. Check text handle hit on currently selected text first
+      const selText = markup.selectedIndex;
+      if (selText !== null) {
+        const selStroke = markup.strokes[selText];
+        if (selStroke && selStroke.type === "text" && canvasEl) {
+          const ctx = canvasEl.getContext("2d");
+          if (ctx) {
+            const rawPx = p.x * overlayRect.width;
+            const rawPy = p.y * overlayRect.height;
+            const hit = hitTestTextHandle(
+              selStroke,
+              overlayRect.width,
+              overlayRect.height,
+              rawPx,
+              rawPy,
+              ctx,
+            );
+            if (hit === "delete") {
+              markup.deleteSelectedShape();
+              redrawAll();
+              return;
+            }
+            if (hit === "left" || hit === "right") {
+              // Left/right diamonds change box width
+              dragHandle = hit;
+              dragOrigin = p;
+              textDragOrigin = p;
+              textDragStartBoxExtra = selStroke.boxExtraWidth;
+              canvasEl?.setPointerCapture(e.pointerId);
+              return;
+            }
+            if (hit === "top" || hit === "bottom") {
+              // Top/bottom diamonds change font size
+              dragHandle = hit;
+              dragOrigin = p;
+              textDragOrigin = p;
+              textDragStartFontSize = selStroke.fontSize;
+              canvasEl?.setPointerCapture(e.pointerId);
+              return;
+            }
+            if (hit === "rotate") {
+              dragHandle = hit;
+              dragOrigin = p;
+              textDragOrigin = p;
+              textDragStartRotation = selStroke.rotation;
+              canvasEl?.setPointerCapture(e.pointerId);
+              return;
+            }
+          }
+        }
+      }
+
+      // 2. Click on any text body → start move-drag (will enter editing on release if no drag)
       const hitIdx = findTextAtPoint(p.x, p.y);
       if (hitIdx !== null) {
+        if (editingTextIndex !== null && editingTextIndex !== hitIdx) {
+          exitEditing();
+        }
         markup.selectShape(hitIdx);
         editingTextIndex = hitIdx;
+        // Start tracking drag — enter editing on release if no movement
+        isPointerDown = true;
+        isTextMoving = true;
+        textMoveStartPos = p;
+        const t = markup.strokes[hitIdx];
+        if (t && t.type === "text") {
+          textMoveStartX = t.x;
+          textMoveStartY = t.y;
+        }
+        canvasEl?.setPointerCapture(e.pointerId);
         canvasEl?.focus();
         redrawAll();
         return;
       }
-      // Click outside existing text — place new empty text box and start editing
+
+      // 3. Click outside — exit editing (may delete if empty), place new text box
+      if (editingTextIndex !== null) exitEditing();
       markup.selectShape(null);
       markup.placeText(p.x, p.y);
       editingTextIndex = markup.strokes.length - 1;
+      startCaretBlink();
       canvasEl?.focus();
       redrawAll();
       return;
@@ -1245,6 +1546,48 @@
         }
         // Click outside shape bounds → deselect
         markup.selectShape(null);
+      } else if (stroke && stroke.type === "text" && canvasEl) {
+        // Text handle hit check for non-text modes
+        const ctx = canvasEl.getContext("2d");
+        if (ctx) {
+          const hit = hitTestTextHandle(
+            stroke,
+            overlayRect.width,
+            overlayRect.height,
+            rawPx,
+            rawPy,
+            ctx,
+          );
+          if (hit === "delete") {
+            markup.deleteSelectedShape();
+            redrawAll();
+            return;
+          }
+          if (hit === "left" || hit === "right") {
+            dragHandle = hit;
+            dragOrigin = p;
+            textDragOrigin = p;
+            textDragStartBoxExtra = stroke.boxExtraWidth;
+            canvasEl?.setPointerCapture(e.pointerId);
+            return;
+          }
+          if (hit === "top" || hit === "bottom") {
+            dragHandle = hit;
+            dragOrigin = p;
+            textDragOrigin = p;
+            textDragStartFontSize = stroke.fontSize;
+            canvasEl?.setPointerCapture(e.pointerId);
+            return;
+          }
+          if (hit === "rotate") {
+            dragHandle = hit;
+            dragOrigin = p;
+            textDragOrigin = p;
+            textDragStartRotation = stroke.rotation;
+            canvasEl?.setPointerCapture(e.pointerId);
+            return;
+          }
+        }
       }
     }
 
@@ -1294,6 +1637,27 @@
       return;
     }
 
+    // Text move drag
+    if (isTextMoving && textMoveStartPos) {
+      e.preventDefault();
+      const p = toNormal(e.clientX, e.clientY);
+      const dx = p.x - textMoveStartPos.x;
+      const dy = p.y - textMoveStartPos.y;
+      const idx = markup.selectedIndex;
+      if (idx !== null) {
+        markup.updateText(idx, {
+          x: textMoveStartX + dx,
+          y: textMoveStartY + dy,
+        });
+        // Hide caret on first movement
+        if (editingTextIndex !== null) {
+          stopCaretBlink();
+        }
+        redrawAll();
+      }
+      return;
+    }
+
     // Highlight mode — handle separately
     if (markup.highlightActive && isPointerDown) {
       e.preventDefault();
@@ -1313,23 +1677,36 @@
       const sel = markup.selectedIndex;
       if (sel !== null) {
         const stroke = markup.strokes[sel];
+        const p = toNormal(e.clientX, e.clientY);
+        const rawPx = p.x * overlayRect.width;
+        const rawPy = p.y * overlayRect.height;
+        let hit: HandleType | null = null;
         if (stroke && stroke.type === "shape") {
-          const p = toNormal(e.clientX, e.clientY);
-          const rawPx = p.x * overlayRect.width;
-          const rawPy = p.y * overlayRect.height;
-          const hit = hitTestHandle(
+          hit = hitTestHandle(
             stroke,
             overlayRect.width,
             overlayRect.height,
             rawPx,
             rawPy,
           );
-          if (hit !== hoveredHandle) {
-            hoveredHandle = hit;
-            startHoverAnim(hit ? 1 : 0);
+        } else if (stroke && stroke.type === "text" && canvasEl) {
+          const ctx = canvasEl.getContext("2d");
+          if (ctx) {
+            hit = hitTestTextHandle(
+              stroke,
+              overlayRect.width,
+              overlayRect.height,
+              rawPx,
+              rawPy,
+              ctx,
+            );
           }
-          return;
         }
+        if (hit !== hoveredHandle) {
+          hoveredHandle = hit;
+          startHoverAnim(hit ? 1 : 0);
+        }
+        return;
       }
       if (hoveredHandle !== null) {
         hoveredHandle = null;
@@ -1362,6 +1739,37 @@
 
   function handlePointerUp(e: PointerEvent) {
     if (markup.textActive) {
+      if (dragHandle) {
+        // Finalize text handle drag
+        dragHandle = null;
+        dragOrigin = null;
+        textDragOrigin = null;
+        dragStartShape = null;
+        isPointerDown = false;
+        canvasEl?.releasePointerCapture(e.pointerId);
+        return;
+      }
+      if (isTextMoving) {
+        const stroke = markup.strokes[markup.selectedIndex ?? -1];
+        if (stroke && stroke.type === "text") {
+          const moved =
+            Math.abs(stroke.x - textMoveStartX) > 0.001 ||
+            Math.abs(stroke.y - textMoveStartY) > 0.001;
+          if (moved) {
+            // Drag — text was already moved, just clean up
+            stopCaretBlink();
+          } else {
+            // No drag — enter editing mode
+            startCaretBlink();
+          }
+        }
+        isTextMoving = false;
+        textMoveStartPos = null;
+        isPointerDown = false;
+        canvasEl?.releasePointerCapture(e.pointerId);
+        redrawAll();
+        return;
+      }
       isPointerDown = false;
       return;
     }
@@ -1369,6 +1777,7 @@
       // Finalize handle drag
       dragHandle = null;
       dragOrigin = null;
+      textDragOrigin = null;
       dragStartShape = null;
       isPointerDown = false;
       canvasEl?.releasePointerCapture(e.pointerId);
