@@ -52,6 +52,8 @@
     ctxShare,
     ctxEdit,
     ctxMarkup,
+    ctxEffects,
+    ctxEqualizer,
     ctxClearMarkers,
     ctxDelete,
     clipDeleteConfirm,
@@ -118,6 +120,8 @@
     ctxShare: () => void;
     ctxEdit: () => void;
     ctxMarkup: () => void;
+    ctxEffects: () => void;
+    ctxEqualizer: () => void;
     ctxClearMarkers: () => void;
     ctxDelete: () => void;
     clipDeleteConfirm: { visible: boolean; mode: "separate" | "merge" | null };
@@ -727,6 +731,181 @@
           onclick={ctxDelete}
           role="menuitem"
           style="animation-delay: 275ms"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+            ><polyline
+              points="3 6 5 6 21 6"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /><path
+              d="M19 6l-1 14H6L5 6"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /><path
+              d="M10 11v6M14 11v6"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /><path
+              d="M9 6V4h6v2"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /></svg
+          >
+          Delete
+        </button>
+      {:else if isAudio}
+        <button
+          class="ctx-item green"
+          onclick={ctxCopyPath}
+          role="menuitem"
+          style="animation-delay: 0ms"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+            ><path
+              d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /><path
+              d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /></svg
+          >
+          Copy path
+        </button>
+        <button
+          class="ctx-item green"
+          onclick={ctxShare}
+          role="menuitem"
+          style="animation-delay: 55ms"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+            ><circle
+              cx="18"
+              cy="5"
+              r="3"
+              stroke="currentColor"
+              stroke-width="2"
+            /><circle
+              cx="6"
+              cy="12"
+              r="3"
+              stroke="currentColor"
+              stroke-width="2"
+            /><circle
+              cx="18"
+              cy="19"
+              r="3"
+              stroke="currentColor"
+              stroke-width="2"
+            /><line
+              x1="8.59"
+              y1="13.51"
+              x2="15.42"
+              y2="17.49"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /><line
+              x1="15.41"
+              y1="6.51"
+              x2="8.59"
+              y2="10.49"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /></svg
+          >
+          Share
+        </button>
+        <div class="ctx-sep"></div>
+        <button
+          class="ctx-item blue"
+          onclick={ctxEffects}
+          role="menuitem"
+          style="animation-delay: 110ms"
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z" />
+            <path d="M5 16l1 3 3 1-3 1-1 3-1-3-3-1 3-1z" />
+            <path d="M19 14l.75 2.25 2.25.75-2.25.75L19 20l-.75-2.25L16 17l2.25-.75z" />
+          </svg>
+          Effects
+        </button>
+        <button
+          class="ctx-item blue"
+          onclick={ctxEqualizer}
+          role="menuitem"
+          style="animation-delay: 165ms"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+            ><path d="M2 12h2M6 8v8M10 5v14M14 9v6M18 7v10M22 11v2"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /></svg
+          >
+          Equalizer
+        </button>
+        <div class="ctx-sep"></div>
+        <button
+          class="ctx-item yellow"
+          onclick={ctxShowInExplorer}
+          role="menuitem"
+          style="animation-delay: 220ms"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+            ><path
+              d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
+              stroke="currentColor"
+              stroke-width="2"
+            /></svg
+          >
+          Show in explorer
+        </button>
+        <button
+          class="ctx-item yellow"
+          onclick={ctxProperties}
+          role="menuitem"
+          style="animation-delay: 275ms"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+            ><circle
+              cx="12"
+              cy="12"
+              r="9"
+              stroke="currentColor"
+              stroke-width="2"
+            /><path
+              d="M12 10.5V16"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            /><circle cx="12" cy="7.5" r="1" fill="currentColor" /></svg
+          >
+          Properties
+        </button>
+        <div class="ctx-sep"></div>
+        <button
+          class="ctx-item red"
+          onclick={ctxDelete}
+          role="menuitem"
+          style="animation-delay: 330ms"
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
             ><polyline

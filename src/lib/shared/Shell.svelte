@@ -6,6 +6,7 @@
   import Tooltip from "$lib/shared/Tooltip.svelte";
   import EditMenu from "$lib/features/menus/EditMenu.svelte";
   import MarkupMenu from "$lib/features/menus/MarkupMenu.svelte";
+  import EffectsMenu from "$lib/features/menus/EffectsMenu.svelte";
   import SettingsDialog from "$lib/features/dialogs/SettingsDialog.svelte";
   import AccessibilityDialog from "$lib/features/dialogs/AccessibilityDialog.svelte";
   import HelpDialog from "$lib/features/dialogs/HelpDialog.svelte";
@@ -111,6 +112,8 @@
     closeEditMenu,
     markupMenuVisible,
     closeMarkupMenu,
+    effectsMenuVisible,
+    closeEffectsMenu,
     ffprobeChecked,
     ffprobeAvailable,
     ffmpegInstalling,
@@ -161,6 +164,8 @@
     ctxFlip,
     ctxEdit,
     ctxMarkup,
+    ctxEffects,
+    ctxEqualizer,
     ctxShowInExplorer,
     ctxProperties,
     ctxShare,
@@ -283,6 +288,8 @@
     closeEditMenu: () => void;
     markupMenuVisible: boolean;
     closeMarkupMenu: () => void;
+    effectsMenuVisible: boolean;
+    closeEffectsMenu: () => void;
     ffprobeChecked: boolean;
     ffprobeAvailable: boolean;
     ffmpegInstalling: boolean;
@@ -333,6 +340,8 @@
     ctxFlip: () => void;
     ctxEdit: () => void;
     ctxMarkup: () => void;
+    ctxEffects: () => void;
+    ctxEqualizer: () => void;
     ctxShowInExplorer: () => void;
     ctxProperties: () => void;
     ctxShare: () => void;
@@ -369,6 +378,7 @@
 
   let editMenuMoved = $state(false);
   let markupMenuMoved = $state(false);
+  let effectsMenuMoved = $state(false);
   let clipMenuMoved = $state(false);
   let clipMenuDismissed = $state(false);
 
@@ -378,6 +388,10 @@
 
   $effect(() => {
     if (!markupMenuVisible) markupMenuMoved = false;
+  });
+
+  $effect(() => {
+    if (!effectsMenuVisible) effectsMenuMoved = false;
   });
 
   $effect(() => {
@@ -403,45 +417,57 @@
   const layoutOffsets = $derived.by(() => {
     const editOpen = editMenuVisible && !editMenuMoved;
     const markupOpen = markupMenuVisible && !markupMenuMoved;
+    const effectsOpen = effectsMenuVisible && !effectsMenuMoved;
     const clipOpen = clipMenuActive && !clipMenuMoved;
 
-    // Edit/markup affect each other
+    // Count how many peer menus are open (edit, markup, effects)
+    const peerCount = (editOpen ? 1 : 0) + (markupOpen ? 1 : 0) + (effectsOpen ? 1 : 0);
+
     let editOffset = 0;
     let markupOffset = 0;
+    let effectsOffset = 0;
 
-    if (editOpen && markupOpen) {
+    if (peerCount === 2) {
       const halfGap = (MENU_WIDTH + GAP) / 2;
-      editOffset = -halfGap;
-      markupOffset = halfGap;
+      if (editOpen && markupOpen) {
+        editOffset = -halfGap;
+        markupOffset = halfGap;
+      } else if (editOpen && effectsOpen) {
+        editOffset = -halfGap;
+        effectsOffset = halfGap;
+      } else if (markupOpen && effectsOpen) {
+        markupOffset = -halfGap;
+        effectsOffset = halfGap;
+      }
+    } else if (peerCount === 3) {
+      const fullGap = MENU_WIDTH + GAP;
+      editOffset = -fullGap;
+      effectsOffset = fullGap;
     }
 
-    // Clip shifts based on edit/markup presence
+    // Clip shifts based on peer menu presence
     let clipOffset = 0;
-    if (clipOpen) {
-      const editOnly = editOpen && !markupOpen;
-      const markupOnly = !editOpen && markupOpen;
-      const bothOpen = editOpen && markupOpen;
-
-      if (editOnly) {
-        // edit left, clip right — gap centered
+    if (clipOpen && peerCount >= 1) {
+      if (peerCount === 1) {
         const halfGap = (MENU_WIDTH + GAP) / 2;
-        editOffset = -halfGap;
-        clipOffset = halfGap;
-      } else if (markupOnly) {
-        // clip left, markup right — gap centered
-        const halfGap = (MENU_WIDTH + GAP) / 2;
-        clipOffset = -halfGap;
-        markupOffset = halfGap;
-      } else if (bothOpen) {
-        // edit left, clip center, markup right
+        if (editOpen) {
+          editOffset = -halfGap;
+          clipOffset = halfGap;
+        } else if (markupOpen) {
+          clipOffset = -halfGap;
+          markupOffset = halfGap;
+        } else if (effectsOpen) {
+          clipOffset = -halfGap;
+          effectsOffset = halfGap;
+        }
+      } else {
+        // clip + 2 peers: shift all three
         const fullGap = MENU_WIDTH + GAP;
-        editOffset = -fullGap;
-        clipOffset = 0;
-        markupOffset = fullGap;
+        clipOffset = -fullGap;
       }
     }
 
-    return { edit: editOffset, clip: clipOffset, markup: markupOffset };
+    return { edit: editOffset, clip: clipOffset, markup: markupOffset, effects: effectsOffset };
   });
 
   const editMenuStyle = $derived.by(() => {
@@ -454,6 +480,13 @@
   const markupMenuStyle = $derived.by(() => {
     if (markupMenuVisible && !markupMenuMoved && layoutOffsets.markup !== 0) {
       return `left: calc(50% + ${layoutOffsets.markup}px);`;
+    }
+    return "";
+  });
+
+  const effectsMenuStyle = $derived.by(() => {
+    if (effectsMenuVisible && !effectsMenuMoved && layoutOffsets.effects !== 0) {
+      return `left: calc(50% + ${layoutOffsets.effects}px);`;
     }
     return "";
   });
@@ -616,6 +649,8 @@
     {ctxFlip}
     {ctxEdit}
     {ctxMarkup}
+    {ctxEffects}
+    {ctxEqualizer}
     {ctxShowInExplorer}
     {ctxProperties}
     {ctxShare}
@@ -661,6 +696,13 @@
     {onReset}
     onApply={onMarkupApply}
     onExport={onMarkupExport}
+  />
+
+  <EffectsMenu
+    visible={effectsMenuVisible}
+    onClose={closeEffectsMenu}
+    onMoved={() => (effectsMenuMoved = true)}
+    styleOverride={effectsMenuStyle}
   />
 
   {#key settingsOpen}

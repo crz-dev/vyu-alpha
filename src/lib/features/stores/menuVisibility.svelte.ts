@@ -3,6 +3,7 @@ import { editing } from "$lib/features/editing/editing.svelte";
 function createMenuVisibilityStore() {
   let editMenuVisible = $state(false);
   let markupMenuVisible = $state(false);
+  let effectsMenuVisible = $state(false);
   let slideshowMenuVisible = $state(false);
   let appDropdownVisible = $state(false);
   let settingsOpen = $state(false);
@@ -25,6 +26,12 @@ function createMenuVisibilityStore() {
     },
     set markupMenuVisible(v: boolean) {
       markupMenuVisible = v;
+    },
+    get effectsMenuVisible() {
+      return effectsMenuVisible;
+    },
+    set effectsMenuVisible(v: boolean) {
+      effectsMenuVisible = v;
     },
     get slideshowMenuVisible() {
       return slideshowMenuVisible;
@@ -84,6 +91,7 @@ function createMenuVisibilityStore() {
       return !!(
         editMenuVisible ||
         markupMenuVisible ||
+        effectsMenuVisible ||
         slideshowMenuVisible ||
         appDropdownVisible ||
         settingsOpen ||
@@ -97,6 +105,7 @@ function createMenuVisibilityStore() {
     closeAll() {
       editMenuVisible = false;
       markupMenuVisible = false;
+      effectsMenuVisible = false;
       slideshowMenuVisible = false;
       appDropdownVisible = false;
       settingsOpen = false;
@@ -137,6 +146,15 @@ export function createMenuActions(deps: MenuActionsDeps) {
     menuStore.markupMenuVisible = false;
   }
 
+  function openEffectsMenu() {
+    deps.closeContextMenu();
+    menuStore.effectsMenuVisible = true;
+  }
+
+  function closeEffectsMenu() {
+    menuStore.effectsMenuVisible = false;
+  }
+
   function toggleSlideshowMenu() {
     menuStore.slideshowMenuVisible = !menuStore.slideshowMenuVisible;
   }
@@ -150,6 +168,8 @@ export function createMenuActions(deps: MenuActionsDeps) {
     closeEditMenu,
     openMarkupMenu,
     closeMarkupMenu,
+    openEffectsMenu,
+    closeEffectsMenu,
     toggleSlideshowMenu,
     closeSlideshowMenu,
   };

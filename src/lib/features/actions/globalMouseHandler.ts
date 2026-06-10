@@ -3,12 +3,14 @@ export function createGlobalMouseHandler(deps: {
   menuStore: {
     editMenuVisible: boolean;
     markupMenuVisible: boolean;
+    effectsMenuVisible: boolean;
     slideshowMenuVisible: boolean;
     appDropdownVisible: boolean;
   };
   markerStore: { tsEditMenu: { visible: boolean } };
   closeEditMenu: () => void;
   closeMarkupMenu: () => void;
+  closeEffectsMenu: () => void;
   closeSlideshowMenu: () => void;
   closeTimestampEditor: () => void;
 }) {
@@ -35,6 +37,13 @@ export function createGlobalMouseHandler(deps: {
       !document.querySelector(".edit-menu.pinned")
     )
       deps.closeMarkupMenu();
+    if (
+      deps.menuStore.effectsMenuVisible &&
+      e.button === 2 &&
+      !target.closest(".edit-menu-wrapper") &&
+      !document.querySelector(".edit-menu.pinned")
+    )
+      deps.closeEffectsMenu();
     if (
       deps.menuStore.slideshowMenuVisible &&
       e.button === 2 &&

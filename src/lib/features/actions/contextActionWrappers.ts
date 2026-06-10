@@ -9,6 +9,8 @@ import {
   ctxClearMarkers,
   ctxEdit,
   ctxMarkup,
+  ctxEffects,
+  ctxEqualizer,
   ctxProperties,
   ctxShare,
 } from "./contextActions";
@@ -28,6 +30,7 @@ export interface ContextActionDeps {
   removeResumePoint: () => void;
   openEditMenu: () => void;
   openMarkupMenu: () => void;
+  openEffectsMenu: () => void;
   propertiesOpen: () => boolean;
   setPropertiesOpen: (v: boolean) => void;
   setMediaProps: (v: MediaProperties | null) => void;
@@ -93,6 +96,12 @@ export function createContextActionFns(deps: ContextActionDeps) {
   function ctxMarkupFn() {
     ctxMarkup({ openMarkupMenu: deps.openMarkupMenu });
   }
+  function ctxEffectsFn() {
+    ctxEffects({ openEffectsMenu: deps.openEffectsMenu });
+  }
+  function ctxEqualizerFn() {
+    ctxEqualizer();
+  }
   function ctxPropertiesFn() {
     ctxProperties({
       closeContextMenu: deps.closeContextMenu,
@@ -133,6 +142,8 @@ export function createContextActionFns(deps: ContextActionDeps) {
     ctxClearMarkersFn,
     ctxEditFn,
     ctxMarkupFn,
+    ctxEffectsFn,
+    ctxEqualizerFn,
     ctxPropertiesFn,
     ctxShareFn,
     ctxDelete,

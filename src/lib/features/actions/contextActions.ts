@@ -105,6 +105,14 @@ export function ctxMarkup(opts: { openMarkupMenu: () => void }) {
   opts.openMarkupMenu();
 }
 
+export function ctxEffects(opts: { openEffectsMenu: () => void }) {
+  opts.openEffectsMenu();
+}
+
+export function ctxEqualizer() {
+  // Placeholder — equalizer not yet implemented
+}
+
 export function ctxProperties(opts: {
   closeContextMenu: () => void;
   setPropertiesOpen: (v: boolean) => void;

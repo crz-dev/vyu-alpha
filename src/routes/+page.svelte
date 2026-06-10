@@ -152,6 +152,8 @@
     closeEditMenu,
     openMarkupMenu,
     closeMarkupMenu,
+    openEffectsMenu,
+    closeEffectsMenu,
     toggleSlideshowMenu,
     closeSlideshowMenu,
   } = menuActions;
@@ -664,6 +666,8 @@
     ctxClearMarkersFn,
     ctxEditFn,
     ctxMarkupFn,
+    ctxEffectsFn,
+    ctxEqualizerFn,
     ctxPropertiesFn,
     ctxShareFn,
     ctxDelete,
@@ -678,6 +682,7 @@
     removeResumePoint,
     openEditMenu,
     openMarkupMenu,
+    openEffectsMenu,
     propertiesOpen: () => propertiesOpen,
     setPropertiesOpen: (v) => (propertiesOpen = v),
     setMediaProps: (v) => (mediaProps = v),
@@ -714,6 +719,9 @@
       get markupMenuVisible() {
         return menuStore.markupMenuVisible;
       },
+      get effectsMenuVisible() {
+        return menuStore.effectsMenuVisible;
+      },
       get slideshowMenuVisible() {
         return menuStore.slideshowMenuVisible;
       },
@@ -728,6 +736,7 @@
     },
     closeEditMenu,
     closeMarkupMenu,
+    closeEffectsMenu,
     closeSlideshowMenu,
     closeTimestampEditor,
   });
@@ -765,6 +774,7 @@
     closeWindow,
     closeEditMenu,
     closeMarkupMenu,
+    closeEffectsMenu,
     ffprobeChecked,
     ffprobeAvailable,
     ffmpegInstalling,
@@ -869,6 +879,7 @@
   onMarkupApply={handleMarkupApply}
   onMarkupExport={handleMarkupExport}
   markupMenuVisible={menuStore.markupMenuVisible}
+  effectsMenuVisible={menuStore.effectsMenuVisible}
   installFfmpegAndWait={runInstallFfmpeg}
   refreshFfprobeAvailability={runRefreshFfprobe}
   showInExplorer={ctxShowInExplorerFn}
@@ -915,6 +926,8 @@
   ctxFlip={ctxFlipFn}
   ctxEdit={ctxEditFn}
   ctxMarkup={ctxMarkupFn}
+  ctxEffects={ctxEffectsFn}
+  ctxEqualizer={ctxEqualizerFn}
   ctxShowInExplorer={ctxShowInExplorerFn}
   ctxProperties={ctxPropertiesFn}
   ctxShare={ctxShareFn}

@@ -3,17 +3,13 @@ _Overwrite this file completely at end of every session. Never append._
 Updated: 2026-06-10
 
 ## Last change
-Wired the 4 erase submenu buttons (Select, Remove, Hide, Clear all) in `MarkupMenu.svelte` — no longer placeholders. Added erase states (`selectActive`, `removeActive`, `strokesHidden`), unified hit-testing (`findStrokeAt`), multi-select (`selectedIndices`, `selectShapes`, `moveSelectedStrokesBy`), and selection-box support (`findStrokesInRect`) to `markup.svelte.ts`. Rebuilt interaction in `DrawOverlay.svelte`: select mode now supports click-to-select, drag-to-move (multi-selection), and marquee selection box; transform handles (resize/rotate/delete) work in select mode; remove mode acts as an eraser brush; hide toggles all rendering off/on. Added pan guard in `ViewerArea.svelte` for select/remove modes.
+Added audio-specific context menu with Effects and Equalizer blue buttons instead of Edit/Markup. Created EffectsMenu.svelte panel with 4 placeholder category buttons (Tune, Style, Stage, Visual). Split `{:else if !isVideo}` branch in Dialog.svelte to handle audio separately. Wired open/close state through menuVisibility store, context actions, Shell layout offsets, and global mouse handler dismiss logic.
 
 ## Status
+- Audio context menu: working (Copy path, Share, Effects, Equalizer, Show in explorer, Properties, Delete)
+- EffectsMenu panel: working (draggable, pinnable, closeable, 4 non-functional placeholder buttons)
+- Equalizer button: present, no-op
 - Type check: passing
-- Formatter: untested
-- Erase submenu: working (Select, Remove, Hide, Clear all)
-- Select multi-drag: working
-- Selection box: working
-- Remove (eraser): working
-- Hide toggle: working
-- Clear all confirm: working
 
 ## Next
 Text word wrapping / multi-line support.
@@ -22,7 +18,13 @@ Text word wrapping / multi-line support.
 - None.
 
 ## Current commit
-feat: implement erase submenu with select, remove, hide, and clear all
+feat: add audio context menu with Effects panel
 
 ## Architecture update
-- None.
+- `src/lib/features/menus/EffectsMenu.svelte` — new audio effects panel
+- `menuVisibility.svelte.ts` — added effectsMenuVisible + open/close
+- `contextActions.ts` — added ctxEffects, ctxEqualizer
+- `contextActionWrappers.ts` — added wrappers + openEffectsMenu dep
+- `Dialog.svelte` — new `{:else if isAudio}` branch in context menu
+- `Shell.svelte` — effects menu layout offset + rendering
+- `globalMouseHandler.ts` — dismiss logic for effects menu
