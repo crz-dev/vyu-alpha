@@ -2311,9 +2311,10 @@ main.fs-controls-hidden .thumbnail-bar.fullscreen {
 }
 
 .text-font-separator {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.18);
+  height: 2px;
+  background: var(--bg-border);
   margin: 4px 6px;
+  border-radius: 1px;
 }
 
 /* Text submenu: color row */
