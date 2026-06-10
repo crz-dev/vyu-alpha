@@ -156,6 +156,7 @@
       closeHighlightSubTools();
       closeTextSubTools();
       markup.drawActive = false;
+      markup.textActive = false;
       openTimeout = setTimeout(() => {
         highlightRowOpen = true;
         markup.highlightActive = true;
@@ -176,6 +177,7 @@
       closeHighlightSubTools();
       closeTextSubTools();
       markup.highlightActive = false;
+      markup.textActive = false;
       openTimeout = setTimeout(() => {
         drawRowOpen = true;
         markup.drawActive = true;
@@ -210,6 +212,10 @@
       shapesRowOpen = false;
     } else {
       if (openTimeout) clearTimeout(openTimeout);
+      closeTextSubTools();
+      markup.textActive = false;
+      markup.highlightActive = false;
+      markup.drawActive = true;
       shapesRowOpen = false;
       openTimeout = setTimeout(() => {
         shapesRowOpen = true;

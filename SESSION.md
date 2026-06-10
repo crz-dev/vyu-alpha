@@ -3,7 +3,7 @@ _Overwrite this file completely at end of every session. Never append._
 Updated: 2026-06-09
 
 ## Last change
-Added text transform handles (white solid outline, 4 side diamonds, rotate circle, delete icon) matching shape handle UX in DrawOverlay.svelte. Left/right diamonds resize box width, top/bottom change fontSize. Text boxes are draggable in text mode (click body to edit, drag to move). Blinking caret during inline editing. Handle hover animation. Text rotation supported in both overlay and export render.
+Unified markup transform handles across shapes and text: 4 corner-only diamonds with white bounding-box outline on all shape types. Side resizing works by grabbing any part of the outline edge (line-segment hit testing). Rotate circle gap reduced from 22→16px. Text delete button moved to top-right corner matching shape position. Text corner diamonds now resize both boxExtraWidth and fontSize (was moving text instead — removed center adjustment). Added drag-to-place text boxes (like shapes) with sized font/width on drag, default on click. Text max font size raised 72→200. Handle/outline/delete opacity reduced to 80%. Fixed bug where toggling shape/draw/highlight rows didn't deactivate text mode (causing text boxes to still be placed).
 
 ## Status
 - Type check: clean
@@ -14,11 +14,12 @@ Added text transform handles (white solid outline, 4 side diamonds, rotate circl
 Text word wrapping / multi-line support.
 
 ## Bugs found this session
-- Fixed: clicking on an empty text box created a new one instead of entering editing (exitEditing auto-deleted empty text before hit detection).
-- None.
+- Fixed: toggleShapes/draw/highlight didn't deactivate textActive — clicking canvas would still place text boxes.
+- Fixed: text corner drag applied ldx/ldy to normalized position, moving the text box instead of resizing it.
+- Fixed: toggleShapes called closeAllRows() which closed drawRowOpen — shapes sub-row is inside {#if drawRowOpen}, making it invisible.
 
 ## Current commit
-feat: add text transform handles, drag-to-move, box resize, blinking cursor
+refactor: unify markup transform handles with corner diamonds and bounding-box outline
 
 ## Architecture update
 - None.

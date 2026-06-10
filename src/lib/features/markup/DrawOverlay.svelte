@@ -72,12 +72,18 @@
   let textDragStartFontSize = $state(16);
   let textDragStartRotation = $state(0);
   let textDragStartBoxExtra = $state(0);
+  let textDragStartX = $state(0);
+  let textDragStartY = $state(0);
 
   // Text move drag state
   let isTextMoving = $state(false);
   let textMoveStartPos = $state<{ x: number; y: number } | null>(null);
   let textMoveStartX = $state(0);
   let textMoveStartY = $state(0);
+
+  // Text drag-to-place state
+  let textPlaceDragStart = $state<{ x: number; y: number } | null>(null);
+  let textPlaceDragEnd = $state<{ x: number; y: number } | null>(null);
 
   // Text box sizing constants
   const TEXT_PADDING = 6; // CSS px padding around text for hit area
@@ -529,6 +535,7 @@
     const cy = bbox.top + boxH / 2;
 
     ctx.save();
+    ctx.globalAlpha = 0.8;
     if (t.rotation !== 0) {
       ctx.translate(cx, cy);
       ctx.rotate(t.rotation);
@@ -542,50 +549,45 @@
     ctx.strokeRect(bbox.left, bbox.top, boxW, boxH);
 
     const tAnim = hoverScale;
-    const edgeSize = 4 + tAnim * 1.5;
+    const cornerSize = 5 + tAnim * 2;
     const rotR = 5 + tAnim;
     const delR = 6 + tAnim;
 
-    // Side handles
-    const left: { x: number; y: number } = { x: bbox.left, y: cy };
-    const right: { x: number; y: number } = { x: bbox.right, y: cy };
-    const top: { x: number; y: number } = { x: cx, y: bbox.top };
-    const bottom: { x: number; y: number } = { x: cx, y: bbox.bottom };
+    // Corner diamonds only (4 corners)
+    drawDiamond(ctx, bbox.left, bbox.top, cornerSize, "#ffffff", "#ffffff");
+    drawDiamond(ctx, bbox.right, bbox.top, cornerSize, "#ffffff", "#ffffff");
+    drawDiamond(ctx, bbox.left, bbox.bottom, cornerSize, "#ffffff", "#ffffff");
+    drawDiamond(ctx, bbox.right, bbox.bottom, cornerSize, "#ffffff", "#ffffff");
 
-    drawDiamond(ctx, left.x, left.y, edgeSize, "#ffffff", "#ffffff");
-    drawDiamond(ctx, right.x, right.y, edgeSize, "#ffffff", "#ffffff");
-    drawDiamond(ctx, top.x, top.y, edgeSize, "#ffffff", "#ffffff");
-    drawDiamond(ctx, bottom.x, bottom.y, edgeSize, "#ffffff", "#ffffff");
-
-    // Rotate handle — white circle above top
-    const rotGap = 22;
-    const rotY = top.y - rotGap;
+    // Rotate handle — white circle above top center
+    const rotGap = 16;
+    const rotY = cy - boxH / 2 - rotGap;
     ctx.fillStyle = "#ffffff";
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(top.x, rotY, rotR, 0, Math.PI * 2);
+    ctx.arc(cx, rotY, rotR, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
-    // Delete handle — red circle with X below bottom
-    const delGap = 22;
-    const delY = bottom.y + delGap;
+    // Delete handle — red circle with X off the top-right corner
+    const delX = bbox.right + 14;
+    const delY = bbox.top - 14;
     ctx.fillStyle = "#ef4444";
     ctx.strokeStyle = "#ef4444";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(bottom.x, delY, delR, 0, Math.PI * 2);
+    ctx.arc(delX, delY, delR, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
     // Draw X
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(bottom.x - 3, delY - 3);
-    ctx.lineTo(bottom.x + 3, delY + 3);
-    ctx.moveTo(bottom.x + 3, delY - 3);
-    ctx.lineTo(bottom.x - 3, delY + 3);
+    ctx.moveTo(delX - 3, delY - 3);
+    ctx.lineTo(delX + 3, delY + 3);
+    ctx.moveTo(delX + 3, delY - 3);
+    ctx.lineTo(delX - 3, delY + 3);
     ctx.stroke();
 
     ctx.restore();
@@ -603,16 +605,19 @@
     const boxH = bbox.bottom - bbox.top;
     const cx = bbox.left + boxW / 2;
     const cy = bbox.top + boxH / 2;
-    const rotGap = 22;
-    const delGap = 22;
+    const rotGap = 16;
 
     return {
       left: { x: bbox.left, y: cy },
       right: { x: bbox.right, y: cy },
       top: { x: cx, y: bbox.top },
       bottom: { x: cx, y: bbox.bottom },
+      topLeft: { x: bbox.left, y: bbox.top },
+      topRight: { x: bbox.right, y: bbox.top },
+      bottomLeft: { x: bbox.left, y: bbox.bottom },
+      bottomRight: { x: bbox.right, y: bbox.bottom },
       rotate: { x: cx, y: bbox.top - rotGap },
-      delete: { x: cx, y: bbox.bottom + delGap },
+      delete: { x: bbox.right + 14, y: bbox.top - 14 },
     };
   }
 
@@ -636,11 +641,58 @@
     const localPy = sin * dx + cos * dy + cy;
 
     const handles = getTextHandlePositions(t, w, h, ctx);
-    for (const [key, pos] of Object.entries(handles)) {
+
+    // Corner / rotate / delete point hits (higher priority)
+    const pointKeys: HandleType[] = [
+      "topLeft",
+      "topRight",
+      "bottomLeft",
+      "bottomRight",
+      "rotate",
+      "delete",
+    ];
+    for (const key of pointKeys) {
+      const pos = handles[key];
+      if (!pos) continue;
       const hx = localPx - pos.x;
       const hy = localPy - pos.y;
-      if (Math.sqrt(hx * hx + hy * hy) <= HIT_RADIUS) return key as HandleType;
+      if (Math.sqrt(hx * hx + hy * hy) <= HIT_RADIUS) return key;
     }
+
+    // Edge line-segment hits (lower priority — full edge is draggable)
+    const bbox = getTextBbox(t, w, h, ctx);
+    const left = bbox.left,
+      right = bbox.right;
+    const top = bbox.top,
+      bottom = bbox.bottom;
+
+    const edges: {
+      type: HandleType;
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+    }[] = [
+      { type: "top", x1: left, y1: top, x2: right, y2: top },
+      { type: "bottom", x1: left, y1: bottom, x2: right, y2: bottom },
+      { type: "left", x1: left, y1: top, x2: left, y2: bottom },
+      { type: "right", x1: right, y1: top, x2: right, y2: bottom },
+    ];
+
+    for (const edge of edges) {
+      const segDx = edge.x2 - edge.x1;
+      const segDy = edge.y2 - edge.y1;
+      const lenSq = segDx * segDx + segDy * segDy;
+      if (lenSq === 0) continue;
+      let tParam =
+        ((localPx - edge.x1) * segDx + (localPy - edge.y1) * segDy) / lenSq;
+      tParam = Math.max(0, Math.min(1, tParam));
+      const projX = edge.x1 + tParam * segDx;
+      const projY = edge.y1 + tParam * segDy;
+      const dist = Math.sqrt((localPx - projX) ** 2 + (localPy - projY) ** 2);
+      if (dist <= HIT_RADIUS) return edge.type;
+    }
+
     return null;
   }
 
@@ -776,40 +828,9 @@
     const cy = s.cy * h;
     const hw = (s.width * w) / 2;
     const hh = (s.height * h) / 2;
+    const rotGap = 16;
 
-    if (s.shape === "circle") {
-      // Corner handles on the ellipse edge (parametric: x = hw*cos(t), y = hh*sin(t))
-      // At 45° increments for diagonal corners
-      const diag = 1 / Math.SQRT2;
-      return {
-        left: { x: cx - hw, y: cy },
-        right: { x: cx + hw, y: cy },
-        top: { x: cx, y: cy - hh },
-        bottom: { x: cx, y: cy + hh },
-        topLeft: { x: cx - hw * diag, y: cy - hh * diag },
-        topRight: { x: cx + hw * diag, y: cy - hh * diag },
-        bottomLeft: { x: cx - hw * diag, y: cy + hh * diag },
-        bottomRight: { x: cx + hw * diag, y: cy + hh * diag },
-        rotate: { x: cx, y: cy - hh - 22 },
-        delete: { x: cx + hw * diag + 14, y: cy - hh * diag - 14 },
-      };
-    }
-
-    if (s.shape === "triangle") {
-      // Vertices + edge midpoints (no topLeft/topRight — no shape there)
-      return {
-        left: { x: cx - hw / 2, y: cy },
-        right: { x: cx + hw / 2, y: cy },
-        bottom: { x: cx, y: cy + hh },
-        top: { x: cx, y: cy - hh },
-        bottomLeft: { x: cx - hw, y: cy + hh },
-        bottomRight: { x: cx + hw, y: cy + hh },
-        rotate: { x: cx, y: cy - hh - 22 },
-        delete: { x: cx + hw / 2 + 14, y: cy - 14 },
-      };
-    }
-
-    // Square — all handles
+    // All shapes use the same bounding-box handle positions
     return {
       left: { x: cx - hw, y: cy },
       right: { x: cx + hw, y: cy },
@@ -819,7 +840,7 @@
       topRight: { x: cx + hw, y: cy - hh },
       bottomLeft: { x: cx - hw, y: cy + hh },
       bottomRight: { x: cx + hw, y: cy + hh },
-      rotate: { x: cx, y: cy - hh - 22 },
+      rotate: { x: cx, y: cy - hh - rotGap },
       delete: { x: cx + hw + 14, y: cy - hh - 14 },
     };
   }
@@ -855,55 +876,27 @@
     const hh = (s.height * h) / 2;
 
     ctx.save();
+    ctx.globalAlpha = 0.8;
     ctx.translate(cx, cy);
     ctx.rotate(s.rotation);
 
+    // White solid bounding-box outline
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([]);
+    ctx.strokeRect(-hw, -hh, hw * 2, hh * 2);
+
     const t = hoverScale;
-    const edgeSize = 4 + t * 1.5;
-    const vertexSize = 5 + t * 2;
+    const cornerSize = 5 + t * 2;
 
-    const drawHandle = (hx: number, hy: number, size: number) => {
-      drawDiamond(ctx, hx, hy, size, "#ffffff", "#ffffff");
-    };
-
-    // Default delete position (square)
-    let delX = hw + 14;
-    let delY = -hh - 14;
-
-    if (s.shape === "circle") {
-      drawHandle(-hw, 0, edgeSize);
-      drawHandle(hw, 0, edgeSize);
-      drawHandle(0, -hh, edgeSize);
-      drawHandle(0, hh, edgeSize);
-      const diag = 1 / Math.SQRT2;
-      drawHandle(-hw * diag, -hh * diag, vertexSize);
-      drawHandle(hw * diag, -hh * diag, vertexSize);
-      drawHandle(-hw * diag, hh * diag, vertexSize);
-      drawHandle(hw * diag, hh * diag, vertexSize);
-      delX = hw * diag + 14;
-      delY = -hh * diag - 14;
-    } else if (s.shape === "triangle") {
-      drawHandle(-hw / 2, 0, edgeSize);
-      drawHandle(hw / 2, 0, edgeSize);
-      drawHandle(0, hh, edgeSize);
-      drawHandle(0, -hh, vertexSize);
-      drawHandle(-hw, hh, vertexSize);
-      drawHandle(hw, hh, vertexSize);
-      delX = hw / 2 + 14;
-      delY = -14;
-    } else {
-      drawHandle(-hw, 0, edgeSize);
-      drawHandle(hw, 0, edgeSize);
-      drawHandle(0, -hh, edgeSize);
-      drawHandle(0, hh, edgeSize);
-      drawHandle(-hw, -hh, vertexSize);
-      drawHandle(hw, -hh, vertexSize);
-      drawHandle(-hw, hh, vertexSize);
-      drawHandle(hw, hh, vertexSize);
-    }
+    // Corner diamonds only (4 corners)
+    drawDiamond(ctx, -hw, -hh, cornerSize, "#ffffff", "#ffffff");
+    drawDiamond(ctx, hw, -hh, cornerSize, "#ffffff", "#ffffff");
+    drawDiamond(ctx, -hw, hh, cornerSize, "#ffffff", "#ffffff");
+    drawDiamond(ctx, hw, hh, cornerSize, "#ffffff", "#ffffff");
 
     // Rotation handle — white circle
-    const rotGap = 22;
+    const rotGap = 16;
     const rotY = -hh - rotGap;
     const rotR = 5 + t;
     ctx.fillStyle = "#ffffff";
@@ -914,7 +907,9 @@
     ctx.fill();
     ctx.stroke();
 
-    // Delete handle — red X
+    // Delete handle — red X (fixed offset from top-right corner)
+    const delX = hw + 14;
+    const delY = -hh - 14;
     const delR = 6 + t;
     ctx.fillStyle = "#ef4444";
     ctx.strokeStyle = "#ef4444";
@@ -957,11 +952,59 @@
     const localPy = sin * dx + cos * dy + cy;
 
     const handles = getHandlePositions(s, w, h);
-    for (const [key, pos] of Object.entries(handles)) {
+
+    // Corner / rotate / delete point hits (higher priority)
+    const pointKeys: HandleType[] = [
+      "topLeft",
+      "topRight",
+      "bottomLeft",
+      "bottomRight",
+      "rotate",
+      "delete",
+    ];
+    for (const key of pointKeys) {
+      const pos = handles[key];
+      if (!pos) continue;
       const hx = localPx - pos.x;
       const hy = localPy - pos.y;
-      if (Math.sqrt(hx * hx + hy * hy) <= HIT_RADIUS) return key as HandleType;
+      if (Math.sqrt(hx * hx + hy * hy) <= HIT_RADIUS) return key;
     }
+
+    // Edge line-segment hits (lower priority — full edge is draggable)
+    const hw = (s.width * w) / 2;
+    const hh = (s.height * h) / 2;
+    const left = cx - hw,
+      right = cx + hw;
+    const top = cy - hh,
+      bottom = cy + hh;
+
+    const edges: {
+      type: HandleType;
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+    }[] = [
+      { type: "top", x1: left, y1: top, x2: right, y2: top },
+      { type: "bottom", x1: left, y1: bottom, x2: right, y2: bottom },
+      { type: "left", x1: left, y1: top, x2: left, y2: bottom },
+      { type: "right", x1: right, y1: top, x2: right, y2: bottom },
+    ];
+
+    for (const edge of edges) {
+      const segDx = edge.x2 - edge.x1;
+      const segDy = edge.y2 - edge.y1;
+      const lenSq = segDx * segDx + segDy * segDy;
+      if (lenSq === 0) continue;
+      let tParam =
+        ((localPx - edge.x1) * segDx + (localPy - edge.y1) * segDy) / lenSq;
+      tParam = Math.max(0, Math.min(1, tParam));
+      const projX = edge.x1 + tParam * segDx;
+      const projY = edge.y1 + tParam * segDy;
+      const dist = Math.sqrt((localPx - projX) ** 2 + (localPy - projY) ** 2);
+      if (dist <= HIT_RADIUS) return edge.type;
+    }
+
     return null;
   }
 
@@ -1097,6 +1140,24 @@
       );
     }
 
+    // Draw text drag-to-place preview
+    if (textPlaceDragStart && textPlaceDragEnd) {
+      const x1 = textPlaceDragStart.x * w;
+      const y1 = textPlaceDragStart.y * h;
+      const x2 = textPlaceDragEnd.x * w;
+      const y2 = textPlaceDragEnd.y * h;
+      const pw = Math.abs(x2 - x1);
+      const ph = Math.abs(y2 - y1);
+      if (pw > 2 || ph > 2) {
+        ctx.save();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 4]);
+        ctx.strokeRect(Math.min(x1, x2), Math.min(y1, y2), pw, ph);
+        ctx.restore();
+      }
+    }
+
     // Draw straight highlight preview during drag
     if (highlightStraightStart && highlightStraightPreview) {
       drawHighlightStraightBar(
@@ -1161,6 +1222,8 @@
       moveOrigin = null;
       highlightStraightStart = null;
       highlightStraightPreview = null;
+      textPlaceDragStart = null;
+      textPlaceDragEnd = null;
     }
   });
 
@@ -1334,7 +1397,38 @@
           const dir = dragHandle === "top" ? -1 : 1;
           const newSize = Math.max(
             6,
-            Math.min(72, Math.round(textDragStartFontSize + delta * dir)),
+            Math.min(200, Math.round(textDragStartFontSize + delta * dir)),
+          );
+          update.fontSize = newSize;
+          break;
+        }
+        case "topLeft":
+        case "topRight":
+        case "bottomLeft":
+        case "bottomRight": {
+          // Corner diamonds change both boxExtraWidth and fontSize
+          // Use un-rotated delta (matches shape corner behavior)
+          const cos = Math.cos(-stroke.rotation);
+          const sin = Math.sin(-stroke.rotation);
+          const ldx = cos * dx - sin * dy;
+          const ldy = sin * dx + cos * dy;
+
+          const isLeft =
+            dragHandle === "topLeft" || dragHandle === "bottomLeft";
+          const isTop = dragHandle === "topLeft" || dragHandle === "topRight";
+
+          const newExtra = Math.max(
+            0,
+            Math.round(textDragStartBoxExtra + ldx * 60 * (isLeft ? -1 : 1)),
+          );
+          update.boxExtraWidth = newExtra;
+
+          const newSize = Math.max(
+            6,
+            Math.min(
+              200,
+              Math.round(textDragStartFontSize + ldy * 40 * (isTop ? -1 : 1)),
+            ),
           );
           update.fontSize = newSize;
           break;
@@ -1454,6 +1548,24 @@
               canvasEl?.setPointerCapture(e.pointerId);
               return;
             }
+            if (
+              hit === "topLeft" ||
+              hit === "topRight" ||
+              hit === "bottomLeft" ||
+              hit === "bottomRight"
+            ) {
+              // Corner diamonds change both boxExtraWidth and fontSize
+              dragHandle = hit;
+              dragOrigin = p;
+              textDragOrigin = p;
+              textDragStartBoxExtra = selStroke.boxExtraWidth;
+              textDragStartFontSize = selStroke.fontSize;
+              textDragStartRotation = selStroke.rotation;
+              textDragStartX = selStroke.x;
+              textDragStartY = selStroke.y;
+              canvasEl?.setPointerCapture(e.pointerId);
+              return;
+            }
             if (hit === "rotate") {
               dragHandle = hit;
               dragOrigin = p;
@@ -1489,14 +1601,14 @@
         return;
       }
 
-      // 3. Click outside — exit editing (may delete if empty), place new text box
+      // 3. Click outside — start drag-to-place text box (like shapes)
       if (editingTextIndex !== null) exitEditing();
       markup.selectShape(null);
-      markup.placeText(p.x, p.y);
-      editingTextIndex = markup.strokes.length - 1;
-      startCaretBlink();
+      textPlaceDragStart = p;
+      textPlaceDragEnd = p;
+      isPointerDown = true;
+      canvasEl?.setPointerCapture(e.pointerId);
       canvasEl?.focus();
-      redrawAll();
       return;
     }
 
@@ -1579,6 +1691,23 @@
             canvasEl?.setPointerCapture(e.pointerId);
             return;
           }
+          if (
+            hit === "topLeft" ||
+            hit === "topRight" ||
+            hit === "bottomLeft" ||
+            hit === "bottomRight"
+          ) {
+            dragHandle = hit;
+            dragOrigin = p;
+            textDragOrigin = p;
+            textDragStartBoxExtra = stroke.boxExtraWidth;
+            textDragStartFontSize = stroke.fontSize;
+            textDragStartRotation = stroke.rotation;
+            textDragStartX = stroke.x;
+            textDragStartY = stroke.y;
+            canvasEl?.setPointerCapture(e.pointerId);
+            return;
+          }
           if (hit === "rotate") {
             dragHandle = hit;
             dragOrigin = p;
@@ -1655,6 +1784,15 @@
         }
         redrawAll();
       }
+      return;
+    }
+
+    // Text drag-to-place preview
+    if (textPlaceDragStart) {
+      e.preventDefault();
+      const p = toNormal(e.clientX, e.clientY);
+      textPlaceDragEnd = p;
+      redrawAll();
       return;
     }
 
@@ -1765,6 +1903,37 @@
         }
         isTextMoving = false;
         textMoveStartPos = null;
+        isPointerDown = false;
+        canvasEl?.releasePointerCapture(e.pointerId);
+        redrawAll();
+        return;
+      }
+      // Finalize text drag-to-place
+      if (textPlaceDragStart) {
+        const end = textPlaceDragEnd ?? textPlaceDragStart;
+        const dragDx = Math.abs(end.x - textPlaceDragStart.x);
+        const dragDy = Math.abs(end.y - textPlaceDragStart.y);
+        if (dragDx < 0.005 && dragDy < 0.005) {
+          // Click — place default text
+          markup.placeText(textPlaceDragStart.x, textPlaceDragStart.y);
+          editingTextIndex = markup.strokes.length - 1;
+          startCaretBlink();
+        } else {
+          // Drag — compute fontSize from height, boxExtraWidth from width
+          const cx = (textPlaceDragStart.x + end.x) / 2;
+          const cy = (textPlaceDragStart.y + end.y) / 2;
+          const dragW = dragDx * overlayRect.width;
+          const dragH = dragDy * overlayRect.height;
+          const fontSize = Math.max(
+            6,
+            Math.min(200, Math.round(dragH / 1.575)),
+          );
+          const pad = TEXT_PADDING * (fontSize / 16);
+          const boxExtraWidth = Math.max(0, Math.round(dragW - pad * 2));
+          markup.placeTextSized(cx, cy, fontSize, boxExtraWidth);
+        }
+        textPlaceDragStart = null;
+        textPlaceDragEnd = null;
         isPointerDown = false;
         canvasEl?.releasePointerCapture(e.pointerId);
         redrawAll();

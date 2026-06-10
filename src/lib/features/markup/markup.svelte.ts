@@ -323,6 +323,35 @@ function createMarkupStore() {
     selectedIndex = strokes.length - 1;
   }
 
+  /** Place a sized text box at normalized (x, y) center with explicit fontSize and boxExtraWidth. Auto-selects. */
+  function placeTextSized(
+    x: number,
+    y: number,
+    fontSize: number,
+    boxExtraWidth: number,
+  ) {
+    const stroke: PlacedText = {
+      type: "text",
+      x,
+      y,
+      text: "",
+      color: textColor,
+      fontFamily: textFontFamily,
+      fontSize,
+      rotation: 0,
+      boxExtraWidth,
+      bold: textBold,
+      italic: textItalic,
+      underline: textUnderline,
+      strikethrough: textStrikethrough,
+      align: textAlign,
+      bgColor: textBgColor,
+      bgEnabled: textBgEnabled,
+    };
+    strokes = [...strokes, stroke];
+    selectedIndex = strokes.length - 1;
+  }
+
   /** Place a text box at normalized (x, y) center. Auto-selects. */
   function placeText(x: number, y: number) {
     const stroke: PlacedText = {
@@ -464,7 +493,7 @@ function createMarkupStore() {
   }
 
   function setTextFontSize(size: number) {
-    textFontSize = Math.max(6, Math.min(72, Math.round(size)));
+    textFontSize = Math.max(6, Math.min(200, Math.round(size)));
     if (selectedIndex !== null) {
       const s = strokes[selectedIndex];
       if (s && s.type === "text")
@@ -757,6 +786,7 @@ function createMarkupStore() {
     updateShape,
     updateText,
     placeText,
+    placeTextSized,
     toggleSelectedCornerRadius,
     placeShape,
     placeShapeSized,
