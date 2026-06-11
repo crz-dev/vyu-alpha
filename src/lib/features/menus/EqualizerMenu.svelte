@@ -19,9 +19,7 @@
   let outputGain = $state(0);
   let presetDropdownOpen = $state(false);
 
-  const BANDS = [
-    30, 60, 125, 250, 500, 1000, 2000, 4000, 8000, 16000,
-  ] as const;
+  const BANDS = [30, 60, 125, 250, 500, 1000, 2000, 4000, 8000, 16000] as const;
 
   const BAND_COLORS = [
     "var(--red)",
@@ -64,7 +62,7 @@
 
   const presets: Record<string, number[]> = {
     Flat: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    "Bass Boosted": [8, 6, 4, 2, 0, 0, -1, -1, -2, -3],
+    "Bass Boost": [8, 6, 4, 2, 0, 0, -1, -1, -2, -3],
     Vocal: [-2, -1, 0, 3, 5, 5, 3, 1, 0, -1],
     Classical: [-1, 0, 0, 0, 0, 0, -3, -4, -4, -5],
     Rock: [5, 4, 2, 0, -1, 0, 2, 3, 4, 5],
@@ -95,7 +93,10 @@
   function applyPreset(name: string) {
     activePreset = name;
     const values = presets[name];
-    if (values) bands = [...values];
+    if (values) {
+      bands = [...values];
+      if (name !== "Flat") bypass = false;
+    }
   }
 
   function resetAll() {
@@ -334,7 +335,12 @@
             {/if}
           </div>
 
-          <button class="eq-reset-btn tooltip-below" data-tooltip="Reset" onclick={resetAll} aria-label="Reset">
+          <button
+            class="eq-reset-btn tooltip-below"
+            data-tooltip="Reset"
+            onclick={resetAll}
+            aria-label="Reset"
+          >
             <svg
               width="11"
               height="11"
@@ -359,19 +365,41 @@
               preserveAspectRatio="none"
             >
               <defs>
-                <linearGradient id="eqCurveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stop-color="var(--red)" stop-opacity="0.7" />
-                  <stop offset="25%" stop-color="var(--yellow)" stop-opacity="0.7" />
-                  <stop offset="50%" stop-color="var(--cyan)" stop-opacity="0.7" />
-                  <stop offset="75%" stop-color="var(--purple)" stop-opacity="0.7" />
-                  <stop offset="100%" stop-color="var(--pink)" stop-opacity="0.7" />
+                <linearGradient
+                  id="eqCurveGrad"
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="0%"
+                >
+                  <stop
+                    offset="0%"
+                    stop-color="var(--red)"
+                    stop-opacity="0.7"
+                  />
+                  <stop
+                    offset="25%"
+                    stop-color="var(--yellow)"
+                    stop-opacity="0.7"
+                  />
+                  <stop
+                    offset="50%"
+                    stop-color="var(--cyan)"
+                    stop-opacity="0.7"
+                  />
+                  <stop
+                    offset="75%"
+                    stop-color="var(--purple)"
+                    stop-opacity="0.7"
+                  />
+                  <stop
+                    offset="100%"
+                    stop-color="var(--pink)"
+                    stop-opacity="0.7"
+                  />
                 </linearGradient>
               </defs>
-              <path
-                d={curveFillPath}
-                fill="url(#eqCurveGrad)"
-                opacity="0.12"
-              />
+              <path d={curveFillPath} fill="url(#eqCurveGrad)" opacity="0.12" />
               <path
                 d={curvePath()}
                 fill="none"
@@ -392,7 +420,9 @@
                     class="eq-slider-fill"
                     class:above={bands[i] > 0}
                     class:below={bands[i] < 0}
-                    style:top={bands[i] >= 0 ? `${knobY(bands[i])}px` : `${TRACK_HEIGHT / 2}px`}
+                    style:top={bands[i] >= 0
+                      ? `${knobY(bands[i])}px`
+                      : `${TRACK_HEIGHT / 2}px`}
                     style:height={bands[i] >= 0
                       ? `${TRACK_HEIGHT / 2 - knobY(bands[i])}px`
                       : `${knobY(bands[i]) - TRACK_HEIGHT / 2}px`}
@@ -411,7 +441,7 @@
                   />
                   <div
                     class="eq-knob"
-                    style:top={knobY(bands[i])}px
+                    style:top="{knobY(bands[i])}px"
                     style:background={BAND_COLORS[i]}
                     style:border-color={BAND_BORDER[i]}
                     style:box-shadow="0 0 8px {BAND_BG[i]}"

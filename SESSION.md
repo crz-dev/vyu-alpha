@@ -1,26 +1,31 @@
 # Session state
+
 _Overwrite this file completely at end of every session. Never append._
 Updated: 2026-06-10
 
 ## Last change
-Implemented 10-band graphic equalizer panel replacing the no-op "Equalizer" context menu button. Wired through menuVisibility store, contextActions, Shell layout offsets, and globalMouseHandler dismiss. Panel includes: bypass toggle that auto-activates on band movement, custom preset dropdown (Flat, Bass Boosted, Vocal, Classical, Rock, Jazz, Electronic, Podcast) matching Font dropdown pattern, 10 vertical sliders (30Hz–16kHz, ±12dB) with jewel-tone diamond knobs, SVG waveform curve always visible above knobs, output gain slider with clickable preset markers, and red-glowing reset button. Added rgba tier CSS variables for orange, cyan, purple, pink.
+
+Added global "Glow" appearance setting in Settings → Appearance (below Theme) with 4-stop intensity slider (Off/Low/Med/High). Replaced white box-shadow with per-color filter: drop-shadow() on SVG icons and text across all interactive controls — buttons, diamond handles, toggles, markers, share overlay, properties menu, audio transport, EQ controls, dialog buttons, color swatches, settings nav, and more. Reduced EqualizerMenu formatting noise and fixed Bass Boost preset name.
 
 ## Status
-- Audio context menu: working (Effects + Equalizer both functional)
-- EffectsMenu panel: working (draggable, pinnable, closeable, 4 placeholder buttons)
-- EqualizerMenu panel: working (draggable, pinnable, closeable, bypass, presets, curve, gain markers)
-- Equalizer: UI only — no Web Audio API processing yet
+
+- Glow setting: working (4 levels, persisted to localStorage, data-glow-level on <html>)
 - Type check: passing
+- EqualizerMenu: working (includes lingering preset name fix + bypass logic from previous session)
 
 ## Next
+
 Text word wrapping / multi-line support.
 
 ## Bugs found this session
+
 - None.
 
 ## Current commit
-feat: add 10-band graphic equalizer panel with presets and live bypass control
+
+feat: add glow appearance setting with intensity slider
 
 ## Architecture update
-- `src/lib/features/menus/EqualizerMenu.svelte` — new equalizer panel component
-- `src/lib/styles/variables.css` — added rgba tiers for orange, cyan, purple, pink
+
+- `src/lib/features/glow/glow.svelte.ts` — new glow store singleton (level getter, setLevel, localStorage persistence)
+- `src/lib/styles/glow.css` — new glow stylesheet with 3 intensity tiers targeting all interactive controls
