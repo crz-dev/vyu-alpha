@@ -3,22 +3,22 @@ _Overwrite this file completely at end of every session. Never append._
 Updated: 2026-06-10
 
 ## Last change
-Added video-specific equalizer presets (Dialogue, Movie, Cinema, Action, Night Mode, Surround) that only appear for video files; audio presets unchanged. Changed video context menu from Edit/Markup to Edit/Equalizer. `EqualizerMenu.svelte` split presets into `audioPresets`/`videoPresets` keyed on new `isVideo` prop. `Dialog.svelte` video `{:else}` branch markup button replaced with equalizer button. `Shell.svelte` passes `isVideo` through.
+Redesigned all icons in the effects menu (Tune, Filter, Stage, Visual main buttons + 16 submenu children). Replaced generic/crude SVGs with cleaner Lucide-style icons (knob, sparkles, headphones, musical note, ripple circles, crescent moon, cassette tape, Tetris T-piece, radio tower, speaker cones, orbit path, audio waveform bars, spectrogram bars, image thumbnail, text card). Filter and Stage changed from multi-toggle to single-radio behavior (only one active at a time). Tune sliders replaced with markup-style custom sliders (thin track, diamond scrubber, 3 markers, tooltip). Clicking an active tune button now closes the slider. Header removed from slider panels to match markup menu exactly.
 
 ## Status
-- EqualizerMenu: working (correct presets per media type)
-- Video context menu: working (Edit/Equalizer instead of Edit/Markup)
-- Audio presets: untouched, still working
+- EffectsMenu icons: working (all 20 buttons updated)
+- Filter/Stage radio behavior: working (single selection per group)
+- Tune sliders: working (markup-menu style custom slider)
 - Type check: passing
 
 ## Next
-Preset gain values may need tuning — confirm with real audio testing.
+None.
 
 ## Bugs found this session
-- None.
+- `components.css` contains dead `edit-menu-slider-*` CSS classes from the old native range input slider — no longer referenced since the markup-style slider was adopted.
 
 ## Current commit
-feat: add video equalizer presets and context menu edit/equalizer
+feat: redesign effects menu icons, sliders, and toggle behavior
 
 ## Architecture update
 - None.
