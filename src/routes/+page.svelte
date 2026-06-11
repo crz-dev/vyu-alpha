@@ -84,6 +84,7 @@
   } from "$lib/features/edit-dialogs/editActions.svelte";
   import { eqStore } from "$lib/features/equalizer/equalizer-store.svelte";
   import { eqEngine } from "$lib/features/equalizer/equalizer-engine";
+  import { effectsEngine } from "$lib/features/effects/effects-engine";
 
   // State declarations
   let filePath = $state("");
@@ -866,6 +867,14 @@
     const el = videoEl;
     if (el && filePath && isVideo) {
       eqEngine.connectMediaElement(el);
+    }
+  });
+
+  // Wire audio element to effects engine for pitch control via playbackRate
+  $effect(() => {
+    const el = audioEl;
+    if (el && (isAudio || isVideo)) {
+      effectsEngine.setAudioElement(el);
     }
   });
 </script>

@@ -1,24 +1,28 @@
 # Session state
 _Overwrite this file completely at end of every session. Never append._
-Updated: 2026-06-10
+Updated: 2026-06-11
 
 ## Last change
-Redesigned all icons in the effects menu (Tune, Filter, Stage, Visual main buttons + 16 submenu children). Replaced generic/crude SVGs with cleaner Lucide-style icons (knob, sparkles, headphones, musical note, ripple circles, crescent moon, cassette tape, Tetris T-piece, radio tower, speaker cones, orbit path, audio waveform bars, spectrogram bars, image thumbnail, text card). Filter and Stage changed from multi-toggle to single-radio behavior (only one active at a time). Tune sliders replaced with markup-style custom sliders (thin track, diamond scrubber, 3 markers, tooltip). Clicking an active tune button now closes the slider. Header removed from slider panels to match markup menu exactly.
+Wired EffectsMenu sliders (Pitch, Reverb, Chorus, Distortion) to Web Audio API processing. Created `effects-engine.ts` with 4 AudioNode chains inserted between EQ engine's source and filter chain. Previously tune sliders were pure UI state with no effect on audio playback.
 
 ## Status
-- EffectsMenu icons: working (all 20 buttons updated)
-- Filter/Stage radio behavior: working (single selection per group)
-- Tune sliders: working (markup-menu style custom slider)
+- EffectsMenu icons: working
+- Filter/Stage radio behavior: working
+- Tune sliders: working (now actually modulates audio)
+- Pitch effect: working (playbackRate adjustment)
+- Reverb effect: working (ConvolverNode with generated IR, dry/wet mix)
+- Chorus effect: working (DelayNode + LFO modulation, dry/wet mix)
+- Distortion effect: working (WaveShaperNode with sigmoid curve)
 - Type check: passing
 
 ## Next
 None.
 
 ## Bugs found this session
-- `components.css` contains dead `edit-menu-slider-*` CSS classes from the old native range input slider — no longer referenced since the markup-style slider was adopted.
+- None.
 
 ## Current commit
-feat: redesign effects menu icons, sliders, and toggle behavior
+feat: wire effects menu sliders to Web Audio API processing
 
 ## Architecture update
-- None.
+- `src/lib/features/effects/` — new module. `effects-engine.ts` singleton manages Pitch/Reverb/Chorus/Distortion AudioNodes. `reverb-ir.ts` generates ConvolverNode impulse response. Integrated into `equalizer-engine.ts` audio graph between source and filters.

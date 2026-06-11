@@ -1,4 +1,5 @@
 import { BAND_FREQUENCIES, BAND_Q } from "./band-config";
+import { effectsEngine } from "../effects/effects-engine";
 
 const NUM_BANDS = BAND_FREQUENCIES.length;
 
@@ -61,8 +62,9 @@ class EqualizerEngine {
       this.analyser.fftSize = 256;
       this.analyser.smoothingTimeConstant = 0.8;
 
-      // Source → filters → outputGain → analyser → destination
-      this.source.connect(this.filters[0]);
+      // Source → effects → filters → outputGain → analyser → destination
+      const effectsTail = effectsEngine.setup(ctx, this.source);
+      effectsTail.connect(this.filters[0]);
       for (let i = 1; i < this.filters.length; i++) {
         this.filters[i - 1].connect(this.filters[i]);
       }
@@ -92,6 +94,7 @@ class EqualizerEngine {
   }
 
   private cleanup(): void {
+    effectsEngine.teardown();
     for (const f of this.filters) {
       try {
         f.disconnect();
@@ -180,6 +183,7 @@ class EqualizerEngine {
   }
 
   destroy(): void {
+    effectsEngine.destroy();
     this.disconnect();
     if (this.ctx) {
       this.ctx.close();
