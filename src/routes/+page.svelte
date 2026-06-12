@@ -26,6 +26,7 @@
   import type { MediaProperties } from "$lib/shared/types";
   import {
     saveLoopMode,
+    saveVolume,
     loadAudioLayoutMode,
     loadPlaybackSpeed,
     savePlaybackSpeed,
@@ -257,7 +258,10 @@
   const playbackUI = createPlaybackUI(
     getMediaEl,
     () => volume,
-    () => {},
+    (v) => {
+      volume = v;
+      saveVolume(v);
+    },
     savePlaybackSpeed,
     loadPlaybackSpeed(),
   );
@@ -400,6 +404,7 @@
   });
   const playbackProps = $derived({
     isGifVideo,
+    isAudio,
     playing,
     looping: loopModeStore.loopMode,
     muted,
@@ -956,9 +961,11 @@
   volumeTooltipVisible={playbackUI.volumeTooltipVisible}
   volumeTooltipX={playbackUI.volumeTooltipX}
   volumeTooltipY={playbackUI.volumeTooltipY}
+  volumeTooltipVertical={playbackUI.volumeTooltipVertical}
   speedTooltipVisible={playbackUI.speedTooltipVisible}
   speedTooltipX={playbackUI.speedTooltipX}
   speedTooltipY={playbackUI.speedTooltipY}
+  speedTooltipVertical={playbackUI.speedTooltipVertical}
   playbackSpeed={playbackUI.playbackSpeed}
   timestamps={markerStore.timestamps}
   clipBoundaries={clips.clipBoundaries}

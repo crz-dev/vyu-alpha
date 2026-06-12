@@ -87,6 +87,13 @@ class EqualizerEngine {
   }
 
   disconnect(): void {
+    // Ramp output gain to zero before disconnecting to avoid DC pop/crackle
+    if (this.outputGain && this.ctx) {
+      const now = this.ctx.currentTime;
+      this.outputGain.gain.cancelScheduledValues(now);
+      this.outputGain.gain.setValueAtTime(this.outputGain.gain.value, now);
+      this.outputGain.gain.linearRampToValueAtTime(0, now + 0.01);
+    }
     if (this.source) {
       try {
         this.source.disconnect();

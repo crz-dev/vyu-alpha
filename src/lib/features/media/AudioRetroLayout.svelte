@@ -788,6 +788,7 @@
                 onClose={() => onLoopMenuChange(false)}
                 looping={loopMode}
                 {setLoopMode}
+                isAudio={true}
               />
             </div>
             <div

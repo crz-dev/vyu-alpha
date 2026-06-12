@@ -1391,6 +1391,9 @@
   pointer-events: none;
   z-index: 9999;
 }
+.vol-tooltip.vertical {
+  transform: none;
+}
 
 @keyframes tsTooltipPopIn {
   0% {

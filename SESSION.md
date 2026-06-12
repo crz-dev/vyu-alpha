@@ -3,25 +3,30 @@ _Overwrite this file completely at end of every session. Never append._
 Updated: 2026-06-11
 
 ## Last change
-Added "Shuffle songs" mode (shuffles only audio files in folder) as a 5th full-width button in the After playback menu, with music note icon on controls bar when active. Thinned markers menu buttons for audio layouts to match loop-drop-btn dimensions. Added "shuffle-songs" to LOOP_MODES constant, updated types to LoopMode throughout.
+Fixed 5 bugs: shuffle-songs button hidden for videos (isAudio prop), video overlay gradient gap closed (tighter gradient + reduced padding), crackle/pop on file switch eliminated (gain ramp in eq-engine disconnect), retro vertical slider tooltips no longer overlap track (vertical CSS class overriding translateX), video volume slider now updates state and persists (wired setVolume callback).
 
-Files: `constants.ts`, `dropAnimations.ts`, `LoopDropdown.svelte`, `playbackHelpers.ts`, `PlaybackControls.svelte`, `AudioModernLayout.svelte`, `AudioRetroLayout.svelte`, `MarkerDropdown.svelte`, `SettingsDialog.svelte`, `components.css`
+Files: `LoopDropdown.svelte`, `PlaybackControls.svelte`, `AudioRetroLayout.svelte`, `AudioModernLayout.svelte`, `+page.svelte`, `playback.svelte.ts`, `equalizer-engine.ts`, `components.css`, `overlays.css`, `Tooltip.svelte`, `Shell.svelte`
 
 ## Status
-- Shuffle songs mode: working (shuffles only audio files on media end)
-- After playback menu: working (2x2 grid + full-width Shuffle songs button)
-- Markers menu buttons (audio): working (thin styling for audio layouts)
-- Tooltips/icons: working (music note when shuffle-songs active)
+- Shuffle songs button: hidden for videos, visible for audio (working)
+- Video overlay gradient: tighter fade, no visible gap (working)
+- Audio crackle on file switch: eliminated via gain ramp (working)
+- Retro slider tooltips: no longer overlap track (working)
+- Video volume slider: updates state and persists (working)
 - Type check: passing
 
 ## Next
 None.
 
 ## Bugs found this session
-- None.
+- "Shuffle songs" button appeared for videos (should be audio only)
+- Video overlay gradient had visible transparent gap at bottom of video
+- Crackle/pop sound when switching between audio/video files
+- Retro vertical slider tooltip overlapped track due to translateX(-50%)
+- Video volume slider didn't update state — tooltip always showed stale value
 
 ## Current commit
-feat: shuffle-songs mode, thin markers menu for audio
+fix: shuffle-songs for video, overlay gap, crackle, tooltip, volume
 
 ## Architecture update
 None.

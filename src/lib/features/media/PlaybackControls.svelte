@@ -353,6 +353,7 @@
         onClose={closeLoopDropdown}
         {looping}
         {setLoopMode}
+        {isAudio}
       />
     </div>
     <div
@@ -896,6 +897,7 @@
         onClose={closeLoopDropdown}
         {looping}
         {setLoopMode}
+        {isAudio}
       />
     </div>
     <div

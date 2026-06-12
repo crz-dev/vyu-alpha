@@ -7,9 +7,11 @@
     volumeTooltipVisible,
     volumeTooltipX,
     volumeTooltipY,
+    volumeTooltipVertical,
     speedTooltipVisible,
     speedTooltipX,
     speedTooltipY,
+    speedTooltipVertical,
     playbackSpeed,
     muted,
     volume,
@@ -36,9 +38,11 @@
     volumeTooltipVisible: boolean;
     volumeTooltipX: number;
     volumeTooltipY: number;
+    volumeTooltipVertical: boolean;
     speedTooltipVisible: boolean;
     speedTooltipX: number;
     speedTooltipY: number;
+    speedTooltipVertical: boolean;
     playbackSpeed: number;
     muted: boolean;
     volume: number;
@@ -78,6 +82,7 @@
 {#if volumeTooltipVisible}
   <div
     class="vol-tooltip"
+    class:vertical={volumeTooltipVertical}
     style="left: {volumeTooltipX}px; top: {volumeTooltipY - 32}px;"
   >
     {muted ? "0" : Math.round(volume * 100)}%
@@ -87,6 +92,7 @@
 {#if speedTooltipVisible}
   <div
     class="vol-tooltip"
+    class:vertical={speedTooltipVertical}
     style="left: {speedTooltipX}px; top: {speedTooltipY - 32}px;"
   >
     {playbackSpeed}×
