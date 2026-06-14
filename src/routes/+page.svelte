@@ -890,6 +890,13 @@
       effectsEngine.setAudioElement(el);
     }
   });
+
+  // Close thumbnail bar when library opens
+  $effect(() => {
+    if (menuStore.libraryOpen) {
+      thumbnailBarVisible = false;
+    }
+  });
 </script>
 
 <Shell
