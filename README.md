@@ -145,7 +145,7 @@ src-tauri/              # Backend (Rust)
 └── capabilities/       # Tauri 2 capability permissions
 ```
 
-Module ownership map lives in [BLUEPRINT.md](./BLUEPRINT.md).
+Module ownership map lives in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## Contributing
 

@@ -1,4 +1,4 @@
-# Blueprint
+# Architecture
 
 Frontend: `src/` — Svelte 5 runes, single-page app, no SSR, no routes beyond `+page.svelte`.  
 Backend: `src-tauri/src/commands/` — one module per domain. Shared helpers in `util.rs` and `window_state.rs`, types in `types.rs`, constants in `constants.rs`. `lib.rs` is only `run()` + `setup()`.

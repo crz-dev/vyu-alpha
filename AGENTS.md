@@ -2,7 +2,7 @@
 
 Tauri 2 + Svelte 5 (runes) + TypeScript + pnpm. Windows desktop media viewer. Replaces Windows Photos. Private by architecture — no telemetry, no internet, files never leave the device.
 
-See `BLUEPRINT.md` for module map, state pattern, and where new code goes.
+See `ARCHITECTURE.md` for module map, state pattern, and where new code goes.
 
 ## Commands
 
