@@ -32,6 +32,9 @@ function createLibrary() {
   let stats = $state<Record<string, BatchStatItem>>({});
   let statsLoading = $state(false);
 
+  // Multi-select state
+  let selectedPaths = $state<Record<string, boolean>>({});
+
   async function loadOne(path: string) {
     inflight++;
     try {
@@ -144,6 +147,32 @@ function createLibrary() {
     }
   }
 
+  function toggleSelect(path: string) {
+    if (selectedPaths[path]) {
+      delete selectedPaths[path];
+    } else {
+      selectedPaths[path] = true;
+    }
+  }
+
+  function selectRange(paths: string[]) {
+    for (const p of paths) {
+      selectedPaths[p] = true;
+    }
+  }
+
+  function clearSelection() {
+    selectedPaths = {};
+  }
+
+  function isSelected(path: string): boolean {
+    return !!selectedPaths[path];
+  }
+
+  function getSelectedCount(): number {
+    return Object.keys(selectedPaths).length;
+  }
+
   return {
     get cache() {
       return cache;
@@ -178,6 +207,16 @@ function createLibrary() {
       return stats;
     },
     loadStats,
+    toggleSelect,
+    selectRange,
+    clearSelection,
+    isSelected,
+    get selectMode() {
+      return getSelectedCount() > 0;
+    },
+    get selectedCount() {
+      return getSelectedCount();
+    },
   };
 }
 

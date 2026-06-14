@@ -3,6 +3,7 @@
   import MediaBar from "$lib/features/media/MediaBar.svelte";
   import ThumbnailBar from "$lib/features/navigation/ThumbnailBar.svelte";
   import LibraryView from "$lib/features/library/LibraryView.svelte";
+  import { library } from "$lib/features/library/library.svelte";
   import Dialog from "$lib/features/dialogs/Dialog.svelte";
   import Tooltip from "$lib/shared/Tooltip.svelte";
   import EditMenu from "$lib/features/menus/EditMenu.svelte";
@@ -416,6 +417,19 @@
   });
 
   $effect(() => {
+    if (!libraryOpen) {
+      library.clearSelection();
+    }
+  });
+
+  const selectMenuVisible = $derived(libraryOpen && library.selectedCount > 0);
+  let selectMenuMoved = $state(false);
+
+  $effect(() => {
+    if (!selectMenuVisible) selectMenuMoved = false;
+  });
+
+  $effect(() => {
     if (clipCount === 0) {
       clipMenuMoved = false;
     }
@@ -649,6 +663,7 @@
     <LibraryView
       {fileList}
       {currentIndex}
+      selectMode={library.selectedCount > 0}
       onSelect={(path) => {
         const idx = fileList.indexOf(path);
         if (idx !== -1) onSelect(idx);
@@ -714,6 +729,10 @@
     clipMenuStyleOverride={clipMenuStyle}
     fullscreen={viewerStateIsFullscreen}
     {libraryOpen}
+    selectedCount={library.selectedCount}
+    {selectMenuVisible}
+    onCloseSelectMenu={() => library.clearSelection()}
+    onSelectMenuMoved={() => (selectMenuMoved = true)}
   />
 
   <ThumbnailBar

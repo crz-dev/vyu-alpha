@@ -8,11 +8,13 @@
     currentIndex,
     onSelect,
     onClose,
+    selectMode = false,
   }: {
     fileList: string[];
     currentIndex: number;
     onSelect: (path: string) => void;
     onClose: () => void;
+    selectMode?: boolean;
   } = $props();
 
   let scrollEl: HTMLDivElement | null = $state(null);
@@ -21,6 +23,12 @@
   let scrollActive = $state(false);
   let scrollTimer: ReturnType<typeof setTimeout> | null = null;
   let imageDims = $state<Record<string, { w: number; h: number }>>({});
+
+  // Drag-to-select state
+  let dragStart: { x: number; y: number } | null = $state(null);
+  let dragEnd: { x: number; y: number } | null = $state(null);
+  let isDragging = $state(false);
+  let dragSuppressedClick = $state(false);
 
   const RIVER_GAP = 6;
 
@@ -138,6 +146,81 @@
     }
   }
 
+  function rectsOverlap(
+    a: { left: number; right: number; top: number; bottom: number },
+    b: { left: number; right: number; top: number; bottom: number },
+  ): boolean {
+    return a.left <= b.right && a.right >= b.left && a.top <= b.bottom && a.bottom >= b.top;
+  }
+
+  function handleDragStart(e: MouseEvent) {
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (!selectMode && target.closest("[data-path]")) return;
+    if (!scrollEl) return;
+    e.preventDefault();
+    dragStart = { x: e.clientX, y: e.clientY };
+    dragEnd = { x: e.clientX, y: e.clientY };
+    isDragging = false;
+  }
+
+  function handleDragMove(e: MouseEvent) {
+    if (!dragStart) return;
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    if (!isDragging && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
+      isDragging = true;
+      if (!e.shiftKey && !selectMode) {
+        library.clearSelection();
+      }
+    }
+    if (isDragging) {
+      dragEnd = { x: e.clientX, y: e.clientY };
+    }
+  }
+
+  function handleDragEnd(e: MouseEvent) {
+    if (isDragging && dragStart && dragEnd) {
+      const selRect = {
+        left: Math.min(dragStart.x, dragEnd.x),
+        right: Math.max(dragStart.x, dragEnd.x),
+        top: Math.min(dragStart.y, dragEnd.y),
+        bottom: Math.max(dragStart.y, dragEnd.y),
+      };
+      const cells = scrollEl?.querySelectorAll("[data-path]");
+      const hitPaths: string[] = [];
+      if (cells) {
+        for (const cell of cells) {
+          const r = cell.getBoundingClientRect();
+          if (rectsOverlap(selRect, r)) {
+            const p = (cell as HTMLElement).dataset.path;
+            if (p) hitPaths.push(p);
+          }
+        }
+      }
+      if (hitPaths.length > 0) {
+        library.selectRange(hitPaths);
+      }
+      dragSuppressedClick = true;
+      queueMicrotask(() => {
+        dragSuppressedClick = false;
+      });
+    }
+    dragStart = null;
+    dragEnd = null;
+    isDragging = false;
+  }
+
+  const dragRect = $derived.by(() => {
+    if (!dragStart || !dragEnd) return null;
+    return {
+      left: Math.min(dragStart.x, dragEnd.x),
+      top: Math.min(dragStart.y, dragEnd.y),
+      width: Math.abs(dragEnd.x - dragStart.x),
+      height: Math.abs(dragEnd.y - dragStart.y),
+    };
+  });
+
   // Fade-in on mount
   $effect(() => {
     requestAnimationFrame(() => {
@@ -224,6 +307,22 @@
       library.clearQueue();
     };
   });
+
+  // Window-level drag handlers
+  $effect(() => {
+    function onMove(e: MouseEvent) {
+      handleDragMove(e);
+    }
+    function onUp(e: MouseEvent) {
+      handleDragEnd(e);
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  });
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -234,29 +333,47 @@
   role="region"
   aria-label="File library"
 >
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
     class="library-scroll"
     class:scroll-active={scrollActive}
+    class:select-mode={selectMode}
+    class:dragging={isDragging}
     bind:this={scrollEl}
     onscroll={onScroll}
     onwheel={onWheel}
+    onmousedown={handleDragStart}
   >
     {#if library.viewMode === "grid"}
       <div class="library-grid" style="grid-template-columns: repeat(auto-fill, minmax({gridMinCol}px, 1fr));">
         {#each sortedFiles as path (path)}
           {@const active = activePaths.has(path)}
+          {@const selected = library.isSelected(path)}
           {@const badge = getMediaBadge(path)}
           <div
             class="library-cell"
             class:active
+            class:selected
             data-path={path}
             role="button"
             tabindex="0"
-            onclick={() => onSelect(path)}
+            onclick={(e) => {
+              if (dragSuppressedClick) return;
+              if (selectMode || e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                library.toggleSelect(path);
+              } else {
+                onSelect(path);
+              }
+            }}
             onkeydown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
-                onSelect(path);
+                if (selectMode || e.ctrlKey || e.metaKey) {
+                  library.toggleSelect(path);
+                } else {
+                  onSelect(path);
+                }
               }
             }}
           >
@@ -270,6 +387,40 @@
             {:else}
               <div class="library-placeholder"></div>
             {/if}
+            <div
+              class="library-checkbox"
+              class:checked={selected}
+              role="checkbox"
+              tabindex="0"
+              aria-checked={selected}
+              aria-label="Select file"
+              onclick={(e) => {
+                e.stopPropagation();
+                library.toggleSelect(path);
+              }}
+              onkeydown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  library.toggleSelect(path);
+                }
+              }}
+            >
+              {#if selected}
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              {/if}
+            </div>
             {#if badge === "video"}
               <div class="library-badge">
                 <svg
@@ -349,22 +500,36 @@
       <div class="library-river">
         {#each sortedFiles as path (path)}
           {@const active = activePaths.has(path)}
+          {@const selected = library.isSelected(path)}
           {@const badge = getMediaBadge(path)}
           {@const dim = imageDims[path]}
           {@const ratio = dim ? dim.w / dim.h : 4 / 3}
           <div
             class="river-cell"
             class:active
+            class:selected
             data-path={path}
             role="button"
             tabindex="0"
             style="height: {riverRowH}px; flex-grow: {ratio *
               riverRowH};"
-            onclick={() => onSelect(path)}
+            onclick={(e) => {
+              if (dragSuppressedClick) return;
+              if (selectMode || e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                library.toggleSelect(path);
+              } else {
+                onSelect(path);
+              }
+            }}
             onkeydown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
-                onSelect(path);
+                if (selectMode || e.ctrlKey || e.metaKey) {
+                  library.toggleSelect(path);
+                } else {
+                  onSelect(path);
+                }
               }
             }}
           >
@@ -379,6 +544,40 @@
             {:else}
               <div class="river-placeholder"></div>
             {/if}
+            <div
+              class="library-checkbox"
+              class:checked={selected}
+              role="checkbox"
+              tabindex="0"
+              aria-checked={selected}
+              aria-label="Select file"
+              onclick={(e) => {
+                e.stopPropagation();
+                library.toggleSelect(path);
+              }}
+              onkeydown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  library.toggleSelect(path);
+                }
+              }}
+            >
+              {#if selected}
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              {/if}
+            </div>
             {#if badge}
               <div
                 class="library-badge"
@@ -457,23 +656,37 @@
       <div class="library-filmstrip">
         {#each sortedFiles as path (path)}
           {@const active = activePaths.has(path)}
+          {@const selected = library.isSelected(path)}
           {@const badge = getMediaBadge(path)}
           {@const dim = imageDims[path]}
           {@const ratio = dim ? dim.w / dim.h : 4 / 3}
           <div
             class="filmstrip-cell"
             class:active
+            class:selected
             data-path={path}
             role="button"
             tabindex="0"
             style="height: {active ? filmstripBase * 1.33 : filmstripBase}px; width: {(active
               ? filmstripBase * 1.33
               : filmstripBase) * ratio}px;"
-            onclick={() => onSelect(path)}
+            onclick={(e) => {
+              if (dragSuppressedClick) return;
+              if (selectMode || e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                library.toggleSelect(path);
+              } else {
+                onSelect(path);
+              }
+            }}
             onkeydown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
-                onSelect(path);
+                if (selectMode || e.ctrlKey || e.metaKey) {
+                  library.toggleSelect(path);
+                } else {
+                  onSelect(path);
+                }
               }
             }}
           >
@@ -488,6 +701,40 @@
             {:else}
               <div class="filmstrip-placeholder"></div>
             {/if}
+            <div
+              class="library-checkbox"
+              class:checked={selected}
+              role="checkbox"
+              tabindex="0"
+              aria-checked={selected}
+              aria-label="Select file"
+              onclick={(e) => {
+                e.stopPropagation();
+                library.toggleSelect(path);
+              }}
+              onkeydown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  library.toggleSelect(path);
+                }
+              }}
+            >
+              {#if selected}
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              {/if}
+            </div>
             {#if badge}
               <div
                 class="library-badge"
@@ -626,6 +873,13 @@
         <span>No files in this folder</span>
       </div>
     {/if}
+
+    {#if isDragging && dragRect}
+      <div
+        class="select-rect"
+        style="left: {dragRect.left}px; top: {dragRect.top}px; width: {dragRect.width}px; height: {dragRect.height}px;"
+      ></div>
+    {/if}
   </div>
 </div>
 
@@ -672,6 +926,15 @@
     scrollbar-color: var(--bg-shimmer, #333) transparent;
   }
 
+  .library-scroll.dragging {
+    user-select: none;
+    cursor: crosshair;
+  }
+
+  .library-scroll.dragging * {
+    user-select: none;
+  }
+
   .library-scroll.scroll-active::-webkit-scrollbar-thumb {
     background: var(--bg-shimmer, #333);
   }
@@ -715,6 +978,14 @@
     border-color: #fff;
   }
 
+  .filmstrip-cell.selected {
+    border-color: var(--yellow, #f5c518);
+  }
+
+  .filmstrip-cell.active.selected {
+    border-color: var(--yellow, #f5c518);
+  }
+
   .filmstrip-thumb {
     width: 100%;
     height: 100%;
@@ -755,6 +1026,14 @@
 
   .river-cell.active {
     border-color: #fff;
+  }
+
+  .river-cell.selected {
+    border-color: var(--yellow, #f5c518);
+  }
+
+  .river-cell.active.selected {
+    border-color: var(--yellow, #f5c518);
   }
 
   .river-thumb {
@@ -801,6 +1080,14 @@
     border-color: #fff;
   }
 
+  .library-cell.selected {
+    border-color: var(--yellow, #f5c518);
+  }
+
+  .library-cell.active.selected {
+    border-color: var(--yellow, #f5c518);
+  }
+
   .library-thumb {
     width: 100%;
     height: 100%;
@@ -833,6 +1120,49 @@
   .library-badge-pdf {
     width: 22px;
     height: 22px;
+  }
+
+  /* Selection checkbox */
+  .library-checkbox {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 3px;
+    border: none;
+    background: rgba(0, 0, 0, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition:
+      background 0.1s,
+      border-color 0.1s,
+      opacity 0.1s;
+    cursor: pointer;
+    z-index: 2;
+    color: var(--text-primary, #fff);
+  }
+
+  .library-checkbox:hover {
+    background: rgba(0, 0, 0, 0.8);
+  }
+
+  .library-checkbox.checked {
+    background: var(--yellow, #f5c518);
+    color: #000;
+  }
+
+  .select-mode .library-checkbox,
+  .library-checkbox.checked {
+    opacity: 1;
+  }
+
+  .library-cell:hover .library-checkbox,
+  .river-cell:hover .library-checkbox,
+  .filmstrip-cell:hover .library-checkbox {
+    opacity: 1;
   }
 
   /* List view */
@@ -929,5 +1259,14 @@
     color: var(--text-muted, #888);
     font-size: 14px;
     font-family: var(--font-family);
+  }
+
+  /* Drag selection rectangle */
+  .select-rect {
+    position: fixed;
+    border: 1px dashed var(--yellow, #f5c518);
+    background: rgba(245, 197, 24, 0.08);
+    pointer-events: none;
+    z-index: 10;
   }
 </style>

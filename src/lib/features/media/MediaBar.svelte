@@ -1,6 +1,7 @@
 <script lang="ts">
   import { fly, scale } from "svelte/transition";
   import SlideshowMenu from "$lib/features/menus/SlideshowMenu.svelte";
+  import SelectMenu from "$lib/features/menus/SelectMenu.svelte";
   import { slideshow } from "$lib/features/media/slideshow.svelte";
   import SortMenu from "$lib/features/navigation/SortMenu.svelte";
   import ViewMenu from "$lib/features/navigation/ViewMenu.svelte";
@@ -98,6 +99,10 @@
     markupMenuStyleOverride = "",
     clipMenuStyleOverride = "",
     libraryOpen = false,
+    selectedCount = 0,
+    selectMenuVisible = false,
+    onCloseSelectMenu,
+    onSelectMenuMoved,
   }: {
     fileListLength: number;
     currentIndex: number;
@@ -155,6 +160,10 @@
     markupMenuStyleOverride?: string;
     clipMenuStyleOverride?: string;
     libraryOpen?: boolean;
+    selectedCount?: number;
+    selectMenuVisible?: boolean;
+    onCloseSelectMenu?: () => void;
+    onSelectMenuMoved?: () => void;
   } = $props();
 
   $effect(() => {
@@ -356,6 +365,15 @@
     </div>
   {/if}
 </div>
+
+{#if libraryOpen && selectMenuVisible}
+  <SelectMenu
+    visible={selectMenuVisible}
+    {selectedCount}
+    onClose={onCloseSelectMenu ?? (() => {})}
+    onMoved={onSelectMenuMoved}
+  />
+{/if}
 
 {#if sortMenuVisible}
   <SortMenu
