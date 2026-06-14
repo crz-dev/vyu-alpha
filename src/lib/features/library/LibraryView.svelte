@@ -22,11 +22,24 @@
   let scrollTimer: ReturnType<typeof setTimeout> | null = null;
   let imageDims = $state<Record<string, { w: number; h: number }>>({});
 
-  const RIVER_ROW_HEIGHT = 140;
   const RIVER_GAP = 6;
 
   const VIDEO_SET = new Set(VIDEO_EXTS);
   const AUDIO_SET = new Set(AUDIO_EXTS);
+
+  function densityMap(d: number, big: number, def: number, small: number): number {
+    return d <= 0.5
+      ? big + (def - big) * (d / 0.5)
+      : def + (small - def) * ((d - 0.5) / 0.5);
+  }
+
+  const gridMinCol = $derived(densityMap(library.density, 480, 180, 80));
+  const riverRowH = $derived(densityMap(library.density, 380, 140, 50));
+  const filmstripBase = $derived(densityMap(library.density, 550, 240, 100));
+  const listThumbSize = $derived(densityMap(library.density, 72, 32, 18));
+  const listRowPad = $derived(densityMap(library.density, 8, 4, 2));
+  const listFontSize = $derived(densityMap(library.density, 16, 13, 10));
+  const listTypeFontSize = $derived(densityMap(library.density, 14, 12, 9));
 
   const activePaths = $derived(
     currentIndex >= 0 && currentIndex < fileList.length
@@ -228,7 +241,7 @@
     onwheel={onWheel}
   >
     {#if library.viewMode === "grid"}
-      <div class="library-grid">
+      <div class="library-grid" style="grid-template-columns: repeat(auto-fill, minmax({gridMinCol}px, 1fr));">
         {#each sortedFiles as path (path)}
           {@const active = activePaths.has(path)}
           {@const badge = getMediaBadge(path)}
@@ -344,8 +357,8 @@
             data-path={path}
             role="button"
             tabindex="0"
-            style="height: {RIVER_ROW_HEIGHT}px; flex-grow: {ratio *
-              RIVER_ROW_HEIGHT};"
+            style="height: {riverRowH}px; flex-grow: {ratio *
+              riverRowH};"
             onclick={() => onSelect(path)}
             onkeydown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
@@ -452,9 +465,9 @@
             data-path={path}
             role="button"
             tabindex="0"
-            style="height: {active ? 320 : 240}px; width: {(active
-              ? 320
-              : 240) * ratio}px;"
+            style="height: {active ? filmstripBase * 1.33 : filmstripBase}px; width: {(active
+              ? filmstripBase * 1.33
+              : filmstripBase) * ratio}px;"
             onclick={() => onSelect(path)}
             onkeydown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
@@ -549,7 +562,7 @@
         {/each}
       </div>
     {:else}
-      <div class="library-list">
+      <div class="library-list" style="--list-thumb: {listThumbSize}px; --list-pad: {listRowPad}px; --list-font: {listFontSize}px; --list-type-font: {listTypeFontSize}px;">
         <div class="list-header">
           <span class="list-col list-col-thumb"></span>
           <span class="list-col list-col-name">Name</span>
@@ -761,7 +774,6 @@
   /* Grid view */
   .library-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 6px;
   }
 
@@ -844,7 +856,7 @@
 
   .list-row {
     display: flex;
-    padding: 4px 8px;
+    padding: var(--list-pad) calc(var(--list-pad) * 2);
     border-radius: 4px;
     cursor: pointer;
     transition: background 0.1s;
@@ -861,7 +873,7 @@
   }
 
   .list-col {
-    font-size: 13px;
+    font-size: var(--list-font);
     color: var(--text-primary, #ccc);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -869,8 +881,8 @@
   }
 
   .list-col-thumb {
-    width: 32px;
-    height: 32px;
+    width: var(--list-thumb);
+    height: var(--list-thumb);
     flex-shrink: 0;
     margin-right: 10px;
     border-radius: 3px;
@@ -891,7 +903,7 @@
     flex-shrink: 0;
     text-align: right;
     color: var(--text-muted, #888);
-    font-size: 12px;
+    font-size: var(--list-type-font);
   }
 
   .list-thumb {

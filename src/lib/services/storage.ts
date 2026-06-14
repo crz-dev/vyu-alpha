@@ -380,3 +380,16 @@ export function saveEqSettings(filePath: string, settings: EqSettings): void {
 export function deleteEqSettings(filePath: string): void {
   if (filePath) localStorage.removeItem(`vyu-eq-${filePath}`);
 }
+
+export function loadViewDensity(): number {
+  const raw = localStorage.getItem("vyu-view-density");
+  if (raw !== null) {
+    const v = parseFloat(raw);
+    if (Number.isFinite(v)) return Math.max(0, Math.min(1, v));
+  }
+  return 0.5;
+}
+
+export function saveViewDensity(v: number): void {
+  localStorage.setItem("vyu-view-density", String(Math.max(0, Math.min(1, v))));
+}

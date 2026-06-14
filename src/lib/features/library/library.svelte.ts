@@ -3,6 +3,7 @@ import {
   invokeGetFilesTotalSize,
   invokeBatchStat,
 } from "$lib/features/media/tools";
+import { loadViewDensity, saveViewDensity } from "$lib/services/storage";
 import type { SortMode } from "$lib/shared/constants";
 import type { BatchStatItem } from "$lib/shared/types";
 
@@ -15,6 +16,9 @@ function createLibrary() {
 
   // View mode
   let viewMode = $state<"grid" | "list" | "river" | "filmstrip">("grid");
+
+  // View density (0 = large thumbnails, 1 = small thumbnails)
+  let density = $state(loadViewDensity());
 
   // Sort state (independent from main view)
   let sortMode = $state<SortMode>("name");
@@ -95,6 +99,11 @@ function createLibrary() {
     viewMode = mode;
   }
 
+  function setDensity(v: number) {
+    density = Math.max(0, Math.min(1, v));
+    saveViewDensity(density);
+  }
+
   function setSortMode(mode: SortMode, desc: boolean) {
     sortMode = mode;
     sortDesc = desc;
@@ -147,6 +156,10 @@ function createLibrary() {
       return viewMode;
     },
     setViewMode,
+    get density() {
+      return density;
+    },
+    setDensity,
     get sortMode() {
       return sortMode;
     },

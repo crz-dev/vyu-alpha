@@ -389,6 +389,8 @@
     y={viewMenuY}
     viewMode={library.viewMode}
     onViewChange={handleViewChange}
+    density={library.density}
+    onDensityChange={(v) => library.setDensity(v)}
   />
 {/if}
 
