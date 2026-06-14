@@ -1,8 +1,10 @@
 import {
   invokeGetThumbnail,
   invokeGetFilesTotalSize,
+  invokeBatchStat,
 } from "$lib/features/media/tools";
 import type { SortMode } from "$lib/shared/constants";
+import type { BatchStatItem } from "$lib/shared/types";
 
 const MAX_CONCURRENT = 4;
 
@@ -12,7 +14,7 @@ function createLibrary() {
   let inflight = 0;
 
   // View mode
-  let viewMode = $state<"grid" | "list" | "river">("grid");
+  let viewMode = $state<"grid" | "list" | "river" | "filmstrip">("grid");
 
   // Sort state (independent from main view)
   let sortMode = $state<SortMode>("name");
@@ -21,6 +23,10 @@ function createLibrary() {
   // Total size
   let totalSize = $state(0);
   let totalSizeLoading = $state(false);
+
+  // Stat cache for sort by size/date-modified
+  let stats = $state<Record<string, BatchStatItem>>({});
+  let statsLoading = $state(false);
 
   async function loadOne(path: string) {
     inflight++;
@@ -85,7 +91,7 @@ function createLibrary() {
     kick();
   }
 
-  function setViewMode(mode: "grid" | "list" | "river") {
+  function setViewMode(mode: "grid" | "list" | "river" | "filmstrip") {
     viewMode = mode;
   }
 
@@ -106,6 +112,26 @@ function createLibrary() {
       totalSize = 0;
     } finally {
       totalSizeLoading = false;
+    }
+  }
+
+  async function loadStats(paths: string[]) {
+    if (paths.length === 0) {
+      stats = {};
+      return;
+    }
+    statsLoading = true;
+    try {
+      const items = await invokeBatchStat(paths);
+      const map: Record<string, BatchStatItem> = {};
+      for (const item of items) {
+        map[item.path] = item;
+      }
+      stats = map;
+    } catch {
+      stats = {};
+    } finally {
+      statsLoading = false;
     }
   }
 
@@ -135,6 +161,10 @@ function createLibrary() {
       return totalSizeLoading;
     },
     computeTotalSize,
+    get stats() {
+      return stats;
+    },
+    loadStats,
   };
 }
 

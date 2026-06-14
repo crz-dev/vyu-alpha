@@ -147,16 +147,27 @@ function createMarkupStore() {
     maxY: number;
   }
   function strokeBBox(s: MarkupStroke): BBox {
-    if (s.type === "freehand" || (s.type === "highlight" && s.mode === "free")) {
+    if (
+      s.type === "freehand" ||
+      (s.type === "highlight" && s.mode === "free")
+    ) {
       const pts = s.points;
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      let minX = Infinity,
+        maxX = -Infinity,
+        minY = Infinity,
+        maxY = -Infinity;
       for (const p of pts) {
         if (p.x < minX) minX = p.x;
         if (p.x > maxX) maxX = p.x;
         if (p.y < minY) minY = p.y;
         if (p.y > maxY) maxY = p.y;
       }
-      return { minX: isFinite(minX) ? minX : 0, maxX: isFinite(maxX) ? maxX : 0, minY: isFinite(minY) ? minY : 0, maxY: isFinite(maxY) ? maxY : 0 };
+      return {
+        minX: isFinite(minX) ? minX : 0,
+        maxX: isFinite(maxX) ? maxX : 0,
+        minY: isFinite(minY) ? minY : 0,
+        maxY: isFinite(maxY) ? maxY : 0,
+      };
     }
     if (s.type === "shape") {
       const halfW = s.width / 2;
@@ -166,16 +177,23 @@ function createMarkupStore() {
       return { minX: s.cx - r, maxX: s.cx + r, minY: s.cy - r, maxY: s.cy + r };
     }
     if (s.type === "text") {
-      const estH = s.fontSize * 1.2 / 1000;
-      const estW = ((s.text || "").length * s.fontSize * 0.6 + s.fontSize * 1.5 + (s.boxExtraWidth || 0) + 12 * (s.fontSize / 16)) / 1000;
+      const estH = (s.fontSize * 1.2) / 1000;
+      const estW =
+        ((s.text || "").length * s.fontSize * 0.6 +
+          s.fontSize * 1.5 +
+          (s.boxExtraWidth || 0) +
+          12 * (s.fontSize / 16)) /
+        1000;
       const halfW = estW / 2;
       const halfH = estH / 2;
       const r = Math.sqrt(halfW * halfW + halfH * halfH);
       return { minX: s.x - r, maxX: s.x + r, minY: s.y - r, maxY: s.y + r };
     }
     if (s.type === "line") {
-      let minX = Math.min(s.x1, s.x2), maxX = Math.max(s.x1, s.x2);
-      let minY = Math.min(s.y1, s.y2), maxY = Math.max(s.y1, s.y2);
+      let minX = Math.min(s.x1, s.x2),
+        maxX = Math.max(s.x1, s.x2);
+      let minY = Math.min(s.y1, s.y2),
+        maxY = Math.max(s.y1, s.y2);
       if (s.isPath && s.points.length > 0) {
         for (const p of s.points) {
           if (p.x < minX) minX = p.x;
@@ -187,7 +205,12 @@ function createMarkupStore() {
       return { minX, maxX, minY, maxY };
     }
     if (s.type === "highlight" && s.mode === "straight") {
-      return { minX: Math.min(s.x1, s.x2), maxX: Math.max(s.x1, s.x2), minY: Math.min(s.y1, s.y2), maxY: Math.max(s.y1, s.y2) };
+      return {
+        minX: Math.min(s.x1, s.x2),
+        maxX: Math.max(s.x1, s.x2),
+        minY: Math.min(s.y1, s.y2),
+        maxY: Math.max(s.y1, s.y2),
+      };
     }
     return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
   }
@@ -739,7 +762,8 @@ function createMarkupStore() {
       const s = strokes[i];
       // Quick bounding-box rejection (normalized coords)
       const bb = strokeBboxes[i];
-      if (nx < bb.minX || nx > bb.maxX || ny < bb.minY || ny > bb.maxY) continue;
+      if (nx < bb.minX || nx > bb.maxX || ny < bb.minY || ny > bb.maxY)
+        continue;
       if (s.type === "shape") {
         // Check if (nx, ny) is inside the shape's bounding box, accounting for rotation
         const halfW = s.width / 2;
@@ -1008,7 +1032,13 @@ function createMarkupStore() {
       const s = strokes[i];
       // Quick bounding-box rejection (normalized coords)
       const bb = strokeBboxes[i];
-      if (bb.maxX < selLeft || bb.minX > selRight || bb.maxY < selTop || bb.minY > selBottom) continue;
+      if (
+        bb.maxX < selLeft ||
+        bb.minX > selRight ||
+        bb.maxY < selTop ||
+        bb.minY > selBottom
+      )
+        continue;
       let sl: number, sr: number, st: number, sb: number;
       if (s.type === "shape") {
         const hw = (s.width * w) / 2;

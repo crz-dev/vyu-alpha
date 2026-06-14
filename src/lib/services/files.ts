@@ -48,7 +48,10 @@ async function sortFileList(
     statMap.set(item.path, item);
   }
 
-  const entries = list.map((path) => ({ path, stat: statMap.get(path) ?? null }));
+  const entries = list.map((path) => ({
+    path,
+    stat: statMap.get(path) ?? null,
+  }));
 
   entries.sort((a, b) => {
     let cmp = 0;
@@ -56,12 +59,6 @@ async function sortFileList(
       case "date-modified": {
         const aTime = a.stat?.mtime_ms ?? 0;
         const bTime = b.stat?.mtime_ms ?? 0;
-        cmp = aTime - bTime;
-        break;
-      }
-      case "date-created": {
-        const aTime = a.stat?.birthtime_ms ?? 0;
-        const bTime = b.stat?.birthtime_ms ?? 0;
         cmp = aTime - bTime;
         break;
       }

@@ -248,13 +248,13 @@
     slideshowMenuVisible: boolean;
     closeSlideshowMenu: () => void;
     toggleThumbnailBar: () => void;
-    sortMode: "name" | "date-modified" | "date-created" | "size" | "type";
+    sortMode: "name" | "date-modified" | "size" | "type";
     sortDesc: boolean;
     sortMenuVisible: boolean;
     toggleSortMenu: () => void;
     closeSortMenu: () => void;
     onSortChange: (
-      mode: "name" | "date-modified" | "date-created" | "size" | "type",
+      mode: "name" | "date-modified" | "size" | "type",
       desc: boolean,
     ) => void;
     onRenamed: (newPath: string) => Promise<void>;

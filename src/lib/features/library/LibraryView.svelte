@@ -38,6 +38,7 @@
     const files = [...fileList];
     const mode = library.sortMode;
     const desc = library.sortDesc;
+    const statMap = library.stats;
     files.sort((a, b) => {
       let cmp = 0;
       if (mode === "name") {
@@ -45,8 +46,13 @@
       } else if (mode === "type") {
         cmp = getFileExt(a).localeCompare(getFileExt(b));
       } else if (mode === "size") {
-        // size sort not available client-side without stat, fall back to name
-        cmp = a.localeCompare(b, undefined, { sensitivity: "base" });
+        const aSize = statMap[a]?.size ?? 0;
+        const bSize = statMap[b]?.size ?? 0;
+        cmp = aSize - bSize;
+      } else if (mode === "date-modified") {
+        const aTime = statMap[a]?.mtime_ms ?? 0;
+        const bTime = statMap[b]?.mtime_ms ?? 0;
+        cmp = aTime - bTime;
       } else {
         cmp = a.localeCompare(b, undefined, { sensitivity: "base" });
       }
@@ -85,7 +91,7 @@
       onClose();
       return;
     }
-    if (library.viewMode === "grid") {
+    if (library.viewMode === "grid" || library.viewMode === "filmstrip") {
       if (e.key === "ArrowRight" || e.key === "ArrowDown") {
         e.preventDefault();
         const idx = Math.min(currentIndex + 1, fileList.length - 1);
@@ -105,6 +111,18 @@
     scrollTimer = setTimeout(() => {
       scrollActive = false;
     }, 3000);
+  }
+
+  function onWheel(e: WheelEvent) {
+    if (library.viewMode !== "filmstrip") return;
+    const container = scrollEl?.querySelector(
+      ".library-filmstrip",
+    ) as HTMLElement | null;
+    if (!container) return;
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      e.preventDefault();
+      container.scrollLeft += e.deltaY;
+    }
   }
 
   // Fade-in on mount
@@ -160,6 +178,13 @@
     }
   });
 
+  // Load file stats for sort by size/date-modified
+  $effect(() => {
+    if (fileList.length > 0) {
+      library.loadStats(fileList);
+    }
+  });
+
   // Scroll to current file on open
   $effect(() => {
     if (!mounted || !scrollEl) return;
@@ -167,7 +192,15 @@
       `[data-path="${fileList[currentIndex]}"]`,
     ) as HTMLElement | null;
     if (el) {
-      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      if (library.viewMode === "filmstrip") {
+        el.scrollIntoView({
+          inline: "center",
+          block: "nearest",
+          behavior: "smooth",
+        });
+      } else {
+        el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
     }
   });
 
@@ -192,6 +225,7 @@
     class:scroll-active={scrollActive}
     bind:this={scrollEl}
     onscroll={onScroll}
+    onwheel={onWheel}
   >
     {#if library.viewMode === "grid"}
       <div class="library-grid">
@@ -310,7 +344,8 @@
             data-path={path}
             role="button"
             tabindex="0"
-            style="height: {RIVER_ROW_HEIGHT}px; flex-grow: {ratio * RIVER_ROW_HEIGHT};"
+            style="height: {RIVER_ROW_HEIGHT}px; flex-grow: {ratio *
+              RIVER_ROW_HEIGHT};"
             onclick={() => onSelect(path)}
             onkeydown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
@@ -331,26 +366,178 @@
               <div class="river-placeholder"></div>
             {/if}
             {#if badge}
-              <div class="library-badge" class:library-badge-pdf={badge === "pdf"}>
+              <div
+                class="library-badge"
+                class:library-badge-pdf={badge === "pdf"}
+              >
                 {#if badge === "video"}
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
                     <polygon points="5 3 19 12 5 21 5 3" />
                   </svg>
                 {:else if badge === "gif"}
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
                     <polyline points="23 4 23 10 17 10" />
                     <polyline points="1 20 1 14 7 14" />
-                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                    <path
+                      d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+                    />
                   </svg>
                 {:else if badge === "audio"}
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
                     <path d="M9 18V5l12-2v13" />
                     <circle cx="6" cy="18" r="3" />
                     <circle cx="18" cy="16" r="3" />
                   </svg>
                 {:else if badge === "pdf"}
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+                    />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="9" y1="13" x2="15" y2="13" />
+                    <line x1="12" y1="13" x2="12" y2="18" />
+                  </svg>
+                {/if}
+              </div>
+            {/if}
+          </div>
+        {/each}
+      </div>
+    {:else if library.viewMode === "filmstrip"}
+      <div class="library-filmstrip">
+        {#each sortedFiles as path (path)}
+          {@const active = activePaths.has(path)}
+          {@const badge = getMediaBadge(path)}
+          {@const dim = imageDims[path]}
+          {@const ratio = dim ? dim.w / dim.h : 4 / 3}
+          <div
+            class="filmstrip-cell"
+            class:active
+            data-path={path}
+            role="button"
+            tabindex="0"
+            style="height: {active ? 320 : 240}px; width: {(active
+              ? 320
+              : 240) * ratio}px;"
+            onclick={() => onSelect(path)}
+            onkeydown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelect(path);
+              }
+            }}
+          >
+            {#if thumbFor(path)}
+              <img
+                class="filmstrip-thumb"
+                src={thumbFor(path)}
+                alt=""
+                draggable="false"
+                onload={(e) => onImageLoad(path, e)}
+              />
+            {:else}
+              <div class="filmstrip-placeholder"></div>
+            {/if}
+            {#if badge}
+              <div
+                class="library-badge"
+                class:library-badge-pdf={badge === "pdf"}
+              >
+                {#if badge === "video"}
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                {:else if badge === "gif"}
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="23 4 23 10 17 10" />
+                    <polyline points="1 20 1 14 7 14" />
+                    <path
+                      d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+                    />
+                  </svg>
+                {:else if badge === "audio"}
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M9 18V5l12-2v13" />
+                    <circle cx="6" cy="18" r="3" />
+                    <circle cx="18" cy="16" r="3" />
+                  </svg>
+                {:else if badge === "pdf"}
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+                    />
                     <polyline points="14 2 14 8 20 8" />
                     <line x1="9" y1="13" x2="15" y2="13" />
                     <line x1="12" y1="13" x2="12" y2="18" />
@@ -446,6 +633,7 @@
   .library-scroll {
     flex: 1;
     overflow-y: auto;
+    scroll-behavior: smooth;
     padding: 16px 24px;
     scrollbar-width: thin;
     scrollbar-color: transparent transparent;
@@ -472,6 +660,60 @@
 
   .library-scroll.scroll-active::-webkit-scrollbar-thumb {
     background: var(--bg-shimmer, #333);
+  }
+
+  /* Filmstrip view */
+  .library-filmstrip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 100%;
+    padding: 0 calc(50% - 100px);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+  }
+
+  .library-filmstrip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filmstrip-cell {
+    position: relative;
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: pointer;
+    flex-shrink: 0;
+    scroll-snap-align: center;
+    border: 2px solid transparent;
+    transition:
+      border-color 0.1s,
+      height 0.2s,
+      width 0.2s;
+    background: var(--bg-secondary, #111);
+  }
+
+  .filmstrip-cell:hover {
+    border-color: var(--border-hover, #555);
+  }
+
+  .filmstrip-cell.active {
+    border-color: #fff;
+  }
+
+  .filmstrip-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .filmstrip-placeholder {
+    width: 100%;
+    height: 100%;
+    background: var(--bg-secondary, #111);
   }
 
   /* River view */

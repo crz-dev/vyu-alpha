@@ -152,7 +152,6 @@ export const PROXIMITY_TOUCH = 0.6;
 export const SORT_MODES = [
   { value: "name", label: "Name" },
   { value: "date-modified", label: "Date modified" },
-  { value: "date-created", label: "Date created" },
   { value: "size", label: "Size" },
   { value: "type", label: "Type" },
 ] as const;

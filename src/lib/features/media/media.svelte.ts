@@ -171,12 +171,7 @@ export function createMedia(
     path: string,
     set: (data: Partial<MediaState>) => void,
     setFileList: (list: string[], index: number) => void,
-    sortMode:
-      | "name"
-      | "date-modified"
-      | "date-created"
-      | "size"
-      | "type" = "name",
+    sortMode: "name" | "date-modified" | "size" | "type" = "name",
     sortDesc = false,
   ): Promise<void> {
     clearTimeout(loadingTimer);

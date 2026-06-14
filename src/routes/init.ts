@@ -52,7 +52,9 @@ export function setupInit(s: InitState) {
     if (initial) s.loadFile(initial);
 
     if (typeof requestIdleCallback === "function") {
-      requestIdleCallback(() => cleanupStaleStorageEntries(), { timeout: 2000 });
+      requestIdleCallback(() => cleanupStaleStorageEntries(), {
+        timeout: 2000,
+      });
     } else {
       setTimeout(() => cleanupStaleStorageEntries(), 1000);
     }
