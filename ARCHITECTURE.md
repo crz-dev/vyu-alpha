@@ -99,6 +99,7 @@ These decisions are intentional and should not be changed without discussion.
 | ------------------------------------------------------ | ------------------------------------------------- |
 | Thumbnail cache uses `$state<Record>` instead of `Map` | Svelte proxy tracking depends on property access. |
 | `pdfjs-dist` remains dynamic                           | Keeps startup bundle smaller.                     |
-| Sort-related `stat()` calls capped at 8 workers        | Prevents filesystem contention.                   |
+| Sort-related stat uses batch IPC call                  | Eliminates per-call IPC overhead for stat.        |
+| Thumbnail cache evicted at 500MB soft limit            | Prevents unbounded disk usage.                    |
 | Temp dirs use hash-based subdirectories                | Prevents concurrent-operation conflicts.          |
 | Cross-volume rename uses copy+delete fallback          | Required for `ERROR_NOT_SAME_DEVICE`.             |

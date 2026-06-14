@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { MediaProperties, ClipJobResult } from "$lib/shared/types";
+import type { MediaProperties, ClipJobResult, BatchStatItem } from "$lib/shared/types";
 import { getFileExt } from "$lib/services/files";
 import type { EditSnapshot } from "$lib/features/editing/editing.svelte";
 import type {
@@ -70,6 +70,12 @@ export async function exportCroppedImage(
   ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
 
   await saveCanvasToFile(canvas, outputPath);
+}
+
+export async function invokeBatchStat(
+  paths: string[],
+): Promise<BatchStatItem[]> {
+  return invoke("batch_stat", { paths });
 }
 
 export async function invokeGetThumbnail(

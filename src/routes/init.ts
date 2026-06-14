@@ -51,7 +51,11 @@ export function setupInit(s: InitState) {
     const initial = window.__INITIAL_FILE__;
     if (initial) s.loadFile(initial);
 
-    cleanupStaleStorageEntries();
+    if (typeof requestIdleCallback === "function") {
+      requestIdleCallback(() => cleanupStaleStorageEntries(), { timeout: 2000 });
+    } else {
+      setTimeout(() => cleanupStaleStorageEntries(), 1000);
+    }
     s.volume.set(loadVolume());
     s.loopMode.set(loadLoopMode());
     const sliderPrefs = loadSliderMode();

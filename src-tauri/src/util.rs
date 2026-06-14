@@ -80,18 +80,50 @@ pub fn unique_path(path: PathBuf) -> PathBuf {
         .parent()
         .unwrap_or_else(|| Path::new("."))
         .to_path_buf();
-    for i in 1..10000 {
+
+    // Exponential probe: 1, 2, 4, 8, ... then binary search
+    let mut i = 1u64;
+    let mut high: Option<u64> = None;
+    while i <= 10000 {
         let name = if ext.is_empty() {
             format!("{stem}({i})")
         } else {
             format!("{stem}({i}).{ext}")
         };
-        let candidate = parent.join(name);
-        if !candidate.exists() {
-            return candidate;
+        if !parent.join(&name).exists() {
+            high = Some(i);
+            break;
         }
+        i <<= 1;
     }
-    path
+
+    let candidate = match high {
+        Some(h) => {
+            let mut lo = h >> 1;
+            let mut hi = h;
+            while lo < hi {
+                let mid = lo + (hi - lo) / 2;
+                let name = if ext.is_empty() {
+                    format!("{stem}({mid})")
+                } else {
+                    format!("{stem}({mid}).{ext}")
+                };
+                if parent.join(&name).exists() {
+                    lo = mid + 1;
+                } else {
+                    hi = mid;
+                }
+            }
+            let name = if ext.is_empty() {
+                format!("{stem}({lo})")
+            } else {
+                format!("{stem}({lo}).{ext}")
+            };
+            parent.join(name)
+        }
+        None => path,
+    };
+    candidate
 }
 
 /// Returns a `Command` pre-configured to run ffmpeg without a console window.

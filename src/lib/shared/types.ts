@@ -42,6 +42,13 @@ export interface MediaProperties {
   frame_rate?: string;
 }
 
+export interface BatchStatItem {
+  path: string;
+  size: number;
+  mtime_ms: number;
+  birthtime_ms: number;
+}
+
 export interface CropBounds {
   left: number;
   top: number;

@@ -46,7 +46,17 @@ export function createClips(deps: ClipsDeps) {
     mode: null,
   });
 
-  const clipPairs = $derived.by(() => computePairs(clipBoundaries));
+  let _clipPairsKey = "";
+  let _clipPairsCache: ClipPair[] = [];
+  const clipPairs = $derived.by(() => {
+    const key = clipBoundaries
+      .map((m) => `${m.id}:${m.time}:${m.kind}`)
+      .join("|");
+    if (key === _clipPairsKey) return _clipPairsCache;
+    _clipPairsKey = key;
+    _clipPairsCache = computePairs(clipBoundaries);
+    return _clipPairsCache;
+  });
   const clipCount = $derived(clipPairs.length);
 
   function _save() {

@@ -1,7 +1,39 @@
 use std::fs;
 use std::path::PathBuf;
 
+use crate::types::BatchStatItem;
 use crate::util::canonicalize_path;
+
+#[tauri::command]
+pub async fn batch_stat(paths: Vec<String>) -> Result<Vec<BatchStatItem>, String> {
+    let items = tauri::async_runtime::spawn_blocking(move || {
+        paths
+            .iter()
+            .map(|p| {
+                let meta = fs::metadata(p).ok();
+                BatchStatItem {
+                    path: p.clone(),
+                    size: meta.as_ref().map(|m| m.len()).unwrap_or(0),
+                    mtime_ms: meta
+                        .as_ref()
+                        .and_then(|m| m.modified().ok())
+                        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                        .map(|d| d.as_secs_f64() * 1000.0)
+                        .unwrap_or(0.0),
+                    birthtime_ms: meta
+                        .as_ref()
+                        .and_then(|m| m.created().ok())
+                        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                        .map(|d| d.as_secs_f64() * 1000.0)
+                        .unwrap_or(0.0),
+                }
+            })
+            .collect::<Vec<_>>()
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(items)
+}
 
 #[tauri::command]
 pub fn delete_file(path: String) -> Result<(), String> {
@@ -139,12 +171,17 @@ pub fn cleanup_temp_folder() {
 }
 
 #[tauri::command]
-pub fn get_files_total_size(paths: Vec<String>) -> Result<u64, String> {
-    let mut total: u64 = 0;
-    for p in &paths {
-        if let Ok(meta) = fs::metadata(p) {
-            total = total.saturating_add(meta.len());
+pub async fn get_files_total_size(paths: Vec<String>) -> Result<u64, String> {
+    let total = tauri::async_runtime::spawn_blocking(move || {
+        let mut total: u64 = 0;
+        for p in &paths {
+            if let Ok(meta) = fs::metadata(p) {
+                total = total.saturating_add(meta.len());
+            }
         }
-    }
+        total
+    })
+    .await
+    .map_err(|e| e.to_string())?;
     Ok(total)
 }

@@ -33,6 +33,7 @@ pub fn run() {
             copy_file,
             copy_file_unique,
             cleanup_temp_folder,
+            batch_stat,
             backup_file,
             get_clipboard_file_path,
             export_cropped_media,
@@ -68,7 +69,7 @@ pub fn run() {
             }
 
             app.manage(types::ThumbState {
-                sem: Semaphore::new(4),
+                sem: Semaphore::new(6),
             });
 
             util::cleanup_vyu_temp();

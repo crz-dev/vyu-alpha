@@ -1,15 +1,23 @@
-import { readDir, stat } from "@tauri-apps/plugin-fs";
+import { invoke } from "@tauri-apps/api/core";
+import { readDir } from "@tauri-apps/plugin-fs";
 import { ALL_EXTS } from "$lib/shared/constants";
 import type { SortMode } from "$lib/shared/constants";
+import type { BatchStatItem } from "$lib/shared/types";
 
 const FOLDER_CACHE_MAX = 50;
 const folderCache = new Map<string, string[]>();
 const folderCacheOrder: string[] = [];
+const folderPrefixIndex = new Map<string, Set<string>>();
 
 function evictOldestFolder() {
   while (folderCacheOrder.length > FOLDER_CACHE_MAX) {
     const oldest = folderCacheOrder.shift();
-    if (oldest) folderCache.delete(oldest);
+    if (oldest) {
+      folderCache.delete(oldest);
+      for (const [, set] of folderPrefixIndex) {
+        set.delete(oldest);
+      }
+    }
   }
 }
 
@@ -33,43 +41,27 @@ async function sortFileList(
     return desc ? sorted.reverse() : sorted;
   }
 
-  // Modes that need file stats — limit concurrency to avoid I/O thundering herd
-  const STAT_CONCURRENCY = 8;
-  const entries: {
-    path: string;
-    stat: Awaited<ReturnType<typeof stat>> | null;
-  }[] = [];
-  let idx = 0;
-  async function statWorker() {
-    while (idx < list.length) {
-      const i = idx++;
-      const path = list[i];
-      try {
-        const s = await stat(path);
-        entries[i] = { path, stat: s };
-      } catch {
-        entries[i] = { path, stat: null };
-      }
-    }
+  // Modes that need file stats — batch-query via single IPC call
+  const items: BatchStatItem[] = await invoke("batch_stat", { paths: list });
+  const statMap = new Map<string, BatchStatItem>();
+  for (const item of items) {
+    statMap.set(item.path, item);
   }
-  await Promise.all(
-    Array.from({ length: Math.min(STAT_CONCURRENCY, list.length) }, () =>
-      statWorker(),
-    ),
-  );
+
+  const entries = list.map((path) => ({ path, stat: statMap.get(path) ?? null }));
 
   entries.sort((a, b) => {
     let cmp = 0;
     switch (mode) {
       case "date-modified": {
-        const aTime = getStatTime(a.stat, "mtime");
-        const bTime = getStatTime(b.stat, "mtime");
+        const aTime = a.stat?.mtime_ms ?? 0;
+        const bTime = b.stat?.mtime_ms ?? 0;
         cmp = aTime - bTime;
         break;
       }
       case "date-created": {
-        const aTime = getStatTime(a.stat, "birthtime");
-        const bTime = getStatTime(b.stat, "birthtime");
+        const aTime = a.stat?.birthtime_ms ?? 0;
+        const bTime = b.stat?.birthtime_ms ?? 0;
         cmp = aTime - bTime;
         break;
       }
@@ -95,30 +87,6 @@ async function sortFileList(
   return desc ? sorted.reverse() : sorted;
 }
 
-function getStatTime(
-  s: {
-    size: number;
-    birthtime?: unknown;
-    mtime?: unknown;
-    birthtimeMs?: unknown;
-    mtimeMs?: unknown;
-    createdAt?: unknown;
-    modifiedAt?: unknown;
-  } | null,
-  kind: "mtime" | "birthtime",
-): number {
-  if (!s) return 0;
-  const raw =
-    kind === "mtime"
-      ? (s.mtime ?? s.mtimeMs ?? s.modifiedAt)
-      : (s.birthtime ?? s.birthtimeMs ?? s.createdAt);
-  if (raw === undefined || raw === null) return 0;
-  const n = typeof raw === "number" ? raw : Number(raw);
-  if (!Number.isFinite(n)) return 0;
-  // Some platforms return seconds, others milliseconds
-  return n < 10_000_000_000 ? n * 1000 : n;
-}
-
 function getExt(filePath: string): string {
   const name = getFileName(filePath);
   const lastDot = name.lastIndexOf(".");
@@ -142,6 +110,8 @@ export async function readMediaFilesInFolder(
   const sorted = await sortFileList(list, mode, desc);
   folderCache.set(key, sorted);
   folderCacheOrder.push(key);
+  if (!folderPrefixIndex.has(folder)) folderPrefixIndex.set(folder, new Set());
+  folderPrefixIndex.get(folder)!.add(key);
   evictOldestFolder();
   return sorted;
 }
@@ -166,19 +136,19 @@ export async function rescanFolder(
 
 export function clearFolderCache(folder?: string): void {
   if (folder) {
-    // Clear all cache entries whose key starts with this folder path
-    const keysToDelete: string[] = [];
-    for (const key of folderCache.keys()) {
-      if (key.startsWith(folder)) keysToDelete.push(key);
-    }
-    for (const key of keysToDelete) {
-      folderCache.delete(key);
-      const idx = folderCacheOrder.indexOf(key);
-      if (idx !== -1) folderCacheOrder.splice(idx, 1);
+    const keys = folderPrefixIndex.get(folder);
+    if (keys) {
+      for (const key of keys) {
+        folderCache.delete(key);
+        const idx = folderCacheOrder.indexOf(key);
+        if (idx !== -1) folderCacheOrder.splice(idx, 1);
+      }
+      folderPrefixIndex.delete(folder);
     }
   } else {
     folderCache.clear();
     folderCacheOrder.length = 0;
+    folderPrefixIndex.clear();
   }
 }
 

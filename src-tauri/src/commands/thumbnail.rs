@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::time::UNIX_EPOCH;
+use std::time::{SystemTime, UNIX_EPOCH};
 use image::GenericImageView;
 use tauri::Manager;
 
@@ -24,6 +24,19 @@ pub fn thumb_cache_dir(app: &tauri::AppHandle) -> PathBuf {
 fn thumbnail_via_image_crate(path: &Path, thumb_path: &Path, src_path: &Path, short_side: u32) -> Result<Vec<u8>, String> {
     let img = image::open(path).map_err(|e| format!("Failed to open image: {e}"))?;
     let (w, h) = img.dimensions();
+    // Skip resize if already at or below target
+    if w <= short_side && h <= short_side {
+        // Image is smaller than thumbnail target — encode directly
+        let mut jpeg_bytes: Vec<u8> = Vec::new();
+        let mut encoder =
+            image::codecs::jpeg::JpegEncoder::new_with_quality(&mut jpeg_bytes, THUMB_JPEG_QUALITY);
+        encoder
+            .encode(img.as_bytes(), w, h, img.color().into())
+            .map_err(|e| format!("JPEG encode error: {e}"))?;
+        let _ = fs::write(thumb_path, &jpeg_bytes);
+        let _ = fs::write(src_path, path.to_string_lossy().as_ref());
+        return Ok(jpeg_bytes);
+    }
     let (nw, nh) = if w > h {
         (
             ((w as f64) * (short_side as f64) / (h as f64)).round() as u32,
@@ -258,25 +271,73 @@ pub async fn get_thumbnail(
     .await
     .map_err(|e| format!("Thread join error: {e}"))??;
 
+    // Evict old cache entries if over limit (fire-and-forget)
+    let cache_dir_c = cache_dir.clone();
+    let _ = std::thread::spawn(move || {
+        try_evict_cache(&cache_dir_c);
+    });
+
     Ok(format_data_url(&jpeg_bytes))
+}
+
+/// Returns the total size in bytes of all cached thumbnail JPEGs in a given directory.
+fn compute_cache_size(cache_dir: &Path) -> u64 {
+    let Ok(entries) = fs::read_dir(cache_dir) else {
+        return 0;
+    };
+    let mut total: u64 = 0;
+    for entry in entries.flatten() {
+        if entry.path().extension().map_or(false, |e| e == "jpg") {
+            total += entry.metadata().map(|m| m.len()).unwrap_or(0);
+        }
+    }
+    total
+}
+
+/// Soft eviction: if cache exceeds MAX_CACHE_BYTES, remove oldest entries until under limit.
+const MAX_CACHE_BYTES: u64 = 500 * 1024 * 1024;
+
+fn try_evict_cache(cache_dir: &Path) {
+    let total = compute_cache_size(cache_dir);
+    if total <= MAX_CACHE_BYTES {
+        return;
+    }
+    let Ok(entries) = fs::read_dir(cache_dir) else {
+        return;
+    };
+    let mut jpeg_entries: Vec<(PathBuf, SystemTime)> = Vec::new();
+    for entry in entries.flatten() {
+        let p = entry.path();
+        if p.extension().map_or(false, |e| e == "jpg") {
+            if let Ok(meta) = entry.metadata() {
+                if let Ok(mtime) = meta.modified() {
+                    jpeg_entries.push((p, mtime));
+                }
+            }
+        }
+    }
+    jpeg_entries.sort_by(|a, b| a.1.cmp(&b.1)); // oldest first
+    let mut freed: u64 = 0;
+    let target = total - MAX_CACHE_BYTES;
+    for (jpg_path, _) in &jpeg_entries {
+        if freed >= target {
+            break;
+        }
+        if let Ok(meta) = jpg_path.metadata() {
+            freed += meta.len();
+        }
+        let _ = fs::remove_file(jpg_path);
+        // Remove matching .src file
+        let src_path = jpg_path.with_extension("src");
+        let _ = fs::remove_file(src_path);
+    }
 }
 
 /// Returns the total size in bytes of all cached thumbnail JPEGs.
 #[tauri::command]
 pub async fn get_thumbnail_cache_size(app: tauri::AppHandle) -> Result<u64, String> {
     let cache_dir = thumb_cache_dir(&app);
-    if !cache_dir.exists() {
-        return Ok(0);
-    }
-    let mut total: u64 = 0;
-    let entries = fs::read_dir(&cache_dir).map_err(|e| e.to_string())?;
-    for entry in entries.flatten() {
-        let p = entry.path();
-        if p.extension().map_or(false, |e| e == "jpg") {
-            total += entry.metadata().map(|m| m.len()).unwrap_or(0);
-        }
-    }
-    Ok(total)
+    Ok(compute_cache_size(&cache_dir))
 }
 
 /// Deletes all files in the thumbnail cache folder and returns bytes freed.

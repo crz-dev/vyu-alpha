@@ -44,6 +44,14 @@ pub struct FixResult {
     pub error: String,
 }
 
+#[derive(serde::Serialize)]
+pub struct BatchStatItem {
+    pub path: String,
+    pub size: u64,
+    pub mtime_ms: f64,
+    pub birthtime_ms: f64,
+}
+
 /// Managed state for the thumbnail system — caps concurrent decode operations.
 pub struct ThumbState {
     pub sem: Semaphore,

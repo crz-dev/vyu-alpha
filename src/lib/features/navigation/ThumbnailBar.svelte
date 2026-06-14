@@ -31,6 +31,9 @@
   let trackWidth = $state(0);
   let scrollLeft = $state(0);
 
+  // ── RAF-throttled scroll ──
+  let _scrollRaf: number | null = null;
+
   // ── Animation gate ──
   // Thumbnails are NOT fetched until the open-transition finishes.
   let afterOpen = $state(false);
@@ -188,10 +191,13 @@
     }
   }
 
-  // ── Scroll handlers ──
+  // ── Scroll handlers (RAF-throttled) ──
   function onScroll() {
-    if (trackEl) {
-      scrollLeft = trackEl.scrollLeft;
+    if (_scrollRaf === null) {
+      _scrollRaf = requestAnimationFrame(() => {
+        if (trackEl) scrollLeft = trackEl.scrollLeft;
+        _scrollRaf = null;
+      });
     }
   }
 
