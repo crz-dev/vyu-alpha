@@ -1,7 +1,0 @@
-.svelte-kit/
-build/
-src-tauri/target/
-src-tauri/gen/
-pnpm-lock.yaml
-*.wasm
-*.lock
