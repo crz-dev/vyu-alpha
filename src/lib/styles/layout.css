@@ -252,7 +252,7 @@ main:not(.fullscreen).thumbnail-bar-open.is-audio .viewer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 0 4px;
   flex-shrink: 0;
   position: relative;
   z-index: 91;
@@ -263,8 +263,9 @@ main:not(.fullscreen).thumbnail-bar-open.is-audio .viewer {
   color: var(--text-dim);
   font-family: var(--font-family);
   height: 36px;
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  margin-top: 2px;
 }
 
 .file-count {
@@ -274,6 +275,7 @@ main:not(.fullscreen).thumbnail-bar-open.is-audio .viewer {
   padding: 0 4px;
   border-radius: 3px;
   transition: color 0.2s;
+  margin-top: 2px;
 }
 
 .file-count:hover {
@@ -292,35 +294,42 @@ main:not(.fullscreen).thumbnail-bar-open.is-audio .viewer {
   display: flex;
   align-items: center;
   gap: 0px;
-  margin-right: -8px;
+  margin-right: 0;
 }
 
 .icon-slot {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 1px;
   transition:
-    opacity 0.25s ease,
-    transform 0.25s ease;
+    opacity 0.18s ease,
+    transform 0.18s cubic-bezier(0.22, 0.9, 0.3, 1);
   transform-origin: center;
 }
 
 .icon-slot.hidden {
   opacity: 0;
-  transform: scale(0.5) rotate(90deg);
+  transform: scale(0.84);
   pointer-events: none;
   position: absolute;
 }
 
 .icon-slot.viewer-right {
   gap: 0px;
-  margin-right: -8px;
+  margin-right: 0;
 }
 
 .file-info-wrapper {
-  flex: 1;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   justify-content: center;
+  pointer-events: none;
+}
+
+.file-info-wrapper > * {
+  pointer-events: auto;
 }
 .zoom {
   font-size: 12px;
@@ -333,8 +342,9 @@ main:not(.fullscreen).thumbnail-bar-open.is-audio .viewer {
   background: none;
   border: none;
   height: 36px;
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  margin-top: 2px;
 }
 .zoom:hover {
   color: var(--text-muted);
@@ -353,7 +363,7 @@ main:not(.fullscreen).thumbnail-bar-open.is-audio .viewer {
   transition: color 0.2s;
   height: 36px;
   width: 36px;
-  margin-top: -3px; /* adjust this value to move up/down */
+  margin-top: 0;
 }
 .fs-btn:hover {
   color: var(--text-muted);
