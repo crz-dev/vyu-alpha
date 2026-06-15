@@ -61,8 +61,17 @@
       : new Set<string>(),
   );
 
+  const isPlaceholderTab = $derived(
+    library.activeTab === "collections" || library.activeTab === "favorites",
+  );
+
+  const displayFiles = $derived.by(() => {
+    if (library.activeTab === "recents") return library.recentFiles;
+    return fileList;
+  });
+
   const sortedFiles = $derived.by(() => {
-    const files = [...fileList];
+    const files = [...displayFiles];
     const mode = library.sortMode;
     const desc = library.sortDesc;
     const statMap = library.stats;
@@ -391,6 +400,29 @@
   role="region"
   aria-label="File library"
 >
+  <div class="library-tabs">
+    <button
+      class="library-tab"
+      class:active={library.activeTab === "library"}
+      onclick={() => library.setActiveTab("library")}
+    >Library</button>
+    <button
+      class="library-tab"
+      class:active={library.activeTab === "recents"}
+      onclick={() => library.setActiveTab("recents")}
+    >Recents</button>
+    <button
+      class="library-tab"
+      class:active={library.activeTab === "collections"}
+      onclick={() => library.setActiveTab("collections")}
+    >Collections</button>
+    <button
+      class="library-tab"
+      class:active={library.activeTab === "favorites"}
+      onclick={() => library.setActiveTab("favorites")}
+    >Favorites</button>
+  </div>
+
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
     class="library-scroll"
@@ -402,6 +434,7 @@
     onwheel={onWheel}
     onmousedown={handleDragStart}
   >
+    {#if !isPlaceholderTab}
     {#if library.viewMode === "grid"}
       <div
         class="library-grid"
@@ -1094,8 +1127,9 @@
         {/each}
       </div>
     {/if}
+    {/if}
 
-    {#if fileList.length === 0}
+    {#if !isPlaceholderTab && displayFiles.length === 0}
       <div class="library-empty">
         <svg
           width="48"
@@ -1112,7 +1146,48 @@
             d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
           />
         </svg>
-        <span>No files in this folder</span>
+        <span>{library.activeTab === "recents" ? "No recent files" : "No files in this folder"}</span>
+      </div>
+    {/if}
+
+    {#if library.activeTab === "collections"}
+      <div class="library-placeholder-grid" style="grid-template-columns: repeat(auto-fill, minmax({gridMinCol}px, 1fr));">
+        <div class="library-placeholder-card">
+          <svg
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            opacity="0.4"
+          >
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </div>
+      </div>
+    {/if}
+
+    {#if library.activeTab === "favorites"}
+      <div class="library-placeholder-grid" style="grid-template-columns: repeat(auto-fill, minmax({gridMinCol}px, 1fr));">
+        <div class="library-placeholder-card">
+          <svg
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            opacity="0.4"
+          >
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+        </div>
       </div>
     {/if}
 
@@ -1138,6 +1213,54 @@
 
   .library-view.mounted {
     opacity: 1;
+  }
+
+  .library-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+    padding: 12px 24px 0;
+  }
+
+  .library-tab {
+    background: transparent;
+    border: none;
+    color: var(--text-muted, #888);
+    font-family: var(--font-family);
+    font-size: 13px;
+    padding: 6px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition:
+      background 0.15s,
+      color 0.15s;
+  }
+
+  .library-tab:hover {
+    background: var(--bg-secondary, #111);
+    color: var(--text-secondary, #ccc);
+  }
+
+  .library-tab.active {
+    background: var(--bg-elevated, #1a1a1a);
+    color: var(--text-primary, #fff);
+  }
+
+  .library-placeholder-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 6px;
+  }
+
+  .library-placeholder-card {
+    aspect-ratio: 1;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed var(--bg-border, #2a2a2a);
+    background: var(--bg-secondary, #111);
+    color: var(--text-muted, #888);
   }
 
   .library-scroll {

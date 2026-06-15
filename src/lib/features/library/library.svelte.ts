@@ -3,16 +3,29 @@ import {
   invokeGetFilesTotalSize,
   invokeBatchStat,
 } from "$lib/features/media/tools";
-import { loadViewDensity, saveViewDensity } from "$lib/services/storage";
+import {
+  loadViewDensity,
+  saveViewDensity,
+  loadRecentFiles,
+  saveRecentFiles,
+} from "$lib/services/storage";
 import type { SortMode } from "$lib/shared/constants";
 import type { BatchStatItem } from "$lib/shared/types";
 
 const MAX_CONCURRENT = 4;
 
+type LibraryTab = "library" | "recents" | "collections" | "favorites";
+
 function createLibrary() {
   const cache = $state<Record<string, string>>({});
   let pending: string[] = [];
   let inflight = 0;
+
+  // Active tab
+  let activeTab = $state<LibraryTab>("library");
+
+  // Recent files
+  let recentFiles = $state<string[]>(loadRecentFiles());
 
   // View mode
   let viewMode = $state<"grid" | "list" | "river" | "filmstrip">("grid");
@@ -102,6 +115,18 @@ function createLibrary() {
     viewMode = mode;
   }
 
+  function setActiveTab(tab: LibraryTab) {
+    activeTab = tab;
+  }
+
+  function addRecent(path: string) {
+    const idx = recentFiles.indexOf(path);
+    if (idx !== -1) recentFiles.splice(idx, 1);
+    recentFiles.unshift(path);
+    if (recentFiles.length > 20) recentFiles.length = 20;
+    saveRecentFiles(recentFiles);
+  }
+
   function setDensity(v: number) {
     density = Math.max(0, Math.min(1, v));
     saveViewDensity(density);
@@ -181,6 +206,14 @@ function createLibrary() {
     cancelPending,
     clearQueue,
     rebuildQueue,
+    get activeTab() {
+      return activeTab;
+    },
+    setActiveTab,
+    get recentFiles() {
+      return recentFiles;
+    },
+    addRecent,
     get viewMode() {
       return viewMode;
     },

@@ -393,3 +393,24 @@ export function loadViewDensity(): number {
 export function saveViewDensity(v: number): void {
   localStorage.setItem("vyu-view-density", String(Math.max(0, Math.min(1, v))));
 }
+
+const MAX_RECENT_FILES = 20;
+
+export function loadRecentFiles(): string[] {
+  const raw = localStorage.getItem("vyu-recent-files");
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.slice(0, MAX_RECENT_FILES);
+  } catch {
+    // corrupted — clear
+  }
+  return [];
+}
+
+export function saveRecentFiles(paths: string[]): void {
+  localStorage.setItem(
+    "vyu-recent-files",
+    JSON.stringify(paths.slice(0, MAX_RECENT_FILES)),
+  );
+}

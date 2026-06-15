@@ -14,6 +14,8 @@ import {
 } from "$lib/shared/media-kind";
 import type { VideoMarker, ClipBoundary } from "$lib/shared/types";
 import { formatMetaDate, getMetaValue } from "$lib/shared/file-meta";
+import { eqEngine } from "$lib/features/equalizer/equalizer-engine";
+import { library } from "$lib/features/library/library.svelte";
 
 export interface MediaState {
   filePath: string;
@@ -86,6 +88,7 @@ export function createMedia(
   }
 
   function releaseMediaResources() {
+    eqEngine.disconnect();
     const videoEl = videoElRef();
     if (videoEl) {
       videoEl.pause();
@@ -178,6 +181,7 @@ export function createMedia(
     finishLoadingCalled = false;
     set({ isLoadingFile: true, loadingFadingOut: false });
     await displayFile(path, set);
+    library.addRecent(path);
     try {
       const { readMediaFilesInFolder } = await import("$lib/services/files");
       const list = await readMediaFilesInFolder(path, sortMode, sortDesc);
