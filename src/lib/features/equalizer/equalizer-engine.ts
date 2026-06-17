@@ -117,6 +117,11 @@ class EqualizerEngine {
     }
     this.connectedElement = null;
 
+    // Tear down the effects chain so that the next connectMediaElement() call
+    // performs a full rebuild (including source→effects wiring) instead of
+    // short-circuiting on the cached graph whose input was just severed.
+    effectsEngine.teardown();
+
     // Snapshot the current graph nodes for deferred cleanup.  The instance
     // fields are nulled so that a subsequent connectMediaElement() can build
     // a new graph immediately while the old graph's gain ramp finishes.
