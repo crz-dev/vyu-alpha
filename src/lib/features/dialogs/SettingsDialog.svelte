@@ -167,6 +167,7 @@
   import { theme as themeStore } from "$lib/features/theme/theme.svelte";
   import { font as fontStore } from "$lib/features/font/font.svelte";
   import { glow as glowStore } from "$lib/features/glow/glow.svelte";
+  import { library } from "$lib/features/library/library.svelte";
   let uiMode = $state<"simple" | "advanced">("advanced");
   let transition = $state<"none" | "fade" | "slide">("fade");
   let glowLevel = $state(glowStore.level);
@@ -195,11 +196,6 @@
   let hardwareAcceleration = $state(true);
   let minimizeToTray = $state(false);
   let startOnLogin = $state(false);
-
-  let recentFilesLimit = $state<"10" | "25" | "50" | "100">("25");
-  let favoriteFilesEnabled = $state(true);
-  let autoScanFolders = $state(false);
-  let showThumbnails = $state(true);
 
   // Cache state
   let thumbnailCacheSizeText = $state("Calculating…");
@@ -1878,23 +1874,23 @@
                 <div class="pill-group pill-group-4">
                   <button
                     class="pill-btn"
-                    class:active={recentFilesLimit === "10"}
-                    onclick={() => (recentFilesLimit = "10")}>10</button
+                    class:active={library.recentFilesLimit === 10}
+                    onclick={() => library.setRecentFilesLimit(10)}>10</button
                   >
                   <button
                     class="pill-btn"
-                    class:active={recentFilesLimit === "25"}
-                    onclick={() => (recentFilesLimit = "25")}>25</button
+                    class:active={library.recentFilesLimit === 25}
+                    onclick={() => library.setRecentFilesLimit(25)}>25</button
                   >
                   <button
                     class="pill-btn"
-                    class:active={recentFilesLimit === "50"}
-                    onclick={() => (recentFilesLimit = "50")}>50</button
+                    class:active={library.recentFilesLimit === 50}
+                    onclick={() => library.setRecentFilesLimit(50)}>50</button
                   >
                   <button
                     class="pill-btn"
-                    class:active={recentFilesLimit === "100"}
-                    onclick={() => (recentFilesLimit = "100")}>100</button
+                    class:active={library.recentFilesLimit === 100}
+                    onclick={() => library.setRecentFilesLimit(100)}>100</button
                   >
                 </div>
               </div>
@@ -1911,14 +1907,17 @@
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  ><path
-                    d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"
+                  ><circle cx="12" cy="12" r="10" /><line
+                    x1="4.93"
+                    y1="4.93"
+                    x2="19.07"
+                    y2="19.07"
                   /></svg
                 >
                 <div class="settings-label-text">
-                  <span class="settings-label">Enable Favorites</span>
+                  <span class="settings-label">Disable Recents</span>
                   <span class="settings-hint"
-                    >Pin and quickly access favorite files</span
+                    >Stop recording newly opened files</span
                   >
                 </div>
               </div>
@@ -1926,14 +1925,52 @@
                 <label class="toggle-row">
                   <input
                     type="checkbox"
-                    checked={favoriteFilesEnabled}
+                    checked={library.recentsDisabled}
                     onchange={(e) =>
-                      (favoriteFilesEnabled = e.currentTarget.checked)}
+                      library.setRecentsDisabled(e.currentTarget.checked)}
                   />
-                  <span class="toggle-track" class:on={favoriteFilesEnabled}
+                  <span class="toggle-track" class:on={library.recentsDisabled}
                     ><span class="toggle-thumb"></span></span
                   >
                 </label>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-label-col">
+                <svg
+                  class="settings-row-icon"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  ><polyline points="3 6 5 6 21 6" /><path
+                    d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"
+                  /></svg
+                >
+                <div class="settings-label-text">
+                  <span class="settings-label">Clear Recents</span>
+                  <span class="settings-hint"
+                    >Remove all items from the recent files list</span
+                  >
+                </div>
+              </div>
+              <div class="settings-control">
+                <button
+                  class="settings-action-btn"
+                  onclick={() => {
+                    library.clearRecentFiles();
+                    showToast({
+                      message: "Recent files cleared",
+                      color: "green",
+                    });
+                  }}
+                >
+                  Clear
+                </button>
               </div>
             </div>
             <div class="settings-row">
@@ -1963,11 +2000,11 @@
                 <label class="toggle-row">
                   <input
                     type="checkbox"
-                    checked={autoScanFolders}
+                    checked={library.autoScanFolders}
                     onchange={(e) =>
-                      (autoScanFolders = e.currentTarget.checked)}
+                      library.setAutoScanFolders(e.currentTarget.checked)}
                   />
-                  <span class="toggle-track" class:on={autoScanFolders}
+                  <span class="toggle-track" class:on={library.autoScanFolders}
                     ><span class="toggle-thumb"></span></span
                   >
                 </label>
@@ -2013,10 +2050,11 @@
                 <label class="toggle-row">
                   <input
                     type="checkbox"
-                    checked={showThumbnails}
-                    onchange={(e) => (showThumbnails = e.currentTarget.checked)}
+                    checked={library.showThumbnails}
+                    onchange={(e) =>
+                      library.setShowThumbnails(e.currentTarget.checked)}
                   />
-                  <span class="toggle-track" class:on={showThumbnails}
+                  <span class="toggle-track" class:on={library.showThumbnails}
                     ><span class="toggle-thumb"></span></span
                   >
                 </label>

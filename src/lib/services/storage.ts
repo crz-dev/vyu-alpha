@@ -394,23 +394,60 @@ export function saveViewDensity(v: number): void {
   localStorage.setItem("vyu-view-density", String(Math.max(0, Math.min(1, v))));
 }
 
-const MAX_RECENT_FILES = 20;
-
-export function loadRecentFiles(): string[] {
+export function loadRecentFiles(limit = 20): string[] {
   const raw = localStorage.getItem("vyu-recent-files");
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed.slice(0, MAX_RECENT_FILES);
+    if (Array.isArray(parsed)) return parsed.slice(0, limit);
   } catch {
     // corrupted — clear
   }
   return [];
 }
 
-export function saveRecentFiles(paths: string[]): void {
+export function saveRecentFiles(paths: string[], limit = 20): void {
   localStorage.setItem(
     "vyu-recent-files",
-    JSON.stringify(paths.slice(0, MAX_RECENT_FILES)),
+    JSON.stringify(paths.slice(0, limit)),
   );
+}
+
+export function loadRecentFilesLimit(): number {
+  const raw = localStorage.getItem("vyu-recent-files-limit");
+  if (raw !== null) {
+    const v = parseInt(raw, 10);
+    if (v === 10 || v === 25 || v === 50 || v === 100) return v;
+  }
+  return 25;
+}
+
+export function saveRecentFilesLimit(limit: number): void {
+  localStorage.setItem("vyu-recent-files-limit", String(limit));
+}
+
+export function loadRecentsDisabled(): boolean {
+  return localStorage.getItem("vyu-recents-disabled") === "true";
+}
+
+export function saveRecentsDisabled(disabled: boolean): void {
+  localStorage.setItem("vyu-recents-disabled", String(disabled));
+}
+
+export function loadAutoScanFolders(): boolean {
+  return localStorage.getItem("vyu-auto-scan") === "true";
+}
+
+export function saveAutoScanFolders(enabled: boolean): void {
+  localStorage.setItem("vyu-auto-scan", String(enabled));
+}
+
+export function loadShowThumbnails(): boolean {
+  const v = localStorage.getItem("vyu-show-thumbnails");
+  if (v === null) return true;
+  return v === "true";
+}
+
+export function saveShowThumbnails(enabled: boolean): void {
+  localStorage.setItem("vyu-show-thumbnails", String(enabled));
 }

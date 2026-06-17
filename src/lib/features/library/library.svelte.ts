@@ -8,6 +8,14 @@ import {
   saveViewDensity,
   loadRecentFiles,
   saveRecentFiles,
+  loadRecentFilesLimit,
+  saveRecentFilesLimit,
+  loadRecentsDisabled,
+  saveRecentsDisabled,
+  loadAutoScanFolders,
+  saveAutoScanFolders,
+  loadShowThumbnails,
+  saveShowThumbnails,
 } from "$lib/services/storage";
 import type { SortMode } from "$lib/shared/constants";
 import type { BatchStatItem } from "$lib/shared/types";
@@ -25,7 +33,13 @@ function createLibrary() {
   let activeTab = $state<LibraryTab>("library");
 
   // Recent files
-  let recentFiles = $state<string[]>(loadRecentFiles());
+  let recentFilesLimit = $state(loadRecentFilesLimit());
+  let recentsDisabled = $state(loadRecentsDisabled());
+  let recentFiles = $state<string[]>(loadRecentFiles(recentFilesLimit));
+
+  // Library settings
+  let autoScanFolders = $state(loadAutoScanFolders());
+  let showThumbnails = $state(loadShowThumbnails());
 
   // View mode
   let viewMode = $state<"grid" | "list" | "river" | "filmstrip">("grid");
@@ -120,11 +134,42 @@ function createLibrary() {
   }
 
   function addRecent(path: string) {
+    if (recentsDisabled) return;
     const idx = recentFiles.indexOf(path);
     if (idx !== -1) recentFiles.splice(idx, 1);
     recentFiles.unshift(path);
-    if (recentFiles.length > 20) recentFiles.length = 20;
-    saveRecentFiles(recentFiles);
+    if (recentFiles.length > recentFilesLimit)
+      recentFiles.length = recentFilesLimit;
+    saveRecentFiles(recentFiles, recentFilesLimit);
+  }
+
+  function clearRecentFiles() {
+    recentFiles = [];
+    saveRecentFiles([], recentFilesLimit);
+  }
+
+  function setRecentFilesLimit(limit: number) {
+    recentFilesLimit = limit;
+    saveRecentFilesLimit(limit);
+    if (recentFiles.length > limit) {
+      recentFiles.length = limit;
+      saveRecentFiles(recentFiles, limit);
+    }
+  }
+
+  function setRecentsDisabled(disabled: boolean) {
+    recentsDisabled = disabled;
+    saveRecentsDisabled(disabled);
+  }
+
+  function setAutoScanFolders(enabled: boolean) {
+    autoScanFolders = enabled;
+    saveAutoScanFolders(enabled);
+  }
+
+  function setShowThumbnails(enabled: boolean) {
+    showThumbnails = enabled;
+    saveShowThumbnails(enabled);
   }
 
   function setDensity(v: number) {
@@ -214,6 +259,23 @@ function createLibrary() {
       return recentFiles;
     },
     addRecent,
+    clearRecentFiles,
+    get recentFilesLimit() {
+      return recentFilesLimit;
+    },
+    setRecentFilesLimit,
+    get recentsDisabled() {
+      return recentsDisabled;
+    },
+    setRecentsDisabled,
+    get autoScanFolders() {
+      return autoScanFolders;
+    },
+    setAutoScanFolders,
+    get showThumbnails() {
+      return showThumbnails;
+    },
+    setShowThumbnails,
     get viewMode() {
       return viewMode;
     },
