@@ -1633,6 +1633,58 @@ main.fs-controls-hidden .thumbnail-bar.fullscreen {
   font-weight: 600;
 }
 
+.library-item {
+  font-weight: 600;
+  position: relative;
+  overflow: hidden;
+}
+
+.library-sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask:
+    linear-gradient(var(--text-primary) 0 0) content-box,
+    linear-gradient(var(--text-primary) 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(var(--text-primary) 0 0) content-box,
+    linear-gradient(var(--text-primary) 0 0);
+  mask-composite: exclude;
+  padding: 4px;
+}
+
+.library-sweep::before {
+  content: "";
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  margin: -60px 0 0 -60px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    white 0%,
+    rgba(255, 255, 255, 0.8) 12%,
+    rgba(255, 255, 255, 0.3) 30%,
+    transparent 45%
+  );
+  offset-path: inset(0 round 6px);
+  offset-distance: 0%;
+  offset-rotate: 0deg;
+  animation: librarySweep 4.5s linear infinite;
+}
+
+@keyframes librarySweep {
+  from {
+    offset-distance: 0%;
+  }
+  to {
+    offset-distance: 100%;
+  }
+}
+
 @keyframes appDropdownIn {
   0% {
     opacity: 0;

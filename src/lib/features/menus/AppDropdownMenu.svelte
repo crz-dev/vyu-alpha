@@ -27,7 +27,7 @@
 {#if visible}
   <div class="app-dropdown-menu">
     <button
-      class="app-dropdown-item"
+      class="app-dropdown-item library-item"
       class:active={libraryOpen}
       onclick={() => {
         if (libraryOpen) {
@@ -38,6 +38,7 @@
         onClose();
       }}
     >
+      <span class="library-sweep"></span>
       <svg
         width="14"
         height="14"
