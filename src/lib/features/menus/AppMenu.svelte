@@ -210,7 +210,9 @@
       {onCloseLibrary}
     />
   </div>
-  <span class="divider">/</span>
+  {#if !libraryOpen || folderName}
+    <span class="divider">/</span>
+  {/if}
   {#if libraryOpen}
     {#if folderEditing}
       <input

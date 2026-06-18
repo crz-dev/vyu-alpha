@@ -47,6 +47,7 @@
 
   // Collection state
   let collectionFiles = $state<string[]>([]);
+  let collectionFolders = $state<string[]>([]);
   let collectionFirstFiles = $state<Record<string, string>>({});
   let renamingPath = $state<string | null>(null);
   let renameValue = $state("");
@@ -96,6 +97,30 @@
     library.activeTab === "collections" &&
       library.activeCollectionPath !== null,
   );
+
+  const breadcrumb = $derived.by(() => {
+    const path = library.activeCollectionPath;
+    if (!path) return [];
+    const sep = path.includes("\\") ? "\\" : "/";
+    const root = library.collections.find(
+      (c) => path === c.path || path.startsWith(c.path + sep),
+    );
+    if (!root) return [];
+    const segments: { label: string; path: string | null }[] = [
+      { label: "Collections", path: null },
+      { label: root.name, path: root.path },
+    ];
+    const relative = path.substring(root.path.length);
+    const stripped = relative.replace(/^[\\/]/, "");
+    if (!stripped) return segments;
+    const parts = stripped.split(/[\\/]/);
+    let acc = root.path;
+    for (const part of parts) {
+      acc += sep + part;
+      segments.push({ label: part, path: acc });
+    }
+    return segments;
+  });
 
   const showFileGrid = $derived(
     library.activeTab !== "collections" || isViewingCollection,
@@ -504,23 +529,34 @@
     const path = library.activeCollectionPath;
     if (!path) {
       collectionFiles = [];
+      collectionFolders = [];
       return;
     }
     (async () => {
       try {
         const sep = path.includes("\\") ? "\\" : "/";
         const entries = await readDir(path);
-        const files = entries
-          .filter((e) => ALL_EXTS.includes(getFileExt(e.name ?? "")))
-          .map((e) => `${path}${sep}${e.name}`);
-        files.sort((a, b) =>
+        const folders: string[] = [];
+        const files: string[] = [];
+        for (const e of entries) {
+          const full = `${path}${sep}${e.name}`;
+          if (e.isDirectory) {
+            folders.push(full);
+          } else if (ALL_EXTS.includes(getFileExt(e.name ?? ""))) {
+            files.push(full);
+          }
+        }
+        const sortFn = (a: string, b: string) =>
           getFileName(a).localeCompare(getFileName(b), undefined, {
             sensitivity: "base",
-          }),
-        );
+          });
+        folders.sort(sortFn);
+        files.sort(sortFn);
+        collectionFolders = folders;
         collectionFiles = files;
       } catch {
         collectionFiles = [];
+        collectionFolders = [];
       }
     })();
   });
@@ -633,8 +669,7 @@
         } else {
           library.setActiveTab("collections");
         }
-      }}
-      >Collections</button
+      }}>Collections</button
     >
     <button
       class="library-tab"
@@ -642,6 +677,26 @@
       onclick={() => library.setActiveTab("favorites")}>Favorites</button
     >
   </div>
+
+  {#if isViewingCollection}
+    <div class="library-collection-header">
+      {#each breadcrumb as seg, i}
+        {#if i > 0}
+          <span class="library-breadcrumb-sep">/</span>
+        {/if}
+        <button
+          class="library-breadcrumb-segment"
+          class:active={i === breadcrumb.length - 1}
+          onclick={() =>
+            seg.path === null
+              ? library.closeCollection()
+              : library.openCollection(seg.path)}
+        >
+          {seg.label}
+        </button>
+      {/each}
+    </div>
+  {/if}
 
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
@@ -697,6 +752,42 @@
                       />
                     </svg>
                   </div>
+                {/if}
+                {#if isViewingCollection}
+                  {#each collectionFolders as folderPath (folderPath)}
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div
+                      class="library-subfolder-card"
+                      role="button"
+                      tabindex="0"
+                      onclick={() => library.openCollection(folderPath)}
+                      onkeydown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          library.openCollection(folderPath);
+                        }
+                      }}
+                    >
+                      <svg
+                        class="library-subfolder-icon"
+                        width="32"
+                        height="32"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="var(--yellow-soft)"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path
+                          d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+                        />
+                      </svg>
+                      <div class="library-subfolder-name">
+                        {getFileName(folderPath)}
+                      </div>
+                    </div>
+                  {/each}
                 {/if}
                 {#each sortedFiles as path (path)}
                   {@const active = activePaths.has(path)}
@@ -1398,6 +1489,47 @@
                     <span class="list-col list-col-type"></span>
                   </div>
                 {/if}
+                {#if isViewingCollection}
+                  {#each collectionFolders as folderPath (folderPath)}
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div
+                      class="list-row list-subfolder-row"
+                      role="button"
+                      tabindex="0"
+                      onclick={() => library.openCollection(folderPath)}
+                      onkeydown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          library.openCollection(folderPath);
+                        }
+                      }}
+                    >
+                      <span class="list-col list-col-check"></span>
+                      <span class="list-col list-col-thumb">
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="var(--yellow-soft)"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path
+                            d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+                          />
+                        </svg>
+                      </span>
+                      <span class="list-col list-col-name">
+                        {getFileName(folderPath)}
+                      </span>
+                      <span class="list-col list-col-size"></span>
+                      <span class="list-col list-col-date"></span>
+                      <span class="list-col list-col-type">Folder</span>
+                    </div>
+                  {/each}
+                {/if}
                 {#each sortedFiles as path, idx (path)}
                   {@const active = activePaths.has(path)}
                   {@const selected = library.isSelected(path)}
@@ -1507,9 +1639,9 @@
             {/if}
           {/if}
 
-           {#if library.activeTab === "favorites" && displayFiles.length === 0}
+          {#if library.activeTab === "favorites" && displayFiles.length === 0}
             <div class="library-empty">
-                <svg
+              <svg
                 width="48"
                 height="48"
                 viewBox="0 0 24 24"
@@ -2076,6 +2208,47 @@
     cursor: pointer;
   }
 
+  /* Collection header / breadcrumb */
+  .library-collection-header {
+    font-family: var(--font-family);
+    font-size: 15px;
+    padding: 8px 24px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    flex-shrink: 0;
+  }
+
+  .library-breadcrumb-segment {
+    background: none;
+    border: none;
+    padding: 2px 0;
+    font-family: var(--font-family);
+    font-size: 15px;
+    color: var(--text-muted, #888);
+    cursor: pointer;
+    border-radius: 3px;
+    transition: color 0.1s;
+    white-space: nowrap;
+  }
+
+  .library-breadcrumb-segment:hover {
+    color: var(--text-primary, #ccc);
+  }
+
+  .library-breadcrumb-segment.active {
+    color: var(--text-primary, #ccc);
+    font-weight: 500;
+    cursor: default;
+  }
+
+  .library-breadcrumb-sep {
+    color: var(--text-dim, #555);
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
   .library-collection-card {
     aspect-ratio: 1;
     border-radius: 4px;
@@ -2335,6 +2508,43 @@
     gap: 6px;
   }
 
+  .library-subfolder-card {
+    aspect-ratio: 1;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border: 2px solid transparent;
+    transition:
+      border-color 0.1s,
+      transform 0.15s;
+    background: var(--bg-secondary, #111);
+  }
+
+  .library-subfolder-card:hover {
+    border-color: var(--border-hover, #555);
+    transform: scale(1.02);
+  }
+
+  .library-subfolder-icon {
+    flex-shrink: 0;
+  }
+
+  .library-subfolder-name {
+    font-family: var(--font-family);
+    font-size: 11px;
+    color: var(--text-primary, #fff);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90%;
+    padding: 0 4px;
+  }
+
   .library-cell {
     aspect-ratio: 1;
     border-radius: 4px;
@@ -2505,6 +2715,14 @@
     align-items: center;
     font-family: var(--font-family);
     border-bottom: 1px solid var(--bg-border, #2a2a2a);
+  }
+
+  .list-subfolder-row {
+    cursor: pointer;
+  }
+
+  .list-subfolder-row:hover {
+    background: var(--bg-elevated, #1a1a1a);
   }
 
   .list-row.even {
