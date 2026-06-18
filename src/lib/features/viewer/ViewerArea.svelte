@@ -81,6 +81,7 @@
     onMediaEnded,
     timelineProps,
     playbackProps,
+    audioMarkerProps,
     clips,
     setLoopMode,
     setVolume,
@@ -211,6 +212,7 @@
     anyMenuOpen: boolean;
     thumbnailBarVisible: boolean;
     resetZoom: () => void;
+    audioMarkerProps: Record<string, unknown>;
   } = $props();
 </script>
 
@@ -366,6 +368,7 @@
         bind:audioLayoutMode
         bind:cassetteFilenameOverflow
         bind:cassetteInfoRowEl
+        {audioMarkerProps}
       />
     {:else}
       <button class="empty" onclick={openFileDialog}

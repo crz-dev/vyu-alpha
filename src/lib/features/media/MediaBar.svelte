@@ -418,7 +418,7 @@
   />
 {/if}
 
-{#if isVideo && clipCount > 0 && !dismissed}
+{#if (isVideo || isAudio) && clipCount > 0 && !dismissed}
   <div
     class="clip-actions"
     class:pinned

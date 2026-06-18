@@ -73,6 +73,7 @@
     audioLayoutMode = $bindable(),
     cassetteFilenameOverflow = $bindable(),
     cassetteInfoRowEl = $bindable(),
+    audioMarkerProps,
   }: {
     fileSrc: string;
     filePath: string;
@@ -191,6 +192,7 @@
     audioLayoutMode: "retro" | "modern";
     cassetteFilenameOverflow: boolean;
     cassetteInfoRowEl: HTMLElement | null;
+    audioMarkerProps: Record<string, unknown>;
   } = $props();
 </script>
 
@@ -310,6 +312,7 @@
             {setLoopMode}
             audioEl={() => audioEl}
             onCenterClick={() => (showCdColorPicker = !showCdColorPicker)}
+            {audioMarkerProps}
           />
         {:else}
           <AudioModernLayout
@@ -364,6 +367,7 @@
             audioEl={() => audioEl}
             bind:cassetteFilenameOverflow
             bind:cassetteInfoRowEl
+            {audioMarkerProps}
           />
         {/if}
       </div>

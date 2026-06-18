@@ -62,6 +62,7 @@
     audioEl,
     cassetteFilenameOverflow = $bindable(),
     cassetteInfoRowEl = $bindable(),
+    audioMarkerProps,
   }: {
     fileName: string;
     filePath: string;
@@ -144,6 +145,7 @@
     audioEl: () => HTMLAudioElement | null;
     cassetteFilenameOverflow: boolean;
     cassetteInfoRowEl: HTMLElement | null;
+    audioMarkerProps: Record<string, unknown>;
   } = $props();
 
   const hasAnyMarkers = $derived(
@@ -241,6 +243,7 @@
       clipBoundaries={clips.clipBoundaries}
       {resumePoint}
       onScrubStart={startScrubbing}
+      {...audioMarkerProps}
     />
   </div>
   <div class="audio-modern-controls-row">

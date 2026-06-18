@@ -402,6 +402,32 @@
     loopMarkerJustDragged: markerStore.loopMarkerJustDragged,
     showLoopMarkerTooltip,
   });
+  const audioMarkerProps = $derived({
+    clipPairs: clips.clipPairs,
+    abLoopRegion: markerStore.abLoopRegion,
+    clipMarkerJustDragged: clips.clipMarkerJustDragged,
+    timestampDragJustEnded: markerStore.timestampDragJustEnded,
+    loopMarkerJustDragged: markerStore.loopMarkerJustDragged,
+    getTimestampPct,
+    startClipMarkerDrag,
+    removeClipBoundary,
+    showClipBoundaryTooltip,
+    hideTsTooltip,
+    seekToTimestamp,
+    openSegmentEditor,
+    startTimestampDrag,
+    removeTimestamp,
+    showTimestampTooltip,
+    openTimestampEditor,
+    showResumeTooltip,
+    hideResumeTooltip,
+    seekToResumePoint,
+    removeResumePoint,
+    clearABLoop,
+    formatTime,
+    startLoopMarkerDrag,
+    showLoopMarkerTooltip,
+  });
   const playbackProps = $derived({
     isGifVideo,
     isAudio,
@@ -1130,6 +1156,7 @@
       {anyMenuOpen}
       {thumbnailBarVisible}
       {resetZoom}
+      {audioMarkerProps}
     />
   {/snippet}
 </Shell>

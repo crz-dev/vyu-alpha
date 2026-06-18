@@ -63,6 +63,7 @@
     setLoopMode,
     audioEl,
     onCenterClick,
+    audioMarkerProps,
   }: {
     fileName: string;
     filePath: string;
@@ -163,6 +164,7 @@
     setLoopMode: (mode: LoopMode) => void;
     audioEl: () => HTMLAudioElement | null;
     onCenterClick: () => void;
+    audioMarkerProps: Record<string, unknown>;
   } = $props();
 
   const hasAnyMarkers = $derived(
@@ -248,6 +250,7 @@
           clipBoundaries={clips.clipBoundaries}
           {resumePoint}
           onScrubStart={startScrubbing}
+          {...audioMarkerProps}
         />
       </div>
       <div class="retro-controls-row">

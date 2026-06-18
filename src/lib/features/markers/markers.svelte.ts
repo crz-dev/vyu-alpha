@@ -149,7 +149,8 @@ export interface MarkerActionsDeps {
 
 function getProgressBar(): HTMLElement | null {
   return (document.querySelector(".fs-progress") ??
-    document.querySelector(".progress-bar")) as HTMLElement | null;
+    document.querySelector(".progress-bar") ??
+    document.querySelector(".audio-waveform-bar")) as HTMLElement | null;
 }
 
 export function createMarkerActions(deps: MarkerActionsDeps) {
@@ -242,7 +243,7 @@ export function createMarkerActions(deps: MarkerActionsDeps) {
     if (!ts) return;
     const markerEl = e.currentTarget as HTMLElement;
     const bar = markerEl.closest(
-      ".progress-bar, .fs-progress",
+      ".progress-bar, .fs-progress, .audio-waveform-bar",
     ) as HTMLElement | null;
     if (!bar) return;
     const barRect = bar.getBoundingClientRect();
@@ -263,7 +264,7 @@ export function createMarkerActions(deps: MarkerActionsDeps) {
     if (!b) return;
     const markerEl = e.currentTarget as HTMLElement;
     const bar = markerEl.closest(
-      ".progress-bar, .fs-progress",
+      ".progress-bar, .fs-progress, .audio-waveform-bar",
     ) as HTMLElement | null;
     if (!bar) return;
     const barRect = bar.getBoundingClientRect();
