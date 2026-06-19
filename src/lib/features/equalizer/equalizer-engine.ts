@@ -18,11 +18,12 @@ class EqualizerEngine {
 
   private stageMode: StageMode = null;
   private stageNodes: AudioNode[] = [];
-  private stageLfo: OscillatorNode | null = null;
+  private stagePanner: PannerNode | null = null;
+  private stageGainNode: GainNode | null = null;
+  private stageAnimFrame: number | null = null;
 
   private pendingCleanup: ReturnType<typeof setTimeout> | null = null;
   private orphanedNodes: AudioNode[] = [];
-  private orphanedLfo: OscillatorNode | null = null;
 
   getAnalyser(): AnalyserNode | null {
     return this.analyser;
@@ -125,30 +126,24 @@ class EqualizerEngine {
     // Snapshot the current graph nodes for deferred cleanup.  The instance
     // fields are nulled so that a subsequent connectMediaElement() can build
     // a new graph immediately while the old graph's gain ramp finishes.
+    if (this.stageAnimFrame !== null) {
+      cancelAnimationFrame(this.stageAnimFrame);
+      this.stageAnimFrame = null;
+    }
+    this.stageGainNode = null;
+    this.stagePanner = null;
+
     this.orphanedNodes = [
       ...this.filters,
       ...(this.outputGain ? [this.outputGain] : []),
       ...(this.analyser ? [this.analyser] : []),
       ...this.stageNodes,
     ];
-    this.orphanedLfo = this.stageLfo;
     this.filters = [];
     this.outputGain = null;
     this.analyser = null;
     this.stageNodes = [];
-    this.stageLfo = null;
     this.stageMode = null;
-
-    // Disconnect the orphaned stage LFO immediately (it is an audio source
-    // that keeps producing output until stopped; stopping it does not produce
-    // an audible click when the outputGain ramp is still running).
-    if (this.orphanedLfo) {
-      try {
-        this.orphanedLfo.stop();
-      } catch {
-        /* already stopped */
-      }
-    }
 
     // Allow the 30ms gain ramp to complete before tearing down the graph.
     this.pendingCleanup = setTimeout(() => {
@@ -175,14 +170,6 @@ class EqualizerEngine {
       }
     }
     this.orphanedNodes = [];
-    if (this.orphanedLfo) {
-      try {
-        this.orphanedLfo.stop();
-      } catch {
-        /* already stopped */
-      }
-      this.orphanedLfo = null;
-    }
   }
 
   private cleanup(): void {
@@ -290,14 +277,12 @@ class EqualizerEngine {
   }
 
   private teardownStage(): void {
-    if (this.stageLfo) {
-      try {
-        this.stageLfo.stop();
-      } catch {
-        /* already stopped */
-      }
-      this.stageLfo = null;
+    if (this.stageAnimFrame !== null) {
+      cancelAnimationFrame(this.stageAnimFrame);
+      this.stageAnimFrame = null;
     }
+    this.stageGainNode = null;
+    this.stagePanner = null;
     for (const node of this.stageNodes) {
       try {
         node.disconnect();
@@ -391,30 +376,51 @@ class EqualizerEngine {
     }
 
     if (mode === "eightD") {
-      const panner = this.ctx.createStereoPanner();
-      const lfo = this.ctx.createOscillator();
-      const lfoGain = this.ctx.createGain();
+      const gain = this.ctx.createGain();
+      gain.gain.value = 1;
 
-      lfo.type = "sine";
-      lfo.frequency.value = 1 / 8;
-      lfoGain.gain.value = 1;
+      const panner = this.ctx.createPanner();
+      panner.panningModel = "HRTF";
+      panner.distanceModel = "linear";
+      panner.rolloffFactor = 0;
+      panner.positionY.value = 0;
 
-      lfo.connect(lfoGain);
-      lfoGain.connect(panner.pan);
-      lfo.start();
-
-      this.analyser.connect(panner);
+      this.analyser.connect(gain);
+      gain.connect(panner);
       panner.connect(this.ctx.destination);
 
-      this.stageLfo = lfo;
-      this.stageNodes = [panner, lfoGain];
+      this.stageGainNode = gain;
+      this.stagePanner = panner;
+      this.stageNodes = [gain, panner];
+      this.startOrbitalAnimation();
       return;
     }
+  }
+
+  private startOrbitalAnimation(): void {
+    const animate = () => {
+      if (!this.stagePanner || !this.stageGainNode || !this.ctx) return;
+      const speed = (2 * Math.PI) / 14;
+      const angle = this.ctx.currentTime * speed;
+      const x = Math.cos(angle);
+      this.stagePanner.positionX.value = x;
+      this.stagePanner.positionZ.value = Math.sin(angle);
+      this.stageGainNode.gain.value = 0.85 + Math.abs(x) * 0.3;
+      this.stageAnimFrame = requestAnimationFrame(animate);
+    };
+    this.stageAnimFrame = requestAnimationFrame(animate);
   }
 
   destroy(): void {
     this.cancelPendingCleanup();
     effectsEngine.destroy();
+
+    if (this.stageAnimFrame !== null) {
+      cancelAnimationFrame(this.stageAnimFrame);
+      this.stageAnimFrame = null;
+    }
+    this.stageGainNode = null;
+    this.stagePanner = null;
 
     // Ramp output gain to zero before tearing down to avoid pop/crackle
     if (this.outputGain && this.ctx) {
@@ -440,21 +446,11 @@ class EqualizerEngine {
       ...(this.analyser ? [this.analyser] : []),
       ...this.stageNodes,
     ];
-    this.orphanedLfo = this.stageLfo;
     this.filters = [];
     this.outputGain = null;
     this.analyser = null;
     this.stageNodes = [];
-    this.stageLfo = null;
     this.stageMode = null;
-
-    if (this.orphanedLfo) {
-      try {
-        this.orphanedLfo.stop();
-      } catch {
-        /* already stopped */
-      }
-    }
 
     // Defer cleanup and context close so the audio thread can process the ramp
     const ctx = this.ctx;
