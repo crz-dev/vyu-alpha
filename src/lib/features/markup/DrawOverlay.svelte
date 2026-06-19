@@ -551,7 +551,6 @@
     const cy = bbox.top + boxH / 2;
 
     ctx.save();
-    ctx.globalAlpha = 0.8;
     if (t.rotation !== 0) {
       ctx.translate(cx, cy);
       ctx.rotate(t.rotation);
@@ -899,7 +898,6 @@
     const hh = (s.height * h) / 2;
 
     ctx.save();
-    ctx.globalAlpha = 0.8;
     ctx.translate(cx, cy);
     ctx.rotate(s.rotation);
 
