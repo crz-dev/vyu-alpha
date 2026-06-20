@@ -655,3 +655,88 @@ main.fullscreen.thumbnail-bar-open .fs-file-count-pill {
 .sort-dir {
   gap: 6px;
 }
+
+/* Toggle buttons (Dividers / Names) */
+.underline-btn {
+  width: auto;
+  padding: 0 8px;
+  font-size: 11px;
+  font-family: var(--font-family);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+.underline-btn.underline-active {
+  color: var(--text-primary);
+}
+
+/* Divider section headers */
+.divider-header {
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  padding: 10px 0 6px;
+  border-bottom: 0.5px solid var(--bg-elevated);
+  margin-bottom: 6px;
+}
+
+/* Section header for filmstrip overlay */
+.filmstrip-section-header {
+  position: absolute;
+  top: 8px;
+  left: 28px;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.5);
+  padding: 4px 10px;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Filename label on thumbnails (Names toggle) */
+.file-name-label {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  right: 4px;
+  padding: 4px 6px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 4px;
+  font-family: var(--font-family);
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 1;
+  pointer-events: none;
+  transition: background 0.15s;
+}
+.library-cell:hover .file-name-label,
+.river-cell:hover .file-name-label,
+.filmstrip-cell:hover .file-name-label {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+/* List view divider separator row */
+.list-divider-row {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--bg-border);
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}

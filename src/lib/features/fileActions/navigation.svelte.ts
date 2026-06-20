@@ -104,7 +104,9 @@ export function createNavigation(deps: NavigationDeps) {
         deps.setFileList(list);
         deps.setCurrentIndex(index >= 0 ? index : 0);
       },
-      deps.getSortMode(),
+      (deps.getSortMode() === "date-opened"
+        ? "date-modified"
+        : deps.getSortMode()) as "name" | "date-modified" | "size" | "type",
       deps.getSortDesc(),
     );
     // Start watching the parent folder

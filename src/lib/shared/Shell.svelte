@@ -21,6 +21,7 @@
   import FeedbackDialog from "$lib/features/dialogs/FeedbackDialog.svelte";
   import Toast from "$lib/shared/Toast.svelte";
   import { fade } from "svelte/transition";
+  import type { SortMode } from "$lib/shared/constants";
   import type {
     ContextMenu,
     VideoMarker,
@@ -256,15 +257,12 @@
     slideshowMenuVisible: boolean;
     closeSlideshowMenu: () => void;
     toggleThumbnailBar: () => void;
-    sortMode: "name" | "date-modified" | "size" | "type";
+    sortMode: SortMode;
     sortDesc: boolean;
     sortMenuVisible: boolean;
     toggleSortMenu: () => void;
     closeSortMenu: () => void;
-    onSortChange: (
-      mode: "name" | "date-modified" | "size" | "type",
-      desc: boolean,
-    ) => void;
+    onSortChange: (mode: SortMode, desc: boolean) => void;
     onRenamed: (newPath: string) => Promise<void>;
     onFolderRenamed?: (newFolderPath: string) => void;
     navigate: (dir: number) => void;

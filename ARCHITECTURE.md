@@ -41,6 +41,7 @@ Before creating code, find the existing owner.
 | Shared types                             | `shared/types.ts`                                    |
 | Keybinds                                 | `shared/keybinds.ts`                                 |
 | Library view                             | `features/library/*`                                 |
+| Library section grouping                | `features/library/sections.ts`                       |
 | Toasts                                   | `features/toast/*`                                   |
 | Media-kind detection                     | `shared/media-kind.ts`                               |
 | Shared UI primitives                     | `shared/*.svelte`                                    |

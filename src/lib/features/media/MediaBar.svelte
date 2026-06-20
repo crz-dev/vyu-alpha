@@ -9,11 +9,25 @@
   import { SORT_MODES } from "$lib/shared/constants";
   import type { SortMode } from "$lib/shared/constants";
 
+  const RECENTS_SORT_MODES = [
+    { value: "date-opened", label: "Date opened" },
+    ...SORT_MODES.map((m) => ({ value: m.value, label: m.label })),
+  ];
+
+  function toggleDividers() {
+    library.dividersOn = !library.dividersOn;
+  }
+
+  function toggleNames() {
+    library.namesOn = !library.namesOn;
+  }
+
   const SORT_ICONS: Record<string, string> = {
     name: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="14" y2="18"/></svg>`,
-    "date-modified": `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+    "date-modified": `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
     size: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>`,
     type: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
+    "date-opened": `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
   };
 
   const VIEW_ICONS: Record<string, string> = {
@@ -140,15 +154,12 @@
     closeSlideshowMenu: () => void;
     thumbnailBarVisible: boolean;
     toggleThumbnailBar: () => void;
-    sortMode: "name" | "date-modified" | "size" | "type";
+    sortMode: SortMode;
     sortDesc: boolean;
     sortMenuVisible: boolean;
     toggleSortMenu: () => void;
     closeSortMenu: () => void;
-    onSortChange: (
-      mode: "name" | "date-modified" | "size" | "type",
-      desc: boolean,
-    ) => void;
+    onSortChange: (mode: SortMode, desc: boolean) => void;
     editMenuVisible?: boolean;
     markupMenuVisible?: boolean;
     editMenuMoved?: boolean;
@@ -288,6 +299,17 @@
         {/key}
       </button>
     </div>
+    <div class="icon-slot" class:hidden={!libraryOpen}>
+      <button
+        class="fs-btn underline-btn tooltip-above-shift-right"
+        class:underline-active={library.dividersOn}
+        data-tooltip="Section headers"
+        onclick={toggleDividers}
+        aria-label="toggle dividers"
+      >
+        Dividers
+      </button>
+    </div>
   </div>
   <div class="file-info-wrapper">
     {#if libraryOpen}
@@ -364,6 +386,17 @@
     </div>
     <div class="icon-slot" class:hidden={!libraryOpen}>
       <button
+        class="fs-btn underline-btn tooltip-above-shift-left"
+        class:underline-active={library.namesOn}
+        data-tooltip="File labels"
+        onclick={toggleNames}
+        aria-label="toggle names"
+      >
+        Names
+      </button>
+    </div>
+    <div class="icon-slot" class:hidden={!libraryOpen}>
+      <button
         class="lib-view-toggle fs-btn tooltip-above-shift-left"
         class:menu-active={viewMenuVisible}
         data-tooltip="View mode"
@@ -410,6 +443,10 @@
     sortMode={library.sortMode}
     sortDesc={library.sortDesc}
     onSortChange={handleLibSortChange}
+    modes={library.activeTab === "recents"
+      ? RECENTS_SORT_MODES
+      : SORT_MODES}
+    separatorIndex={library.activeTab === "recents" ? 0 : -1}
   />
 {/if}
 

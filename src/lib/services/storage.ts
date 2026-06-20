@@ -402,22 +402,41 @@ export function saveViewDensity(v: number): void {
   localStorage.setItem("vyu-view-density", String(Math.max(0, Math.min(1, v))));
 }
 
-export function loadRecentFiles(limit = 20): string[] {
+export interface RecentFileItem {
+  path: string;
+  openedAt: number;
+}
+
+export function loadRecentFiles(limit = 20): RecentFileItem[] {
   const raw = localStorage.getItem("vyu-recent-files");
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed.slice(0, limit);
+    if (Array.isArray(parsed)) {
+      // Migrate from old format (string[]) to new format (RecentFileItem[])
+      if (parsed.length > 0 && typeof parsed[0] === "string") {
+        const now = Date.now();
+        const migrated: RecentFileItem[] = parsed.map(
+          (p: string, i: number) => ({
+            path: p,
+            openedAt: now - i * 1000,
+          }),
+        );
+        saveRecentFiles(migrated, limit);
+        return migrated.slice(0, limit);
+      }
+      return parsed.slice(0, limit);
+    }
   } catch {
     // corrupted — clear
   }
   return [];
 }
 
-export function saveRecentFiles(paths: string[], limit = 20): void {
+export function saveRecentFiles(items: RecentFileItem[], limit = 20): void {
   localStorage.setItem(
     "vyu-recent-files",
-    JSON.stringify(paths.slice(0, limit)),
+    JSON.stringify(items.slice(0, limit)),
   );
 }
 

@@ -21,7 +21,7 @@ import {
   loadFavorites,
   saveFavorites,
 } from "$lib/services/storage";
-import type { CollectionItem } from "$lib/services/storage";
+import type { CollectionItem, RecentFileItem } from "$lib/services/storage";
 import { exists } from "@tauri-apps/plugin-fs";
 import {
   getCached as sharedGetCached,
@@ -45,7 +45,14 @@ function createLibrary() {
   // Recent files
   let recentFilesLimit = $state(loadRecentFilesLimit());
   let recentsDisabled = $state(loadRecentsDisabled());
-  let recentFiles = $state<string[]>(loadRecentFiles(recentFilesLimit));
+  let recentFiles = $state<RecentFileItem[]>(loadRecentFiles(recentFilesLimit));
+  let recentTimestamps = $derived.by(() => {
+    const map: Record<string, number> = {};
+    for (const item of recentFiles) {
+      map[item.path] = item.openedAt;
+    }
+    return map;
+  });
 
   // Library settings
   let autoScanFolders = $state(loadAutoScanFolders());
@@ -60,6 +67,8 @@ function createLibrary() {
   // Sort state (independent from main view)
   let sortMode = $state<SortMode>("name");
   let sortDesc = $state(false);
+  let savedSortMode = $state<SortMode>("name");
+  let savedSortDesc = $state(false);
 
   // Total size
   let totalSize = $state(0);
@@ -68,6 +77,10 @@ function createLibrary() {
   // Stat cache for sort by size/date-modified
   let stats = $state<Record<string, BatchStatItem>>({});
   let statsLoading = $state(false);
+
+  // Dividers / Names toggle
+  let dividersOn = $state(false);
+  let namesOn = $state(false);
 
   // Multi-select state
   let selectedPaths = $state<Record<string, boolean>>({});
@@ -154,14 +167,23 @@ function createLibrary() {
   }
 
   function setActiveTab(tab: LibraryTab) {
+    if (tab === "recents" && activeTab !== "recents") {
+      savedSortMode = sortMode;
+      savedSortDesc = sortDesc;
+      sortMode = "date-opened";
+      sortDesc = true;
+    } else if (activeTab === "recents" && tab !== "recents") {
+      sortMode = savedSortMode;
+      sortDesc = savedSortDesc;
+    }
     activeTab = tab;
   }
 
   function addRecent(path: string) {
     if (recentsDisabled) return;
-    const idx = recentFiles.indexOf(path);
+    const idx = recentFiles.findIndex((r) => r.path === path);
     if (idx !== -1) recentFiles.splice(idx, 1);
-    recentFiles.unshift(path);
+    recentFiles.unshift({ path, openedAt: Date.now() });
     if (recentFiles.length > recentFilesLimit)
       recentFiles.length = recentFilesLimit;
     saveRecentFiles(recentFiles, recentFilesLimit);
@@ -179,6 +201,10 @@ function createLibrary() {
       recentFiles.length = limit;
       saveRecentFiles(recentFiles, limit);
     }
+  }
+
+  function getRecentPaths(): string[] {
+    return recentFiles.map((r) => r.path);
   }
 
   function setRecentsDisabled(disabled: boolean) {
@@ -353,6 +379,10 @@ function createLibrary() {
       return recentFilesLimit;
     },
     setRecentFilesLimit,
+    get recentTimestamps() {
+      return recentTimestamps;
+    },
+    getRecentPaths,
     get recentsDisabled() {
       return recentsDisabled;
     },
@@ -380,6 +410,18 @@ function createLibrary() {
       return sortDesc;
     },
     setSortMode,
+    get dividersOn() {
+      return dividersOn;
+    },
+    set dividersOn(v: boolean) {
+      dividersOn = v;
+    },
+    get namesOn() {
+      return namesOn;
+    },
+    set namesOn(v: boolean) {
+      namesOn = v;
+    },
     get totalSize() {
       return totalSize;
     },

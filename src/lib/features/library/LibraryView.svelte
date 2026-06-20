@@ -8,6 +8,7 @@
   import { getFileExt, getFileName } from "$lib/services/files";
   import { fade } from "svelte/transition";
   import { library } from "$lib/features/library/library.svelte";
+  import { getSections, type Section } from "$lib/features/library/sections";
   import { open } from "@tauri-apps/plugin-dialog";
   import { readDir } from "@tauri-apps/plugin-fs";
   import {
@@ -127,7 +128,7 @@
   );
 
   const displayFiles = $derived.by(() => {
-    if (library.activeTab === "recents") return library.recentFiles;
+    if (library.activeTab === "recents") return library.getRecentPaths();
     if (library.activeTab === "favorites") return library.favorites;
     if (isViewingCollection) return collectionFiles;
     return fileList;
@@ -138,6 +139,7 @@
     const mode = library.sortMode;
     const desc = library.sortDesc;
     const statMap = library.stats;
+    const openTs = library.recentTimestamps;
     files.sort((a, b) => {
       let cmp = 0;
       if (mode === "name") {
@@ -152,6 +154,10 @@
         const aTime = statMap[a]?.mtime_ms ?? 0;
         const bTime = statMap[b]?.mtime_ms ?? 0;
         cmp = aTime - bTime;
+      } else if (mode === "date-opened") {
+        const aTime = openTs?.[a] ?? 0;
+        const bTime = openTs?.[b] ?? 0;
+        cmp = aTime - bTime;
       } else {
         cmp = a.localeCompare(b, undefined, { sensitivity: "base" });
       }
@@ -159,6 +165,37 @@
     });
     return files;
   });
+
+  const sections = $derived(
+    library.dividersOn
+      ? getSections(
+          sortedFiles,
+          library.sortMode,
+          library.stats,
+          library.recentTimestamps,
+        )
+      : [],
+  );
+
+  // For filmstrip — track which section label is currently visible
+  let filmstripSectionLabel = $state("");
+
+  // Build a quick path→section lookup when sections change
+  const pathSectionMap = $derived.by(() => {
+    const map = new Map<string, string>();
+    for (const s of sections) {
+      for (const p of s.items) {
+        map.set(p, s.label);
+      }
+    }
+    return map;
+  });
+
+  const displaySections = $derived(
+    library.dividersOn && sections.length > 0
+      ? sections
+      : [{ label: "", items: sortedFiles }],
+  );
 
   const allFilesSelected = $derived(
     sortedFiles.length > 0 && sortedFiles.every((p) => library.isSelected(p)),
@@ -613,6 +650,32 @@
     };
   });
 
+  function updateFilmstripSection() {
+    if (!scrollEl) return;
+    const filmstrip = scrollEl.querySelector(
+      ".library-filmstrip",
+    ) as HTMLElement | null;
+    if (!filmstrip) return;
+    const items = filmstrip.querySelectorAll<HTMLElement>("[data-path]");
+    const scrollLeft = filmstrip.scrollLeft;
+    const containerRight = scrollLeft + filmstrip.clientWidth;
+    // Find the first visible item
+    for (const el of items) {
+      const offset = el.offsetLeft;
+      const width = el.offsetWidth;
+      if (offset + width > scrollLeft && offset < containerRight) {
+        const path = el.dataset.path;
+        if (path) {
+          const label = pathSectionMap.get(path);
+          if (label && label !== filmstripSectionLabel) {
+            filmstripSectionLabel = label;
+          }
+        }
+        return;
+      }
+    }
+  }
+
   // Attach non-passive wheel listener directly on filmstrip for horizontal scroll
   $effect(() => {
     if (library.viewMode !== "filmstrip" || !scrollEl) return;
@@ -622,6 +685,10 @@
     ) as HTMLElement | null;
     if (!filmstrip) return;
     const el = filmstrip;
+
+    // Initial section detection
+    requestAnimationFrame(updateFilmstripSection);
+
     function onFilmstripWheel(e: WheelEvent) {
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
         e.preventDefault();
@@ -631,10 +698,19 @@
           0,
           Math.min(el.scrollLeft + e.deltaY, maxScroll),
         );
+        // Update section after scroll
+        requestAnimationFrame(updateFilmstripSection);
       }
     }
+    function onFilmstripScroll() {
+      requestAnimationFrame(updateFilmstripSection);
+    }
     el.addEventListener("wheel", onFilmstripWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onFilmstripWheel);
+    el.addEventListener("scroll", onFilmstripScroll);
+    return () => {
+      el.removeEventListener("wheel", onFilmstripWheel);
+      el.removeEventListener("scroll", onFilmstripScroll);
+    };
   });
 
   // Window-level drag handlers
@@ -801,155 +877,166 @@
                     </div>
                   {/each}
                 {/if}
-                {#each sortedFiles as path (path)}
-                  {@const active = activePaths.has(path)}
-                  {@const selected = library.isSelected(path)}
-                  {@const badge = getMediaBadge(path)}
-                  <div
-                    class="library-cell"
-                    class:active
-                    class:selected
-                    data-path={path}
-                    role="button"
-                    tabindex="0"
-                    onclick={(e) => {
-                      if (dragSuppressedClick) return;
-                      if (selectMode || e.ctrlKey || e.metaKey) {
-                        e.preventDefault();
-                        library.toggleSelect(path);
-                      } else {
-                        onSelect(path);
-                      }
-                    }}
-                    oncontextmenu={(e) => openLibCtxMenu(e, path)}
-                    onkeydown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
+                {#each displaySections as section (section.label || "all")}
+                  {#if section.label}
+                    <div
+                      class="divider-header"
+                      style="grid-column: 1 / -1;"
+                    >{section.label}</div>
+                  {/if}
+                  {#each section.items as path (path)}
+                    {@const active = activePaths.has(path)}
+                    {@const selected = library.isSelected(path)}
+                    {@const badge = getMediaBadge(path)}
+                    <div
+                      class="library-cell"
+                      class:active
+                      class:selected
+                      data-path={path}
+                      role="button"
+                      tabindex="0"
+                      onclick={(e) => {
+                        if (dragSuppressedClick) return;
                         if (selectMode || e.ctrlKey || e.metaKey) {
+                          e.preventDefault();
                           library.toggleSelect(path);
                         } else {
                           onSelect(path);
                         }
-                      }
-                    }}
-                  >
-                    {#if thumbFor(path)}
-                      <img
-                        class="library-thumb"
-                        src={thumbFor(path)}
-                        alt=""
-                        draggable="false"
-                      />
-                    {:else}
-                      <div class="library-placeholder"></div>
-                    {/if}
-                    <div
-                      class="library-checkbox"
-                      class:checked={selected}
-                      role="checkbox"
-                      tabindex="0"
-                      aria-checked={selected}
-                      aria-label="Select file"
-                      onclick={(e) => {
-                        e.stopPropagation();
-                        library.toggleSelect(path);
                       }}
+                      oncontextmenu={(e) => openLibCtxMenu(e, path)}
                       onkeydown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          e.stopPropagation();
-                          library.toggleSelect(path);
+                          if (selectMode || e.ctrlKey || e.metaKey) {
+                            library.toggleSelect(path);
+                          } else {
+                            onSelect(path);
+                          }
                         }
                       }}
                     >
-                      {#if selected}
-                        <svg
-                          width="10"
-                          height="10"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="3"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        >
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
+                      {#if thumbFor(path)}
+                        <img
+                          class="library-thumb"
+                          src={thumbFor(path)}
+                          alt=""
+                          draggable="false"
+                        />
+                      {:else}
+                        <div class="library-placeholder"></div>
+                      {/if}
+                      {#if library.namesOn}
+                        <div class="file-name-label">{getFileName(path)}</div>
+                      {/if}
+                      <div
+                        class="library-checkbox"
+                        class:checked={selected}
+                        role="checkbox"
+                        tabindex="0"
+                        aria-checked={selected}
+                        aria-label="Select file"
+                        onclick={(e) => {
+                          e.stopPropagation();
+                          library.toggleSelect(path);
+                        }}
+                        onkeydown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            library.toggleSelect(path);
+                          }
+                        }}
+                      >
+                        {#if selected}
+                          <svg
+                            width="10"
+                            height="10"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="3"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        {/if}
+                      </div>
+                      {#if badge === "video"}
+                        <div class="library-badge">
+                          <svg
+                            width="10"
+                            height="10"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <polygon points="5 3 19 12 5 21 5 3" />
+                          </svg>
+                        </div>
+                      {:else if badge === "gif"}
+                        <div class="library-badge">
+                          <svg
+                            width="10"
+                            height="10"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <polyline points="23 4 23 10 17 10" />
+                            <polyline points="1 20 1 14 7 14" />
+                            <path
+                              d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+                            />
+                          </svg>
+                        </div>
+                      {:else if badge === "audio"}
+                        <div class="library-badge">
+                          <svg
+                            width="10"
+                            height="10"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <path d="M9 18V5l12-2v13" />
+                            <circle cx="6" cy="18" r="3" />
+                            <circle cx="18" cy="16" r="3" />
+                          </svg>
+                        </div>
+                      {:else if badge === "pdf"}
+                        <div class="library-badge library-badge-pdf">
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <path
+                              d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+                            />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="9" y1="13" x2="15" y2="13" />
+                            <line x1="12" y1="13" x2="12" y2="18" />
+                          </svg>
+                        </div>
                       {/if}
                     </div>
-                    {#if badge === "video"}
-                      <div class="library-badge">
-                        <svg
-                          width="10"
-                          height="10"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2.5"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        >
-                          <polygon points="5 3 19 12 5 21 5 3" />
-                        </svg>
-                      </div>
-                    {:else if badge === "gif"}
-                      <div class="library-badge">
-                        <svg
-                          width="10"
-                          height="10"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2.5"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        >
-                          <polyline points="23 4 23 10 17 10" />
-                          <polyline points="1 20 1 14 7 14" />
-                          <path
-                            d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
-                          />
-                        </svg>
-                      </div>
-                    {:else if badge === "audio"}
-                      <div class="library-badge">
-                        <svg
-                          width="10"
-                          height="10"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2.5"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        >
-                          <path d="M9 18V5l12-2v13" />
-                          <circle cx="6" cy="18" r="3" />
-                          <circle cx="18" cy="16" r="3" />
-                        </svg>
-                      </div>
-                    {:else if badge === "pdf"}
-                      <div class="library-badge library-badge-pdf">
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="1.8"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        >
-                          <path
-                            d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
-                          />
-                          <polyline points="14 2 14 8 20 8" />
-                          <line x1="9" y1="13" x2="15" y2="13" />
-                          <line x1="12" y1="13" x2="12" y2="18" />
-                        </svg>
-                      </div>
-                    {/if}
-                  </div>
+                  {/each}
                 {/each}
               </div>
             {:else if library.viewMode === "river"}
@@ -1022,163 +1109,183 @@
                     </div>
                   {/each}
                 {/if}
-                {#each sortedFiles as path (path)}
-                  {@const active = activePaths.has(path)}
-                  {@const selected = library.isSelected(path)}
-                  {@const badge = getMediaBadge(path)}
-                  {@const dim = imageDims[path]}
-                  {@const ratio = dim ? dim.w / dim.h : 4 / 3}
-                  <div
-                    class="river-cell"
-                    class:active
-                    class:selected
-                    data-path={path}
-                    role="button"
-                    tabindex="0"
-                    style="height: {riverRowH}px; flex-grow: {ratio *
-                      riverRowH};"
-                    onclick={(e) => {
-                      if (dragSuppressedClick) return;
-                      if (selectMode || e.ctrlKey || e.metaKey) {
-                        e.preventDefault();
-                        library.toggleSelect(path);
-                      } else {
-                        onSelect(path);
-                      }
-                    }}
-                    oncontextmenu={(e) => openLibCtxMenu(e, path)}
-                    onkeydown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
+                {#each displaySections as section (section.label || "all")}
+                  {#if section.label}
+                    <div
+                      class="divider-header"
+                      style="width: 100%; flex-shrink: 0;"
+                    >{section.label}</div>
+                  {/if}
+                  {#each section.items as path (path)}
+                    {@const active = activePaths.has(path)}
+                    {@const selected = library.isSelected(path)}
+                    {@const badge = getMediaBadge(path)}
+                    {@const dim = imageDims[path]}
+                    {@const ratio = dim ? dim.w / dim.h : 4 / 3}
+                    <div
+                      class="river-cell"
+                      class:active
+                      class:selected
+                      data-path={path}
+                      role="button"
+                      tabindex="0"
+                      style="height: {riverRowH}px; flex-grow: {ratio *
+                        riverRowH};"
+                      onclick={(e) => {
+                        if (dragSuppressedClick) return;
                         if (selectMode || e.ctrlKey || e.metaKey) {
+                          e.preventDefault();
                           library.toggleSelect(path);
                         } else {
                           onSelect(path);
                         }
-                      }
-                    }}
-                  >
-                    {#if thumbFor(path)}
-                      <img
-                        class="river-thumb"
-                        src={thumbFor(path)}
-                        alt=""
-                        draggable="false"
-                        onload={(e) => onImageLoad(path, e)}
-                      />
-                    {:else}
-                      <div class="river-placeholder"></div>
-                    {/if}
-                    <div
-                      class="library-checkbox"
-                      class:checked={selected}
-                      role="checkbox"
-                      tabindex="0"
-                      aria-checked={selected}
-                      aria-label="Select file"
-                      onclick={(e) => {
-                        e.stopPropagation();
-                        library.toggleSelect(path);
                       }}
+                      oncontextmenu={(e) => openLibCtxMenu(e, path)}
                       onkeydown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          e.stopPropagation();
-                          library.toggleSelect(path);
+                          if (selectMode || e.ctrlKey || e.metaKey) {
+                            library.toggleSelect(path);
+                          } else {
+                            onSelect(path);
+                          }
                         }
                       }}
                     >
-                      {#if selected}
-                        <svg
-                          width="10"
-                          height="10"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="3"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        >
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
+                      {#if thumbFor(path)}
+                        <img
+                          class="river-thumb"
+                          src={thumbFor(path)}
+                          alt=""
+                          draggable="false"
+                          onload={(e) => onImageLoad(path, e)}
+                        />
+                      {:else}
+                        <div class="river-placeholder"></div>
                       {/if}
-                    </div>
-                    {#if badge}
+                      {#if library.namesOn}
+                        <div class="file-name-label">{getFileName(path)}</div>
+                      {/if}
                       <div
-                        class="library-badge"
-                        class:library-badge-pdf={badge === "pdf"}
+                        class="library-checkbox"
+                        class:checked={selected}
+                        role="checkbox"
+                        tabindex="0"
+                        aria-checked={selected}
+                        aria-label="Select file"
+                        onclick={(e) => {
+                          e.stopPropagation();
+                          library.toggleSelect(path);
+                        }}
+                        onkeydown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            library.toggleSelect(path);
+                          }
+                        }}
                       >
-                        {#if badge === "video"}
+                        {#if selected}
                           <svg
                             width="10"
                             height="10"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
-                            stroke-width="2.5"
+                            stroke-width="3"
                             stroke-linecap="round"
                             stroke-linejoin="round"
                           >
-                            <polygon points="5 3 19 12 5 21 5 3" />
-                          </svg>
-                        {:else if badge === "gif"}
-                          <svg
-                            width="10"
-                            height="10"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          >
-                            <polyline points="23 4 23 10 17 10" />
-                            <polyline points="1 20 1 14 7 14" />
-                            <path
-                              d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
-                            />
-                          </svg>
-                        {:else if badge === "audio"}
-                          <svg
-                            width="10"
-                            height="10"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          >
-                            <path d="M9 18V5l12-2v13" />
-                            <circle cx="6" cy="18" r="3" />
-                            <circle cx="18" cy="16" r="3" />
-                          </svg>
-                        {:else if badge === "pdf"}
-                          <svg
-                            width="12"
-                            height="12"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.8"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          >
-                            <path
-                              d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
-                            />
-                            <polyline points="14 2 14 8 20 8" />
-                            <line x1="9" y1="13" x2="15" y2="13" />
-                            <line x1="12" y1="13" x2="12" y2="18" />
+                            <polyline points="20 6 9 17 4 12" />
                           </svg>
                         {/if}
                       </div>
-                    {/if}
-                  </div>
+                      {#if badge}
+                        <div
+                          class="library-badge"
+                          class:library-badge-pdf={badge === "pdf"}
+                        >
+                          {#if badge === "video"}
+                            <svg
+                              width="10"
+                              height="10"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2.5"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            >
+                              <polygon points="5 3 19 12 5 21 5 3" />
+                            </svg>
+                          {:else if badge === "gif"}
+                            <svg
+                              width="10"
+                              height="10"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2.5"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            >
+                              <polyline points="23 4 23 10 17 10" />
+                              <polyline points="1 20 1 14 7 14" />
+                              <path
+                                d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+                              />
+                            </svg>
+                          {:else if badge === "audio"}
+                            <svg
+                              width="10"
+                              height="10"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2.5"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            >
+                              <path d="M9 18V5l12-2v13" />
+                              <circle cx="6" cy="18" r="3" />
+                              <circle cx="18" cy="16" r="3" />
+                            </svg>
+                          {:else if badge === "pdf"}
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            >
+                              <path
+                                d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+                              />
+                              <polyline points="14 2 14 8 20 8" />
+                              <line x1="9" y1="13" x2="15" y2="13" />
+                              <line x1="12" y1="13" x2="12" y2="18" />
+                            </svg>
+                          {/if}
+                        </div>
+                      {/if}
+                    </div>
+                  {/each}
                 {/each}
               </div>
             {:else if library.viewMode === "filmstrip"}
-              <div class="library-filmstrip">
+              <div class="library-filmstrip" style="position: relative;">
+                {#if library.dividersOn && filmstripSectionLabel}
+                  <div class="filmstrip-section-header" style="position: absolute; top: 8px; left: 28px; z-index: 5; pointer-events: none;">
+                    {#key filmstripSectionLabel}
+                      <span
+                        transition:fade={{ duration: 150 }}
+                      >{filmstripSectionLabel}</span>
+                    {/key}
+                  </div>
+                {/if}
                 {#if library.activeTab === "favorites"}
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
                   <div
@@ -1296,6 +1403,9 @@
                       />
                     {:else}
                       <div class="filmstrip-placeholder"></div>
+                    {/if}
+                    {#if library.namesOn}
+                      <div class="file-name-label">{getFileName(path)}</div>
                     {/if}
                     <div
                       class="library-checkbox"
@@ -1614,110 +1724,121 @@
                     </div>
                   {/each}
                 {/if}
-                {#each sortedFiles as path, idx (path)}
-                  {@const active = activePaths.has(path)}
-                  {@const selected = library.isSelected(path)}
-                  {@const stat = library.stats[path]}
-                  <div
-                    class="list-row"
-                    class:active
-                    class:selected
-                    class:even={idx % 2 === 0}
-                    data-path={path}
-                    role="button"
-                    tabindex="0"
-                    onclick={(e) => {
-                      if (dragSuppressedClick) return;
-                      if (e.shiftKey) {
-                        if (lastClickedIndex !== null) {
-                          const start = Math.min(lastClickedIndex, idx);
-                          const end = Math.max(lastClickedIndex, idx);
-                          const range = sortedFiles.slice(start, end + 1);
-                          library.selectRange(range);
+                {#each displaySections as section (section.label || "all")}
+                  {#if section.label}
+                    <div class="list-divider-row">
+                      {section.label}
+                    </div>
+                  {/if}
+                  {#each section.items as path, idx (path)}
+                    {@const active = activePaths.has(path)}
+                    {@const selected = library.isSelected(path)}
+                    {@const stat = library.stats[path]}
+                    <div
+                      class="list-row"
+                      class:active
+                      class:selected
+                      class:even={idx % 2 === 0}
+                      data-path={path}
+                      role="button"
+                      tabindex="0"
+                      onclick={(e) => {
+                        if (dragSuppressedClick) return;
+                        if (e.shiftKey) {
+                          if (lastClickedIndex !== null) {
+                            const globalIdx = sortedFiles.indexOf(path);
+                            const start = Math.min(
+                              lastClickedIndex,
+                              globalIdx,
+                            );
+                            const end = Math.max(lastClickedIndex, globalIdx);
+                            const range = sortedFiles.slice(start, end + 1);
+                            library.selectRange(range);
+                          }
+                          return;
                         }
-                        return;
-                      }
-                      if (selectMode || e.ctrlKey || e.metaKey) {
-                        e.preventDefault();
-                        library.toggleSelect(path);
-                      } else {
-                        onSelect(path);
-                      }
-                      lastClickedIndex = idx;
-                    }}
-                    oncontextmenu={(e) => openLibCtxMenu(e, path)}
-                    onkeydown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
                         if (selectMode || e.ctrlKey || e.metaKey) {
+                          e.preventDefault();
                           library.toggleSelect(path);
                         } else {
                           onSelect(path);
                         }
-                      }
-                    }}
-                  >
-                    <span
-                      class="list-col list-col-check"
-                      onclick={(e) => {
-                        e.stopPropagation();
-                        library.toggleSelect(path);
+                        lastClickedIndex = sortedFiles.indexOf(path);
                       }}
+                      oncontextmenu={(e) => openLibCtxMenu(e, path)}
                       onkeydown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          e.stopPropagation();
-                          library.toggleSelect(path);
+                          if (selectMode || e.ctrlKey || e.metaKey) {
+                            library.toggleSelect(path);
+                          } else {
+                            onSelect(path);
+                          }
                         }
                       }}
                     >
                       <span
-                        class="list-checkbox"
-                        class:checked={selected}
-                        role="checkbox"
-                        tabindex="0"
-                        aria-checked={selected}
-                        aria-label="Select file"
+                        class="list-col list-col-check"
+                        onclick={(e) => {
+                          e.stopPropagation();
+                          library.toggleSelect(path);
+                        }}
+                        onkeydown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            library.toggleSelect(path);
+                          }
+                        }}
                       >
-                        {#if selected}
-                          <svg
-                            width="10"
-                            height="10"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="3"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          >
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
+                        <span
+                          class="list-checkbox"
+                          class:checked={selected}
+                          role="checkbox"
+                          tabindex="0"
+                          aria-checked={selected}
+                          aria-label="Select file"
+                        >
+                          {#if selected}
+                            <svg
+                              width="10"
+                              height="10"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="3"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            >
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          {/if}
+                        </span>
+                      </span>
+                      <span class="list-col list-col-thumb">
+                        {#if thumbFor(path)}
+                          <img
+                            class="list-thumb"
+                            src={thumbFor(path)}
+                            alt=""
+                            draggable="false"
+                          />
+                        {:else}
+                          <div class="list-placeholder"></div>
                         {/if}
                       </span>
-                    </span>
-                    <span class="list-col list-col-thumb">
-                      {#if thumbFor(path)}
-                        <img
-                          class="list-thumb"
-                          src={thumbFor(path)}
-                          alt=""
-                          draggable="false"
-                        />
-                      {:else}
-                        <div class="list-placeholder"></div>
-                      {/if}
-                    </span>
-                    <span class="list-col list-col-name">
-                      {path.split(/[/\\]/).pop()}
-                    </span>
-                    <span class="list-col list-col-size">
-                      {stat?.size != null ? formatFileSize(stat.size) : ""}
-                    </span>
-                    <span class="list-col list-col-date">
-                      {stat?.mtime_ms ? formatDate(stat.mtime_ms) : ""}
-                    </span>
-                    <span class="list-col list-col-type">{getExt(path)}</span>
-                  </div>
+                      <span class="list-col list-col-name">
+                        {path.split(/[/\\]/).pop()}
+                      </span>
+                      <span class="list-col list-col-size">
+                        {stat?.size != null ? formatFileSize(stat.size) : ""}
+                      </span>
+                      <span class="list-col list-col-date">
+                        {stat?.mtime_ms ? formatDate(stat.mtime_ms) : ""}
+                      </span>
+                      <span class="list-col list-col-type">{getExt(path)}</span>
+                    </div>
+                  {/each}
                 {/each}
               </div>
             {/if}
