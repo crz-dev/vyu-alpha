@@ -3339,7 +3339,9 @@ main.fs-controls-hidden .thumbnail-bar.fullscreen {
   color: var(--text-primary);
 }
 .audio-info-row .audio-info-filename {
-  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   font-size: 13px;
   font-family: var(--font-family);
   color: var(--text-primary);
@@ -3347,6 +3349,10 @@ main.fs-controls-hidden .thumbnail-bar.fullscreen {
   white-space: nowrap;
   min-width: 0;
   padding: 0 8px;
+}
+.audio-info-row .audio-marquee {
+  width: auto;
+  max-width: 100%;
 }
 .audio-marquee {
   width: 100%;
