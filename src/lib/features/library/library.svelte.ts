@@ -12,14 +12,18 @@ import {
   saveRecentFilesLimit,
   loadRecentsDisabled,
   saveRecentsDisabled,
-  loadAutoScanFolders,
-  saveAutoScanFolders,
+  loadShowFolders,
+  saveShowFolders,
   loadShowThumbnails,
   saveShowThumbnails,
   loadCollections,
   saveCollections,
   loadFavorites,
   saveFavorites,
+  loadSortMode,
+  saveSortMode,
+  loadSortDesc,
+  saveSortDesc,
 } from "$lib/services/storage";
 import type { CollectionItem, RecentFileItem } from "$lib/services/storage";
 import { exists } from "@tauri-apps/plugin-fs";
@@ -55,7 +59,7 @@ function createLibrary() {
   });
 
   // Library settings
-  let autoScanFolders = $state(loadAutoScanFolders());
+  let showFolders = $state(loadShowFolders());
   let showThumbnails = $state(loadShowThumbnails());
 
   // View mode
@@ -65,10 +69,10 @@ function createLibrary() {
   let density = $state(loadViewDensity());
 
   // Sort state (independent from main view)
-  let sortMode = $state<SortMode>("name");
-  let sortDesc = $state(false);
-  let savedSortMode = $state<SortMode>("name");
-  let savedSortDesc = $state(false);
+  let sortMode = $state<SortMode>(loadSortMode());
+  let sortDesc = $state(loadSortDesc());
+  let savedSortMode = $state<SortMode>(sortMode);
+  let savedSortDesc = $state(sortDesc);
 
   // Total size
   let totalSize = $state(0);
@@ -212,9 +216,9 @@ function createLibrary() {
     saveRecentsDisabled(disabled);
   }
 
-  function setAutoScanFolders(enabled: boolean) {
-    autoScanFolders = enabled;
-    saveAutoScanFolders(enabled);
+  function setShowFolders(enabled: boolean) {
+    showFolders = enabled;
+    saveShowFolders(enabled);
   }
 
   function setShowThumbnails(enabled: boolean) {
@@ -230,6 +234,8 @@ function createLibrary() {
   function setSortMode(mode: SortMode, desc: boolean) {
     sortMode = mode;
     sortDesc = desc;
+    saveSortMode(mode);
+    saveSortDesc(desc);
   }
 
   async function computeTotalSize(paths: string[]) {
@@ -387,10 +393,10 @@ function createLibrary() {
       return recentsDisabled;
     },
     setRecentsDisabled,
-    get autoScanFolders() {
-      return autoScanFolders;
+    get showFolders() {
+      return showFolders;
     },
-    setAutoScanFolders,
+    setShowFolders,
     get showThumbnails() {
       return showThumbnails;
     },

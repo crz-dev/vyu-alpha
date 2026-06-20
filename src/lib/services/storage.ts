@@ -461,12 +461,14 @@ export function saveRecentsDisabled(disabled: boolean): void {
   localStorage.setItem("vyu-recents-disabled", String(disabled));
 }
 
-export function loadAutoScanFolders(): boolean {
-  return localStorage.getItem("vyu-auto-scan") === "true";
+export function loadShowFolders(): boolean {
+  const v = localStorage.getItem("vyu-show-folders");
+  if (v === null) return true;
+  return v === "true";
 }
 
-export function saveAutoScanFolders(enabled: boolean): void {
-  localStorage.setItem("vyu-auto-scan", String(enabled));
+export function saveShowFolders(enabled: boolean): void {
+  localStorage.setItem("vyu-show-folders", String(enabled));
 }
 
 export function loadShowThumbnails(): boolean {

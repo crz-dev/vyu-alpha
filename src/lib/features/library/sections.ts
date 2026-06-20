@@ -41,6 +41,7 @@ function extCategory(ext: string): string {
   if (VIDEO_SET.has(ext)) return "Videos";
   if (AUDIO_SET.has(ext)) return "Audio";
   if (DOCUMENT_SET.has(ext)) return "Documents";
+  if (ext === "") return "Folders";
   return "Other";
 }
 
@@ -235,6 +236,7 @@ export function getSections(
   files: string[],
   sortMode: SortMode,
   stats: Record<string, BatchStatItem>,
+  desc = false,
   openTimestamps?: Record<string, number>,
 ): Section[] {
   if (files.length === 0) return [];
@@ -269,15 +271,38 @@ export function getSections(
   }
 
   if (sortMode === "type") {
-    return buildSections(groups, TYPE_LABELS);
+    const labels = desc ? [...TYPE_LABELS].reverse() : TYPE_LABELS;
+    return buildSections(groups, labels);
   }
   if (sortMode === "name") {
-    return buildSections(groups, NAME_RANGES[t].map((r) => r.label));
+    const labels = desc
+      ? [...NAME_RANGES[t].map((r) => r.label)].reverse()
+      : NAME_RANGES[t].map((r) => r.label);
+    return buildSections(groups, labels);
   }
   if (sortMode === "size") {
-    return buildSections(groups, SIZE_RANGES[t].map((r) => r.label));
+    const labels = desc
+      ? [...SIZE_RANGES[t].map((r) => r.label)].reverse()
+      : SIZE_RANGES[t].map((r) => r.label);
+    return buildSections(groups, labels);
   }
-  // date-modified / date-opened: Map insertion order (encounter order) matches file sort order
-  const dateOrder = [...groups.keys()];
-  return buildSections(groups, dateOrder);
+  if (sortMode === "date-modified" || sortMode === "date-opened") {
+    const knownOrder = ["Today", "Yesterday", "This Week", "Last Week", "This Month", "Last Month", "Older", "Unknown"];
+    const dateKeys = [...groups.keys()].sort((a, b) => {
+      const ai = knownOrder.indexOf(a);
+      const bi = knownOrder.indexOf(b);
+      if (ai !== -1 && bi !== -1) return ai - bi;
+      if (ai !== -1) return -1;
+      if (bi !== -1) return 1;
+      const dateA = new Date(a).getTime();
+      const dateB = new Date(b).getTime();
+      if (!isNaN(dateA) && !isNaN(dateB)) return dateA - dateB;
+      if (!isNaN(dateA)) return -1;
+      if (!isNaN(dateB)) return 1;
+      return a.localeCompare(b);
+    });
+    if (desc) dateKeys.reverse();
+    return buildSections(groups, dateKeys);
+  }
+  return [];
 }

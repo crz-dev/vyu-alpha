@@ -1990,9 +1990,9 @@
                   /></svg
                 >
                 <div class="settings-label-text">
-                  <span class="settings-label">Auto-scan Folders</span>
+                  <span class="settings-label">Show folders</span>
                   <span class="settings-hint"
-                    >Watch selected folders for new media</span
+                    >Display folders alongside files in the library and collection views</span
                   >
                 </div>
               </div>
@@ -2000,11 +2000,11 @@
                 <label class="toggle-row">
                   <input
                     type="checkbox"
-                    checked={library.autoScanFolders}
+                    checked={library.showFolders}
                     onchange={(e) =>
-                      library.setAutoScanFolders(e.currentTarget.checked)}
+                      library.setShowFolders(e.currentTarget.checked)}
                   />
-                  <span class="toggle-track" class:on={library.autoScanFolders}
+                  <span class="toggle-track" class:on={library.showFolders}
                     ><span class="toggle-thumb"></span></span
                   >
                 </label>
