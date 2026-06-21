@@ -192,8 +192,8 @@
       class="app-dropdown-toggle tooltip-below"
       class:active={dropdownVisible}
       class:menu-active={dropdownVisible}
-      onclick={libraryOpen ? onCloseLibrary : onToggleDropdown}
-      aria-label={libraryOpen ? "Back to viewer" : "Open app menu"}
+      onclick={onToggleDropdown}
+      aria-label="Open app menu"
       data-tooltip="Vyu"
     >
       <img src="/app-icon.png" alt="vyu" class="app-icon" />
@@ -211,6 +211,32 @@
       {onCloseLibrary}
     />
   </div>
+  {#if libraryOpen}
+    <span class="divider">/</span>
+    <button
+      class="folder-btn back-btn tooltip-below"
+      data-tooltip="Back to viewer"
+      onclick={onCloseLibrary}
+      aria-label="Back to viewer"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M19 12H5"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <path
+          d="M12 19l-7-7 7-7"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </button>
+  {/if}
   {#if !libraryOpen}
     <span class="divider">/</span>
     {#if editing}
@@ -324,5 +350,11 @@
 </div>
 
 <style>
-  
+  .back-btn {
+    color: var(--text-primary);
+    margin-left: -4px;
+  }
+  .back-btn:hover {
+    color: var(--text-primary);
+  }
 </style>
