@@ -6,6 +6,7 @@ import {
   invokeDeleteCollectionFolder,
   invokeRenameFile,
   invokeCopyFileUnique,
+  invokeDeleteFile,
 } from "$lib/features/media/tools";
 import {
   loadViewDensity,
@@ -94,6 +95,7 @@ function createLibrary() {
   // Multi-select state
   let selectedPaths = $state<Record<string, boolean>>({});
   let collectMode = $state(false);
+  let deleteOriginalAfterCopy = $state(false);
 
   // Scan trigger — increment to force directory re-scan
   let scanKey = $state(0);
@@ -417,6 +419,7 @@ function createLibrary() {
 
   function setCollectMode(v: boolean) {
     collectMode = v;
+    if (!v) deleteOriginalAfterCopy = false;
   }
 
   async function copySelectedToCollection(colPath: string) {
@@ -427,6 +430,9 @@ function createLibrary() {
     for (const p of paths) {
       try {
         await invokeCopyFileUnique(p, colPath);
+        if (deleteOriginalAfterCopy) {
+          await invokeDeleteFile(p);
+        }
         successCount++;
       } catch {
         failCount++;
@@ -447,7 +453,7 @@ function createLibrary() {
       });
     }
     clearSelection();
-    collectMode = false;
+    setCollectMode(false);
   }
 
   return {
@@ -561,6 +567,12 @@ function createLibrary() {
     isFavorite,
     get collectMode() {
       return collectMode;
+    },
+    get deleteOriginalAfterCopy() {
+      return deleteOriginalAfterCopy;
+    },
+    toggleDeleteOriginalAfterCopy() {
+      deleteOriginalAfterCopy = !deleteOriginalAfterCopy;
     },
     setCollectMode,
     copySelectedToCollection,

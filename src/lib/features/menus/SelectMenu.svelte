@@ -148,18 +148,41 @@
       window.addEventListener("mouseup", onMouseUp);
     }}
   >
-    <div class="select-all-card">
-      <button
-        class="select-all-btn"
-        onclick={(e) => {
-          e.stopPropagation();
-          onSelectAll?.();
-        }}
-        onmousedown={(e) => e.stopPropagation()}
-        aria-label="Select all files"
-      >
-        Select all
-      </button>
+    <div class="select-all-card" class:collect-mode={library.collectMode}>
+      {#if library.collectMode}
+        <div class="toggle-wrapper">
+          <button
+            class="delete-toggle"
+            class:active={library.deleteOriginalAfterCopy}
+            onclick={(e) => {
+              e.stopPropagation();
+              library.toggleDeleteOriginalAfterCopy();
+            }}
+            onmousedown={(e) => e.stopPropagation()}
+            aria-label={library.deleteOriginalAfterCopy ? "Delete original" : "Copy original"}
+          >
+            <span class="toggle-track">
+              <span class="toggle-knob"></span>
+            </span>
+          </button>
+          <span
+            class="toggle-tooltip"
+            >{library.deleteOriginalAfterCopy ? "Delete original" : "Copy original"}</span
+          >
+        </div>
+      {:else}
+        <button
+          class="select-all-btn"
+          onclick={(e) => {
+            e.stopPropagation();
+            onSelectAll?.();
+          }}
+          onmousedown={(e) => e.stopPropagation()}
+          aria-label="Select all files"
+        >
+          Select all
+        </button>
+      {/if}
     </div>
     <span class="ctx-drag-title">
       <span class="ctx-dots">
@@ -203,7 +226,7 @@
   {#if library.collectMode}
     <div class="edit-menu-card">
       <div class="collect-prompt">
-        Select a collection to copy files into, or create a new one
+        Choose or create a collection to copy selected files into.
       </div>
     </div>
   {:else}
@@ -358,9 +381,84 @@
   .collect-prompt {
     padding: 10px 8px;
     text-align: center;
-    color: var(--text-muted, #888);
+    color: var(--accent-blue, #3b82f6);
     font-family: var(--font-family);
     font-size: 12px;
     line-height: 1.5;
+  }
+
+  .select-all-card.collect-mode {
+    border: none;
+    background: transparent;
+    padding: 0;
+  }
+
+  .toggle-wrapper {
+    position: relative;
+  }
+
+  .delete-toggle {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    border-radius: 10px;
+  }
+
+  .toggle-track {
+    width: 24px;
+    height: 12px;
+    border-radius: 10px;
+    background: var(--accent-blue, #3b82f6);
+    position: relative;
+    transition: background 0.15s;
+    display: block;
+  }
+
+  .delete-toggle.active .toggle-track {
+    background: var(--accent-red, #ef4444);
+  }
+
+  .toggle-knob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #fff;
+    transition: left 0.15s;
+    display: block;
+  }
+
+  .delete-toggle.active .toggle-knob {
+    left: 14px;
+  }
+
+  .toggle-tooltip {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-elevated);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-family: var(--font-family);
+    white-space: nowrap;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 0.5px solid var(--bg-border);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    transition-delay: 0.4s;
+    z-index: 9999;
+    line-height: normal;
+  }
+
+  .toggle-wrapper:hover .toggle-tooltip {
+    opacity: 1;
   }
 </style>

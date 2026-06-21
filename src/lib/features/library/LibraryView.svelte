@@ -2316,6 +2316,7 @@
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div
                 class="library-placeholder-card"
+                class:collect-mode={library.collectMode}
                 role="button"
                 tabindex="0"
                 onclick={openAddCollectionDialog}
@@ -2346,6 +2347,7 @@
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div
                   class="library-collection-card"
+                  class:collect-mode={library.collectMode}
                   role="button"
                   tabindex="0"
                   onclick={() => {
@@ -2847,7 +2849,8 @@
   }
 
   .library-tab.collect-mode {
-    border: 1px solid var(--accent-blue, #3b82f6);
+    background: var(--accent-blue, #3b82f6);
+    color: #fff;
   }
 
   .library-placeholder-grid {
@@ -2874,6 +2877,15 @@
   .library-placeholder-card:hover {
     border-color: var(--text-muted, #888);
     background: var(--bg-elevated, #1a1a1a);
+  }
+
+  .library-placeholder-card.collect-mode {
+    border-color: var(--accent-blue, #3b82f6);
+  }
+
+  .library-placeholder-card.collect-mode svg {
+    color: var(--accent-blue, #3b82f6);
+    opacity: 1;
   }
 
   .river-fav-placeholder,
@@ -2948,6 +2960,10 @@
   .library-collection-card:hover {
     border-color: var(--text-muted, #888);
     background: var(--bg-elevated, #1a1a1a);
+  }
+
+  .library-collection-card.collect-mode {
+    border-color: var(--accent-blue, #3b82f6);
   }
 
   .library-collection-thumb {
