@@ -5,10 +5,7 @@
     deleteStore,
     performMultiDelete,
   } from "$lib/features/fileActions/deleteFile.svelte";
-  import {
-    invokeRenameFile,
-    invokeCopyFileUnique,
-  } from "$lib/features/media/tools";
+  import { invokeRenameFile } from "$lib/features/media/tools";
   import { showToast } from "$lib/features/toast/toast.svelte";
   import { getFileName } from "$lib/services/files";
 
@@ -32,37 +29,16 @@
     return getSelectedPaths?.() ?? [];
   }
 
-  async function duplicateTo() {
-    const dir = await open({ directory: true });
-    if (!dir) return;
-    const paths = getPaths();
-    let successCount = 0;
-    let failCount = 0;
-    for (const p of paths) {
-      try {
-        await invokeCopyFileUnique(p, dir);
-        successCount++;
-      } catch {
-        failCount++;
-      }
-    }
-    if (successCount > 0) {
-      showToast({
-        message: `${successCount} file${successCount === 1 ? "" : "s"} duplicated to ${dir}`,
-        color: "green",
-      });
-    }
-    if (failCount > 0) {
-      showToast({
-        message: `Failed to duplicate ${failCount} file${failCount === 1 ? "" : "s"}`,
-        color: "red",
-      });
-    }
+  $effect(() => {
+    if (!visible) library.setCollectMode(false);
+  });
+
+  function handleClose() {
+    library.setCollectMode(false);
     onClose();
-    return;
   }
 
-  async function moveTo() {
+  async function moveFiles() {
     const dir = await open({ directory: true });
     if (!dir) return;
     const paths = getPaths();
@@ -90,7 +66,12 @@
         color: "red",
       });
     }
-    onClose();
+    handleClose();
+  }
+
+  function activateCollectMode() {
+    library.setCollectMode(true);
+    library.setActiveTab("collections");
   }
 
   function toggleFavorite() {
@@ -112,7 +93,7 @@
         color: "yellow",
       });
     }
-    onClose();
+    handleClose();
   }
 
   function deleteFiles() {
@@ -120,11 +101,11 @@
     if (paths.length === 0) return;
     deleteStore.multiDeletePaths = paths;
     if (deleteStore.multiDeleteNoAsk) {
-      onClose();
+      handleClose();
       performMultiDelete({ refreshView: () => { library.clearSelection(); library.triggerRescan(); } });
     } else {
       deleteStore.multiDeleteConfirm = true;
-      onClose();
+      handleClose();
     }
   }
 </script>
@@ -201,7 +182,7 @@
       data-tooltip="Close"
       onclick={(e) => {
         e.stopPropagation();
-        onClose();
+        handleClose();
       }}
       onmousedown={(e) => e.stopPropagation()}
       aria-label="Close"
@@ -219,9 +200,16 @@
       </svg>
     </button>
   </div>
+  {#if library.collectMode}
+    <div class="edit-menu-card">
+      <div class="collect-prompt">
+        Select a collection to copy files into, or create a new one
+      </div>
+    </div>
+  {:else}
   <div class="edit-menu-card">
     <div class="edit-menu-row">
-      <button class="edit-menu-btn green sub" onclick={duplicateTo}>
+      <button class="edit-menu-btn green sub" onclick={moveFiles}>
         <svg
           width="13"
           height="13"
@@ -232,27 +220,27 @@
           stroke-linecap="round"
           stroke-linejoin="round"
         >
-          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-        </svg>
-        <span>Copy to</span>
-      </button>
-      <button class="edit-menu-btn blue sub" onclick={moveTo}>
-        <svg
-          width="13"
-          height="13"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-          <polyline points="17 21 17 13 7 13 7 21" />
-          <polyline points="7 3 7 8 15 8" />
+          <path d="M5 12h14" />
+          <path d="m12 5 7 7-7 7" />
         </svg>
         <span>Move to</span>
+      </button>
+      <button class="edit-menu-btn blue sub" onclick={activateCollectMode}>
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+          <line x1="12" y1="11" x2="12" y2="17" />
+          <line x1="9" y1="14" x2="15" y2="14" />
+        </svg>
+        <span>Collect</span>
       </button>
       <button class="edit-menu-btn yellow sub" onclick={toggleFavorite}>
         <svg
@@ -289,6 +277,7 @@
       </button>
     </div>
   </div>
+  {/if}
 </div>
 
 <style>
@@ -364,5 +353,14 @@
 
   .select-all-btn:hover {
     color: var(--text-primary, #fff);
+  }
+
+  .collect-prompt {
+    padding: 10px 8px;
+    text-align: center;
+    color: var(--text-muted, #888);
+    font-family: var(--font-family);
+    font-size: 12px;
+    line-height: 1.5;
   }
 </style>

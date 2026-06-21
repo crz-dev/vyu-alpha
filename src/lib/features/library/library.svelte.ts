@@ -93,6 +93,7 @@ function createLibrary() {
 
   // Multi-select state
   let selectedPaths = $state<Record<string, boolean>>({});
+  let collectMode = $state(false);
 
   // Scan trigger — increment to force directory re-scan
   let scanKey = $state(0);
@@ -179,6 +180,7 @@ function createLibrary() {
   }
 
   function setActiveTab(tab: LibraryTab) {
+    if (tab !== "collections" && collectMode) collectMode = false;
     if (tab === "recents" && activeTab !== "recents") {
       savedSortMode = sortMode;
       savedSortDesc = sortDesc;
@@ -413,6 +415,41 @@ function createLibrary() {
     return favorites.includes(path);
   }
 
+  function setCollectMode(v: boolean) {
+    collectMode = v;
+  }
+
+  async function copySelectedToCollection(colPath: string) {
+    const paths = getSelectedPaths();
+    if (paths.length === 0) return;
+    let successCount = 0;
+    let failCount = 0;
+    for (const p of paths) {
+      try {
+        await invokeCopyFileUnique(p, colPath);
+        successCount++;
+      } catch {
+        failCount++;
+      }
+    }
+    if (successCount > 0) {
+      const { showToast } = await import("$lib/features/toast/toast.svelte");
+      showToast({
+        message: `${successCount} file${successCount === 1 ? "" : "s"} copied to collection`,
+        color: "blue",
+      });
+    }
+    if (failCount > 0) {
+      const { showToast } = await import("$lib/features/toast/toast.svelte");
+      showToast({
+        message: `Failed to copy ${failCount} file${failCount === 1 ? "" : "s"}`,
+        color: "red",
+      });
+    }
+    clearSelection();
+    collectMode = false;
+  }
+
   return {
     get cache() {
       return cache;
@@ -522,6 +559,11 @@ function createLibrary() {
     addFavorite,
     removeFavorite,
     isFavorite,
+    get collectMode() {
+      return collectMode;
+    },
+    setCollectMode,
+    copySelectedToCollection,
   };
 }
 

@@ -1016,6 +1016,7 @@
     <button
       class="library-tab"
       class:active={library.activeTab === "collections"}
+      class:collect-mode={library.collectMode}
       onclick={() => {
         if (isViewingCollection) {
           library.closeCollection();
@@ -2347,7 +2348,13 @@
                   class="library-collection-card"
                   role="button"
                   tabindex="0"
-                  onclick={() => library.openCollection(col.path)}
+                  onclick={() => {
+                    if (library.collectMode) {
+                      library.copySelectedToCollection(col.path);
+                    } else {
+                      library.openCollection(col.path);
+                    }
+                  }}
                   ondblclick={() => startRename(col.path, col.name)}
                   oncontextmenu={(e) => {
                     e.preventDefault();
@@ -2356,7 +2363,11 @@
                   onkeydown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      library.openCollection(col.path);
+                      if (library.collectMode) {
+                        library.copySelectedToCollection(col.path);
+                      } else {
+                        library.openCollection(col.path);
+                      }
                     }
                   }}
                 >
@@ -2833,6 +2844,10 @@
   .library-tab.active {
     background: var(--bg-elevated, #1a1a1a);
     color: var(--text-primary, #fff);
+  }
+
+  .library-tab.collect-mode {
+    border: 1px solid var(--accent-blue, #3b82f6);
   }
 
   .library-placeholder-grid {
