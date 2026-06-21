@@ -41,10 +41,6 @@
   let lastAngle = $state(0);
   let isDragging = $state(false);
 
-  // Center click detection
-  let dragStartX = 0;
-  let dragStartY = 0;
-  let wasInCenter = false;
   let dragRect: DOMRect | null = null;
 
   // Calculate angle from center point
@@ -65,25 +61,15 @@
 
   function handleDragStart(e: MouseEvent | TouchEvent) {
     if (e instanceof MouseEvent && e.button !== 0) return;
+
+    if ((e.target as Element)?.closest?.(".cd-center-label")) return;
+
     e.preventDefault();
 
     const svg = e.currentTarget as SVGSVGElement;
     const rect = svg.getBoundingClientRect();
     const point = e instanceof TouchEvent ? e.touches[0] : e;
 
-    // Track start position for center-click detection
-    dragStartX = point.clientX;
-    dragStartY = point.clientY;
-
-    // Check if click is within the center label area (SVG coordinates)
-    const svgEl = svg;
-    const pt = svgEl.createSVGPoint();
-    pt.x = point.clientX;
-    pt.y = point.clientY;
-    const svgPt = pt.matrixTransform(svgEl.getScreenCTM()!.inverse());
-    const dx = svgPt.x - 325;
-    const dy = svgPt.y - 325;
-    wasInCenter = Math.sqrt(dx * dx + dy * dy) <= centerLabelRadius;
     dragRect = rect;
 
     lastAngle = calculateAngle(point.clientX, point.clientY, rect);
@@ -119,20 +105,10 @@
     onScrubMove(e, newProgress);
   }
 
-  function handleDragEnd(e: MouseEvent | TouchEvent) {
+  function handleDragEnd(_e: MouseEvent | TouchEvent) {
     if (!isDragging) return;
 
-    const point = e instanceof TouchEvent ? e.changedTouches[0] : e;
-    const dx = point.clientX - dragStartX;
-    const dy = point.clientY - dragStartY;
-    const moved = Math.sqrt(dx * dx + dy * dy);
-
     isDragging = false;
-
-    // If click was in center and mouse didn't move, fire center click
-    if (wasInCenter && moved < 4 && onCenterClick) {
-      onCenterClick();
-    }
 
     onScrubEnd();
   }
@@ -338,6 +314,16 @@
       r={centerLabelRadius}
       fill="url(#centerLabelGradient)"
       class="cd-center-label"
+      role="button"
+      tabindex="0"
+      aria-label="Change vinyl color"
+      onclick={() => onCenterClick?.()}
+      onkeydown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onCenterClick?.();
+        }
+      }}
     />
 
     <!-- Center label inner ring for depth -->
@@ -413,5 +399,6 @@
 
   .cd-center-label {
     cursor: pointer;
+    outline: none;
   }
 </style>
