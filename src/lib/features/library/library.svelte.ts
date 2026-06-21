@@ -2,6 +2,10 @@ import {
   invokeGetThumbnail,
   invokeGetFilesTotalSize,
   invokeBatchStat,
+  invokeCreateCollectionFolder,
+  invokeDeleteCollectionFolder,
+  invokeRenameFile,
+  invokeCopyFileUnique,
 } from "$lib/features/media/tools";
 import {
   loadViewDensity,
@@ -27,6 +31,7 @@ import {
 } from "$lib/services/storage";
 import type { CollectionItem, RecentFileItem } from "$lib/services/storage";
 import { exists } from "@tauri-apps/plugin-fs";
+import { getParentFolder } from "$lib/services/files";
 import {
   getCached as sharedGetCached,
   setCached,
@@ -88,6 +93,9 @@ function createLibrary() {
 
   // Multi-select state
   let selectedPaths = $state<Record<string, boolean>>({});
+
+  // Scan trigger — increment to force directory re-scan
+  let scanKey = $state(0);
 
   // Collections state
   let collections = $state<CollectionItem[]>(loadCollections());
@@ -307,22 +315,59 @@ function createLibrary() {
     if (collections.some((c) => c.path === path)) return;
     const parts = path.replace(/\\/g, "/").split("/");
     const name = parts[parts.length - 1] || path;
-    collections = [...collections, { name, path }];
+    collections = [...collections, { name, path, type: "linked" }];
     saveCollections(collections);
   }
 
-  function removeCollection(path: string) {
+  async function createCustomCollection(name: string) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    try {
+      const path = await invokeCreateCollectionFolder(trimmed);
+      if (collections.some((c) => c.path === path)) return;
+      collections = [...collections, { name: trimmed, path, type: "custom" }];
+      saveCollections(collections);
+    } catch (err) {
+      console.error("Failed to create collection:", err);
+    }
+  }
+
+  async function removeCollection(path: string) {
+    const col = collections.find((c) => c.path === path);
+    if (col?.type === "custom") {
+      try {
+        await invokeDeleteCollectionFolder(path);
+      } catch (err) {
+        console.error("Failed to delete collection folder:", err);
+      }
+    }
     collections = collections.filter((c) => c.path !== path);
     saveCollections(collections);
     if (activeCollectionPath === path) activeCollectionPath = null;
   }
 
-  function renameCollection(path: string, newName: string) {
+  async function renameCollection(path: string, newName: string) {
     const trimmed = newName.trim();
     if (!trimmed) return;
-    collections = collections.map((c) =>
-      c.path === path ? { ...c, name: trimmed } : c,
-    );
+    const col = collections.find((c) => c.path === path);
+    if (col?.type === "custom") {
+      const parent = getParentFolder(path);
+      const newPath = parent + (parent.endsWith("\\") || parent.endsWith("/") ? "" : (path.includes("\\") ? "\\" : "/")) + trimmed;
+      try {
+        await invokeRenameFile(path, newPath);
+        collections = collections.map((c) =>
+          c.path === path ? { ...c, name: trimmed, path: newPath } : c,
+        );
+        if (activeCollectionPath === path) activeCollectionPath = newPath;
+      } catch (err) {
+        console.error("Failed to rename collection folder:", err);
+        return;
+      }
+    } else {
+      collections = collections.map((c) =>
+        c.path === path ? { ...c, name: trimmed } : c,
+      );
+    }
     saveCollections(collections);
   }
 
@@ -332,6 +377,10 @@ function createLibrary() {
 
   function closeCollection() {
     activeCollectionPath = null;
+  }
+
+  function triggerRescan() {
+    scanKey++;
   }
 
   async function validateCollections() {
@@ -454,11 +503,16 @@ function createLibrary() {
       return collections;
     },
     addCollection,
+    createCustomCollection,
     removeCollection,
     renameCollection,
     get activeCollectionPath() {
       return activeCollectionPath;
     },
+    get scanKey() {
+      return scanKey;
+    },
+    triggerRescan,
     openCollection,
     closeCollection,
     validateCollections,

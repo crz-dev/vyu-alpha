@@ -486,6 +486,7 @@ export function saveShowThumbnails(enabled: boolean): void {
 export interface CollectionItem {
   name: string;
   path: string;
+  type?: "linked" | "custom";
 }
 
 export function loadCollections(): CollectionItem[] {
@@ -500,7 +501,7 @@ export function loadCollections(): CollectionItem[] {
         c !== null &&
         typeof (c as Record<string, unknown>).name === "string" &&
         typeof (c as Record<string, unknown>).path === "string",
-    );
+    ).map((c) => ({ ...c, type: c.type ?? ("linked" as const) }));
   } catch {
     return [];
   }

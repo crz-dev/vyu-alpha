@@ -121,7 +121,7 @@
     deleteStore.multiDeletePaths = paths;
     if (deleteStore.multiDeleteNoAsk) {
       onClose();
-      performMultiDelete({ refreshView: () => library.clearSelection() });
+      performMultiDelete({ refreshView: () => { library.clearSelection(); library.triggerRescan(); } });
     } else {
       deleteStore.multiDeleteConfirm = true;
       onClose();

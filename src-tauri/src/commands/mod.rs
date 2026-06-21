@@ -7,6 +7,7 @@ pub mod file_ops;
 pub mod clipboard;
 pub mod integrity;
 pub mod external_apps;
+pub mod collections;
 
 pub use thumbnail::*;
 pub use display::*;
@@ -17,3 +18,4 @@ pub use file_ops::*;
 pub use clipboard::*;
 pub use integrity::*;
 pub use external_apps::*;
+pub use collections::*;

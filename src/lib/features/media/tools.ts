@@ -817,3 +817,15 @@ export async function invokeGetFilesTotalSize(
 ): Promise<number> {
   return invoke("get_files_total_size", { paths });
 }
+
+export async function invokeCreateCollectionFolder(
+  name: string,
+): Promise<string> {
+  return invoke("create_collection_folder", { name });
+}
+
+export async function invokeDeleteCollectionFolder(
+  path: string,
+): Promise<void> {
+  return invoke("delete_collection_folder", { path });
+}

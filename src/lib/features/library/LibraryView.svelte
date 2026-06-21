@@ -17,6 +17,9 @@
     invokeTrashFile,
     invokeRenameFile,
     invokeBatchStat,
+    invokeCreateCollectionFolder,
+    invokeDeleteCollectionFolder,
+    invokeCopyFileUnique,
   } from "$lib/features/media/tools";
   import { showToast } from "$lib/features/toast/toast.svelte";
 
@@ -54,6 +57,10 @@
   let collectionFirstFiles = $state<Record<string, string>>({});
   let renamingPath = $state<string | null>(null);
   let renameValue = $state("");
+  let showAddCollectionDialog = $state(false);
+  let addCollectionDialogMode = $state<"link" | "create" | null>(null);
+  let newCollectionName = $state("");
+  let collectionToDelete = $state<string | null>(null);
 
   // Library folder browsing state
   let libraryDirPath = $state<string | null>(null);
@@ -107,6 +114,12 @@
     library.activeTab === "collections" &&
       library.activeCollectionPath !== null,
   );
+
+  const activeCollection = $derived(
+    library.collections.find((c) => c.path === library.activeCollectionPath) ?? null,
+  );
+
+  const isCustomCollection = $derived(activeCollection?.type === "custom");
 
   const isShowingFolders = $derived(
     isViewingCollection && library.showFolders,
@@ -344,11 +357,70 @@
     });
   }
 
+  function openAddCollectionDialog() {
+    showAddCollectionDialog = true;
+    addCollectionDialogMode = null;
+    newCollectionName = "";
+  }
+
   async function addCollection() {
+    showAddCollectionDialog = false;
     const dir = await open({ directory: true });
     if (dir) {
       library.addCollection(dir as string);
     }
+  }
+
+  async function confirmCreateCollection() {
+    const name = newCollectionName.trim();
+    if (!name) return;
+    showAddCollectionDialog = false;
+    await library.createCustomCollection(name);
+    newCollectionName = "";
+  }
+
+  function startDeleteCollection(path: string) {
+    collectionToDelete = path;
+  }
+
+  function cancelDeleteCollection() {
+    collectionToDelete = null;
+  }
+
+  async function confirmDeleteCollection() {
+    if (!collectionToDelete) return;
+    const path = collectionToDelete;
+    collectionToDelete = null;
+    await library.removeCollection(path);
+  }
+
+  async function addFilesToCollection() {
+    const path = library.activeCollectionPath;
+    if (!path) return;
+    const selected = await open({ multiple: true });
+    if (!selected || selected.length === 0) return;
+    const files = Array.isArray(selected) ? selected : [selected];
+    for (const file of files) {
+      try {
+        await invokeCopyFileUnique(file, path);
+      } catch (err) {
+        console.error("Failed to copy file to collection:", err);
+      }
+    }
+    const sep = path.includes("\\") ? "\\" : "/";
+    const entries = await readDir(path);
+    const folders: string[] = [];
+    const filesList: string[] = [];
+    for (const e of entries) {
+      const full = `${path}${sep}${e.name}`;
+      if (e.isDirectory) {
+        folders.push(full);
+      } else if (ALL_EXTS.includes(getFileExt(e.name ?? ""))) {
+        filesList.push(full);
+      }
+    }
+    collectionFolders = folders;
+    collectionFiles = filesList;
   }
 
   function startRename(path: string, currentName: string) {
@@ -427,6 +499,7 @@
     closeLibCtxMenu();
     try {
       await invokeTrashFile(path);
+      library.triggerRescan();
       showToast({ message: "File deleted", color: "red" });
     } catch {
       showToast({ message: "Failed to delete file", color: "red" });
@@ -651,6 +724,7 @@
   // Scan library directory for subfolders and files
   $effect(() => {
     const path = libraryDirPath;
+    library.scanKey;
     if (!path || library.activeTab !== "library") {
       libraryDirFolders = [];
       libraryDirFiles = [];
@@ -709,6 +783,7 @@
   // Load collection files when active collection changes
   $effect(() => {
     const path = library.activeCollectionPath;
+    library.scanKey;
     if (!path) {
       collectionFiles = [];
       collectionFolders = [];
@@ -1044,6 +1119,36 @@
                       <polygon
                         points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
                       />
+                    </svg>
+                  </div>
+                {/if}
+                {#if isCustomCollection}
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <div
+                    class="library-placeholder-card"
+                    role="button"
+                    tabindex="0"
+                    onclick={addFilesToCollection}
+                    onkeydown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        addFilesToCollection();
+                      }
+                    }}
+                  >
+                    <svg
+                      width="32"
+                      height="32"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      opacity="0.4"
+                    >
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
                   </div>
                 {/if}
@@ -2212,11 +2317,11 @@
                 class="library-placeholder-card"
                 role="button"
                 tabindex="0"
-                onclick={addCollection}
+                onclick={openAddCollectionDialog}
                 onkeydown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    addCollection();
+                    openAddCollectionDialog();
                   }
                 }}
               >
@@ -2312,12 +2417,20 @@
                     aria-label="Remove collection"
                     onclick={(e) => {
                       e.stopPropagation();
-                      library.removeCollection(col.path);
+                      if (col.type === "custom") {
+                        startDeleteCollection(col.path);
+                      } else {
+                        library.removeCollection(col.path);
+                      }
                     }}
                     onkeydown={(e: KeyboardEvent) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        library.removeCollection(col.path);
+                        if (col.type === "custom") {
+                          startDeleteCollection(col.path);
+                        } else {
+                          library.removeCollection(col.path);
+                        }
                       }
                     }}
                   >
@@ -2564,6 +2677,114 @@
           >
           Delete
         </button>
+      </div>
+    </div>
+  {/if}
+
+  {#if showAddCollectionDialog}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+      class="library-dialog-overlay"
+      role="presentation"
+      onmousedown={(e) => {
+        if (e.target === e.currentTarget) showAddCollectionDialog = false;
+      }}
+    >
+      <div class="library-dialog" role="dialog" aria-modal="true">
+        <div class="library-dialog-header">
+          <p class="library-dialog-title">Add Collection</p>
+          <button
+            class="library-dialog-close"
+            onclick={() => (showAddCollectionDialog = false)}
+            aria-label="Close"
+          >✕</button>
+        </div>
+        <div class="library-dialog-body">
+          {#if addCollectionDialogMode === null}
+            <div class="library-dialog-options">
+              <button class="library-dialog-option" onclick={addCollection}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                </svg>
+                <span>Link folder from computer</span>
+              </button>
+              <button
+                class="library-dialog-option"
+                onclick={() => (addCollectionDialogMode = "create")}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <span>Create new collection</span>
+              </button>
+            </div>
+          {:else}
+            <div class="library-dialog-create">
+              <label class="library-dialog-label" for="collection-name">Collection name</label>
+              <input
+                id="collection-name"
+                class="library-dialog-input"
+                type="text"
+                bind:value={newCollectionName}
+                placeholder="Enter collection name"
+                onkeydown={(e) => {
+                  if (e.key === "Enter") confirmCreateCollection();
+                  if (e.key === "Escape") { showAddCollectionDialog = false; }
+                }}
+              />
+            </div>
+          {/if}
+        </div>
+        {#if addCollectionDialogMode === "create"}
+          <div class="library-dialog-actions">
+            <button
+              class="library-dialog-btn library-dialog-btn-secondary"
+              onclick={() => { showAddCollectionDialog = false; addCollectionDialogMode = null; }}
+            >Cancel</button>
+            <button
+              class="library-dialog-btn library-dialog-btn-primary"
+              onclick={confirmCreateCollection}
+            >Create</button>
+          </div>
+        {/if}
+      </div>
+    </div>
+  {/if}
+
+  {#if collectionToDelete}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+      class="library-dialog-overlay"
+      role="presentation"
+      onmousedown={(e) => {
+        if (e.target === e.currentTarget) cancelDeleteCollection();
+      }}
+    >
+      <div class="library-dialog library-dialog-sm" role="dialog" aria-modal="true">
+        <div class="library-dialog-header">
+          <p class="library-dialog-title">Delete collection?</p>
+          <button
+            class="library-dialog-close"
+            onclick={cancelDeleteCollection}
+            aria-label="Close"
+          >✕</button>
+        </div>
+        <div class="library-dialog-body">
+          <p class="library-dialog-warning">
+            This will permanently delete the collection folder and all files inside it.
+          </p>
+        </div>
+        <div class="library-dialog-actions">
+          <button
+            class="library-dialog-btn library-dialog-btn-secondary"
+            onclick={cancelDeleteCollection}
+          >Cancel</button>
+          <button
+            class="library-dialog-btn library-dialog-btn-danger"
+            onclick={confirmDeleteCollection}
+          >Delete</button>
+        </div>
       </div>
     </div>
   {/if}
@@ -3382,6 +3603,179 @@
   .library-empty-icon-br {
     left: 48px;
     top: 48px;
+  }
+
+  /* Collection dialog overlay */
+  .library-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .library-dialog {
+    background: var(--bg-elevated, #1a1a1a);
+    border: 1px solid var(--bg-border, #2a2a2a);
+    border-radius: 12px;
+    padding: 0;
+    min-width: 340px;
+    max-width: 400px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  }
+
+  .library-dialog-sm {
+    min-width: 300px;
+    max-width: 360px;
+  }
+
+  .library-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 0;
+  }
+
+  .library-dialog-title {
+    font-family: var(--font-family);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary, #fff);
+    margin: 0;
+  }
+
+  .library-dialog-close {
+    background: none;
+    border: none;
+    color: var(--text-muted, #888);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    border-radius: 4px;
+    line-height: 1;
+  }
+
+  .library-dialog-close:hover {
+    color: var(--text-primary, #fff);
+    background: var(--bg-secondary, #111);
+  }
+
+  .library-dialog-body {
+    padding: 16px 20px;
+  }
+
+  .library-dialog-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .library-dialog-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--bg-secondary, #111);
+    border: 1px solid var(--bg-border, #2a2a2a);
+    border-radius: 8px;
+    color: var(--text-primary, #fff);
+    font-family: var(--font-family);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.1s, border-color 0.1s;
+    text-align: left;
+  }
+
+  .library-dialog-option:hover {
+    background: var(--bg-tertiary, #222);
+    border-color: var(--text-muted, #888);
+  }
+
+  .library-dialog-create {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .library-dialog-label {
+    font-family: var(--font-family);
+    font-size: 13px;
+    color: var(--text-secondary, #ccc);
+  }
+
+  .library-dialog-input {
+    padding: 10px 12px;
+    background: var(--bg-primary, #0a0a0a);
+    border: 1px solid var(--bg-border, #2a2a2a);
+    border-radius: 6px;
+    color: var(--text-primary, #fff);
+    font-family: var(--font-family);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.1s;
+  }
+
+  .library-dialog-input:focus {
+    border-color: var(--yellow, #f5c518);
+  }
+
+  .library-dialog-input::placeholder {
+    color: var(--text-dim, #555);
+  }
+
+  .library-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 0 20px 16px;
+  }
+
+  .library-dialog-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-family: var(--font-family);
+    font-size: 13px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  .library-dialog-btn-secondary {
+    background: var(--bg-secondary, #111);
+    color: var(--text-secondary, #ccc);
+    border: 1px solid var(--bg-border, #2a2a2a);
+  }
+
+  .library-dialog-btn-secondary:hover {
+    background: var(--bg-tertiary, #222);
+  }
+
+  .library-dialog-btn-primary {
+    background: var(--yellow, #f5c518);
+    color: #000;
+  }
+
+  .library-dialog-btn-primary:hover {
+    background: var(--yellow-hover, #e0b214);
+  }
+
+  .library-dialog-btn-danger {
+    background: #c0392b;
+    color: #fff;
+  }
+
+  .library-dialog-btn-danger:hover {
+    background: #e74c3c;
+  }
+
+  .library-dialog-warning {
+    font-family: var(--font-family);
+    font-size: 13px;
+    color: var(--text-secondary, #ccc);
+    margin: 0;
+    line-height: 1.5;
   }
 
   /* Drag selection rectangle */

@@ -69,6 +69,8 @@ pub fn run() {
             db_get_setting,
             db_set_setting,
             db_batch_upsert_file_metadata,
+            create_collection_folder,
+            delete_collection_folder,
         ])
         .setup(|app| {
             unsafe {
