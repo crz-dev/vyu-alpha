@@ -3104,7 +3104,7 @@
     right: 4px;
     width: 20px;
     height: 20px;
-    border-radius: 50%;
+    border-radius: 4px;
     background: rgba(0, 0, 0, 0.6);
     display: flex;
     align-items: center;
@@ -3113,7 +3113,8 @@
     opacity: 0;
     transition:
       opacity 0.15s,
-      color 0.15s;
+      color 0.15s,
+      background 0.15s;
     z-index: 2;
   }
 
@@ -3122,7 +3123,8 @@
   }
 
   .library-collection-remove:hover {
-    color: var(--text-primary, #fff);
+    background: #3a1a1a;
+    color: var(--red, #dc2626);
   }
 
   .library-scroll {
