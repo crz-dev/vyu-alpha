@@ -3342,35 +3342,52 @@
   {#if collectionToDelete}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
-      class="library-dialog-overlay"
+      class="library-dialog-overlay library-dialog-overlay-anim"
       role="presentation"
       onmousedown={(e) => {
         if (e.target === e.currentTarget) cancelDeleteCollection();
       }}
     >
-      <div class="library-dialog library-dialog-sm" role="dialog" aria-modal="true">
+      <div class="library-dialog library-dialog-sm library-dialog-anim" role="dialog" aria-modal="true">
         <div class="library-dialog-header">
-          <p class="library-dialog-title">Delete collection?</p>
+          <div class="library-dialog-header-left" style="color: var(--red, #e74c3c);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6" />
+              <path d="M14 11v6" />
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+            </svg>
+            <p class="library-dialog-title">Delete collection?</p>
+          </div>
           <button
             class="library-dialog-close"
             onclick={cancelDeleteCollection}
             aria-label="Close"
-          >✕</button>
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-        <div class="library-dialog-body">
-          <p class="library-dialog-warning">
-            This will permanently delete the collection folder and all files inside it.
-          </p>
+        <div class="library-dialog-body" style="padding-bottom: 4px;">
+          <div class="edit-menu-card">
+            <p class="library-dialog-warning">
+              This will permanently delete the collection folder and all files inside it.
+            </p>
+          </div>
         </div>
-        <div class="library-dialog-actions">
-          <button
-            class="library-dialog-btn library-dialog-btn-secondary"
-            onclick={cancelDeleteCollection}
-          >Cancel</button>
-          <button
-            class="library-dialog-btn library-dialog-btn-danger"
-            onclick={confirmDeleteCollection}
-          >Delete</button>
+        <div class="library-dialog-actions" style="justify-content: center;">
+          <div class="edit-menu-card" style="flex-direction: row; gap: 6px; width: fit-content;">
+            <button
+              class="library-dialog-btn library-dialog-btn-secondary"
+              onclick={cancelDeleteCollection}
+            >Cancel</button>
+            <button
+              class="library-dialog-btn library-dialog-btn-danger"
+              onclick={confirmDeleteCollection}
+            >Delete</button>
+          </div>
         </div>
       </div>
     </div>
