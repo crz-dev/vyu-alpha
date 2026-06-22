@@ -430,25 +430,21 @@ function createLibrary() {
     const trimmed = newName.trim();
     if (!trimmed) return;
     const col = collections.find((c) => c.path === path);
-    if (col?.type === "custom") {
-      const parent = getParentFolder(path);
-      const newPath = parent + (parent.endsWith("\\") || parent.endsWith("/") ? "" : (path.includes("\\") ? "\\" : "/")) + trimmed;
-      try {
-        await invokeRenameFile(path, newPath);
-        const migrated = await invokeMigrateThumbnailCache(path, newPath);
-        console.log(`Migrated ${migrated} thumbnail cache entries`);
-        collections = collections.map((c) =>
-          c.path === path ? { ...c, name: trimmed, path: newPath } : c,
-        );
-        if (activeCollectionPath === path) activeCollectionPath = newPath;
-      } catch (err) {
-        console.error("Failed to rename collection folder:", err);
-        return;
-      }
-    } else {
+    if (!col) return;
+    const parent = getParentFolder(path);
+    const newPath = parent + (parent.endsWith("\\") || parent.endsWith("/") ? "" : (path.includes("\\") ? "\\" : "/")) + trimmed;
+    if (newPath === path) return;
+    try {
+      await invokeRenameFile(path, newPath);
+      const migrated = await invokeMigrateThumbnailCache(path, newPath);
+      console.log(`Migrated ${migrated} thumbnail cache entries`);
       collections = collections.map((c) =>
-        c.path === path ? { ...c, name: trimmed } : c,
+        c.path === path ? { ...c, name: trimmed, path: newPath } : c,
       );
+      if (activeCollectionPath === path) activeCollectionPath = newPath;
+    } catch (err) {
+      console.error("Failed to rename collection folder:", err);
+      return;
     }
     saveCollections(collections);
   }
