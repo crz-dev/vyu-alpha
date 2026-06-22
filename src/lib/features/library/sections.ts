@@ -259,6 +259,12 @@ export function getSections(
     } else if (sortMode === "date-opened") {
       const ts = openTimestamps?.[path] ?? 0;
       key = dateGroupKey(t, ts, new Date());
+    } else if (sortMode === "date-created") {
+      const ts = stats[path]?.birthtime_ms ?? 0;
+      key = dateGroupKey(t, ts, new Date());
+    } else if (sortMode === "date-favorited") {
+      const ts = openTimestamps?.[path] ?? 0;
+      key = dateGroupKey(t, ts, new Date());
     } else {
       key = "Other";
     }
@@ -286,7 +292,12 @@ export function getSections(
       : SIZE_RANGES[t].map((r) => r.label);
     return buildSections(groups, labels);
   }
-  if (sortMode === "date-modified" || sortMode === "date-opened") {
+  if (
+    sortMode === "date-modified" ||
+    sortMode === "date-opened" ||
+    sortMode === "date-created" ||
+    sortMode === "date-favorited"
+  ) {
     const knownOrder = ["Today", "Yesterday", "This Week", "Last Week", "This Month", "Last Month", "Older", "Unknown"];
     const dateKeys = [...groups.keys()].sort((a, b) => {
       const ai = knownOrder.indexOf(a);

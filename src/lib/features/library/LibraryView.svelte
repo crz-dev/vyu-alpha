@@ -153,7 +153,7 @@
         cmp = getFileName(a).localeCompare(getFileName(b), undefined, {
           sensitivity: "base",
         });
-      } else if (mode === "date-modified" || mode === "date-opened") {
+      } else if (mode === "date-modified" || mode === "date-opened" || mode === "date-created") {
         const aTime = stats[a]?.mtime_ms ?? 0;
         const bTime = stats[b]?.mtime_ms ?? 0;
         cmp = aTime - bTime;
@@ -230,7 +230,7 @@
 
   const displayFiles = $derived.by(() => {
     if (library.activeTab === "recents") return library.getRecentPaths();
-    if (library.activeTab === "favorites") return library.favorites;
+    if (library.activeTab === "favorites") return library.getFavoritePaths();
     if (isViewingCollection) return collectionFiles;
     if (library.activeTab === "library" && libraryDirPath) return libraryDirFiles;
     return fileList;
@@ -242,6 +242,7 @@
     const desc = library.sortDesc;
     const statMap = library.stats;
     const openTs = library.recentTimestamps;
+    const favTs = library.favoriteTimestamps;
     files.sort((a, b) => {
       let cmp = 0;
       if (mode === "name") {
@@ -260,6 +261,14 @@
         const aTime = openTs?.[a] ?? 0;
         const bTime = openTs?.[b] ?? 0;
         cmp = aTime - bTime;
+      } else if (mode === "date-created") {
+        const aTime = statMap[a]?.birthtime_ms ?? 0;
+        const bTime = statMap[b]?.birthtime_ms ?? 0;
+        cmp = aTime - bTime;
+      } else if (mode === "date-favorited") {
+        const aTime = favTs?.[a] ?? 0;
+        const bTime = favTs?.[b] ?? 0;
+        cmp = aTime - bTime;
       } else {
         cmp = a.localeCompare(b, undefined, { sensitivity: "base" });
       }
@@ -267,6 +276,14 @@
     });
     return files;
   });
+
+  const sectionTimestamps = $derived(
+    library.sortMode === "date-favorited"
+      ? library.favoriteTimestamps
+      : library.sortMode === "date-opened"
+        ? library.recentTimestamps
+        : undefined,
+  );
 
   const sections = $derived(
     library.dividersOn
@@ -279,10 +296,141 @@
           library.sortMode,
           { ...library.stats, ...folderStats },
           library.sortDesc,
-          library.recentTimestamps,
+          sectionTimestamps,
         )
       : [],
   );
+
+  const sortedCollections = $derived.by(() => {
+    const cols = [...library.collections];
+    const mode = library.sortMode;
+    const desc = library.sortDesc;
+    if (mode === "date-created" || mode === "date-modified") {
+      cols.sort((a, b) => {
+        const aTime = a.createdAt ?? 0;
+        const bTime = b.createdAt ?? 0;
+        return desc ? bTime - aTime : aTime - bTime;
+      });
+    } else if (mode === "type") {
+      cols.sort((a, b) => {
+        const aType = a.type ?? "linked";
+        const bType = b.type ?? "linked";
+        const cmp = aType.localeCompare(bType);
+        return desc ? -cmp : cmp;
+      });
+    } else if (mode === "name" || mode === "size") {
+      cols.sort((a, b) => {
+        const cmp = a.name.localeCompare(b.name, undefined, {
+          sensitivity: "base",
+        });
+        return desc ? -cmp : cmp;
+      });
+    }
+    return cols;
+  });
+
+  const collectionSections = $derived.by(() => {
+    const cols = sortedCollections;
+    if (!library.dividersOn || cols.length === 0) {
+      return [{ label: "", items: cols }];
+    }
+
+    const mode = library.sortMode;
+    const groups = new Map<string, typeof cols>();
+
+    for (const col of cols) {
+      let key: string;
+      if (mode === "date-created" || mode === "date-modified") {
+        const ts = col.createdAt ?? 0;
+        if (!ts) {
+          key = "Unknown";
+        } else {
+          const d = new Date(ts);
+          const now = new Date();
+          const today = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+          );
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          const weekStart = new Date(today);
+          weekStart.setDate(weekStart.getDate() - today.getDay());
+
+          if (d >= today) key = "Today";
+          else if (d >= yesterday) key = "Yesterday";
+          else if (d >= weekStart) key = "This Week";
+          else key = "Older";
+        }
+      } else if (mode === "type") {
+        key = col.type === "custom" ? "Custom collection" : "Linked folder";
+      } else if (mode === "name" || mode === "size") {
+        const c = (col.name[0] || "#").toLowerCase();
+        if (!/[a-z]/.test(c)) key = "#";
+        else if (c <= "c") key = "A-C";
+        else if (c <= "f") key = "D-F";
+        else if (c <= "i") key = "G-I";
+        else if (c <= "l") key = "J-L";
+        else if (c <= "o") key = "M-O";
+        else if (c <= "r") key = "P-R";
+        else if (c <= "u") key = "S-U";
+        else key = "V-Z";
+      } else {
+        key = "Other";
+      }
+
+      let arr = groups.get(key);
+      if (!arr) {
+        arr = [];
+        groups.set(key, arr);
+      }
+      arr.push(col);
+    }
+
+    const sections: { label: string; items: typeof cols }[] = [];
+
+    if (mode === "date-created" || mode === "date-modified") {
+      const order = ["Today", "Yesterday", "This Week", "Older", "Unknown"];
+      for (const label of order) {
+        const items = groups.get(label);
+        if (items) sections.push({ label, items });
+      }
+    } else if (mode === "type") {
+      const order = library.sortDesc
+        ? ["Custom collection", "Linked folder"]
+        : ["Linked folder", "Custom collection"];
+      for (const label of order) {
+        const items = groups.get(label);
+        if (items) sections.push({ label, items });
+      }
+    } else if (mode === "name" || mode === "size") {
+      const order = [
+        "#",
+        "A-C",
+        "D-F",
+        "G-I",
+        "J-L",
+        "M-O",
+        "P-R",
+        "S-U",
+        "V-Z",
+      ];
+      const ordered = library.sortDesc ? [...order].reverse() : order;
+      for (const label of ordered) {
+        const items = groups.get(label);
+        if (items) sections.push({ label, items });
+      }
+      for (const [label, items] of groups) {
+        if (!ordered.includes(label)) sections.push({ label, items });
+      }
+    } else {
+      for (const [label, items] of groups) {
+        sections.push({ label, items });
+      }
+    }
+
+    return sections;
+  });
 
   const folderPathSet = $derived(new Set(currentFolderPaths));
 
@@ -2411,8 +2559,15 @@
                   <line x1="9" y1="14" x2="15" y2="14" />
                 </svg>
               </div>
-              {#each library.collections as col (col.path)}
-                {@const firstFilePath = collectionFirstFiles[col.path]}
+              {#each collectionSections as section (section.label || "all")}
+                {#if section.label}
+                  <div
+                    class="divider-header"
+                    style="grid-column: 1 / -1;"
+                  >{section.label}</div>
+                {/if}
+                {#each section.items as col (col.path)}
+                  {@const firstFilePath = collectionFirstFiles[col.path]}
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div
                   class="library-collection-card"
@@ -2528,6 +2683,7 @@
                     </svg>
                   </div>
                 </div>
+              {/each}
               {/each}
             </div>
             {#if library.collections.length === 0}

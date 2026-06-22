@@ -34,7 +34,7 @@ import {
   loadNamesOn,
   saveNamesOn,
 } from "$lib/services/storage";
-import type { CollectionItem, RecentFileItem } from "$lib/services/storage";
+import type { CollectionItem, RecentFileItem, FavoriteItem } from "$lib/services/storage";
 import { exists } from "@tauri-apps/plugin-fs";
 import { getParentFolder } from "$lib/services/files";
 import {
@@ -113,7 +113,14 @@ function createLibrary() {
   let activeCollectionPath = $state<string | null>(null);
 
   // Favorites state
-  let favorites = $state<string[]>(loadFavorites());
+  let favorites = $state<FavoriteItem[]>(loadFavorites());
+  let favoriteTimestamps = $derived.by(() => {
+    const map: Record<string, number> = {};
+    for (const item of favorites) {
+      map[item.path] = item.favoritedAt;
+    }
+    return map;
+  });
 
   function evictCacheOne() {
     const oldest = cacheOrder.shift();
@@ -218,15 +225,32 @@ function createLibrary() {
 
   function setActiveTab(tab: LibraryTab) {
     if (tab !== "collections" && collectMode) collectMode = false;
-    if (tab === "recents" && activeTab !== "recents") {
+
+    const prev = activeTab;
+    const prevSpecial =
+      prev === "recents" || prev === "collections" || prev === "favorites";
+    const nextSpecial =
+      tab === "recents" || tab === "collections" || tab === "favorites";
+
+    if (nextSpecial && !prevSpecial) {
       savedSortMode = sortMode;
       savedSortDesc = sortDesc;
-      sortMode = "date-opened";
-      sortDesc = true;
-    } else if (activeTab === "recents" && tab !== "recents") {
+    } else if (prevSpecial && !nextSpecial) {
       sortMode = savedSortMode;
       sortDesc = savedSortDesc;
     }
+
+    if (tab === "recents") {
+      sortMode = "date-opened";
+      sortDesc = true;
+    } else if (tab === "collections") {
+      sortMode = "date-created";
+      sortDesc = true;
+    } else if (tab === "favorites") {
+      sortMode = "date-favorited";
+      sortDesc = true;
+    }
+
     activeTab = tab;
   }
 
@@ -364,7 +388,10 @@ function createLibrary() {
     if (collections.some((c) => c.path === path)) return;
     const parts = path.replace(/\\/g, "/").split("/");
     const name = parts[parts.length - 1] || path;
-    collections = [...collections, { name, path, type: "linked" }];
+    collections = [
+      ...collections,
+      { name, path, type: "linked", createdAt: Date.now() },
+    ];
     saveCollections(collections);
   }
 
@@ -374,7 +401,10 @@ function createLibrary() {
     try {
       const path = await invokeCreateCollectionFolder(trimmed);
       if (collections.some((c) => c.path === path)) return;
-      collections = [...collections, { name: trimmed, path, type: "custom" }];
+      collections = [
+        ...collections,
+        { name: trimmed, path, type: "custom", createdAt: Date.now() },
+      ];
       saveCollections(collections);
     } catch (err) {
       console.error("Failed to create collection:", err);
@@ -447,19 +477,23 @@ function createLibrary() {
     }
   }
 
+  function getFavoritePaths(): string[] {
+    return favorites.map((f) => f.path);
+  }
+
   function addFavorite(path: string) {
-    if (favorites.includes(path)) return;
-    favorites = [...favorites, path];
+    if (favorites.some((f) => f.path === path)) return;
+    favorites = [...favorites, { path, favoritedAt: Date.now() }];
     saveFavorites(favorites);
   }
 
   function removeFavorite(path: string) {
-    favorites = favorites.filter((p) => p !== path);
+    favorites = favorites.filter((f) => f.path !== path);
     saveFavorites(favorites);
   }
 
   function isFavorite(path: string): boolean {
-    return favorites.includes(path);
+    return favorites.some((f) => f.path === path);
   }
 
   function setCollectMode(v: boolean) {
@@ -603,6 +637,10 @@ function createLibrary() {
     get favorites() {
       return favorites;
     },
+    get favoriteTimestamps() {
+      return favoriteTimestamps;
+    },
+    getFavoritePaths,
     addFavorite,
     removeFavorite,
     isFavorite,

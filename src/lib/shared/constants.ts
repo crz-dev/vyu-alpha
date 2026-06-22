@@ -155,5 +155,9 @@ export const SORT_MODES = [
   { value: "size", label: "Size" },
   { value: "type", label: "Type" },
 ] as const;
-export type SortMode = (typeof SORT_MODES)[number]["value"] | "date-opened";
+export type SortMode =
+  | (typeof SORT_MODES)[number]["value"]
+  | "date-opened"
+  | "date-created"
+  | "date-favorited";
 export const SORT_MODE_DEFAULT: SortMode = "name";

@@ -503,6 +503,7 @@ export interface CollectionItem {
   name: string;
   path: string;
   type?: "linked" | "custom";
+  createdAt?: number;
 }
 
 export function loadCollections(): CollectionItem[] {
@@ -511,13 +512,19 @@ export function loadCollections(): CollectionItem[] {
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
+    const filtered = parsed.filter(
       (c: unknown): c is CollectionItem =>
         typeof c === "object" &&
         c !== null &&
         typeof (c as Record<string, unknown>).name === "string" &&
         typeof (c as Record<string, unknown>).path === "string",
-    ).map((c) => ({ ...c, type: c.type ?? ("linked" as const) }));
+    );
+    return filtered.map((c, i) => ({
+      name: c.name,
+      path: c.path,
+      type: c.type ?? ("linked" as const),
+      createdAt: c.createdAt ?? Date.now() - (filtered.length - 1 - i) * 1000,
+    }));
   } catch {
     return [];
   }
@@ -529,18 +536,37 @@ export function saveCollections(items: CollectionItem[]): void {
 
 // Favorites
 
-export function loadFavorites(): string[] {
+export interface FavoriteItem {
+  path: string;
+  favoritedAt: number;
+}
+
+export function loadFavorites(): FavoriteItem[] {
   const raw = localStorage.getItem("vyu-favorites");
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((p: unknown): p is string => typeof p === "string");
+    // Migrate from old format (string[]) to new format (FavoriteItem[])
+    if (parsed.length > 0 && typeof parsed[0] === "string") {
+      const now = Date.now();
+      return parsed.map((p: string, i: number) => ({
+        path: p,
+        favoritedAt: now - i * 1000,
+      }));
+    }
+    return parsed.filter(
+      (f: unknown): f is FavoriteItem =>
+        typeof f === "object" &&
+        f !== null &&
+        typeof (f as Record<string, unknown>).path === "string" &&
+        typeof (f as Record<string, unknown>).favoritedAt === "number",
+    );
   } catch {
     return [];
   }
 }
 
-export function saveFavorites(favs: string[]): void {
-  localStorage.setItem("vyu-favorites", JSON.stringify(favs));
+export function saveFavorites(items: FavoriteItem[]): void {
+  localStorage.setItem("vyu-favorites", JSON.stringify(items));
 }
