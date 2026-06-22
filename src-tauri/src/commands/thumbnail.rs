@@ -468,13 +468,15 @@ pub async fn clear_thumbnail_cache(app: tauri::AppHandle) -> Result<u64, String>
 /// Copies cached thumbnails keyed under `old_dir` paths to new
 /// cache entries keyed under `new_dir` paths. Used after a
 /// directory rename so thumbnails don't need to regenerate.
+/// Returns the number of cache entries migrated.
 #[tauri::command]
 pub fn migrate_thumbnail_cache(
     app: tauri::AppHandle,
     old_dir: String,
     new_dir: String,
-) -> Result<(), String> {
+) -> Result<usize, String> {
     let cache_dir = thumb_cache_dir(&app).to_path_buf();
+    let mut migrated = 0usize;
 
     let entries = fs::read_dir(&cache_dir).map_err(|e| format!("Failed to read cache: {e}"))?;
 
@@ -513,10 +515,11 @@ pub fn migrate_thumbnail_cache(
                 if jpg_path.exists() && !new_jpg.exists() {
                     let _ = fs::copy(&jpg_path, &new_jpg);
                     let _ = fs::copy(&path, &new_src);
+                    migrated += 1;
                 }
             }
         }
     }
 
-    Ok(())
+    Ok(migrated)
 }

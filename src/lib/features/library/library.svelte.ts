@@ -435,7 +435,8 @@ function createLibrary() {
       const newPath = parent + (parent.endsWith("\\") || parent.endsWith("/") ? "" : (path.includes("\\") ? "\\" : "/")) + trimmed;
       try {
         await invokeRenameFile(path, newPath);
-        await invokeMigrateThumbnailCache(path, newPath);
+        const migrated = await invokeMigrateThumbnailCache(path, newPath);
+        console.log(`Migrated ${migrated} thumbnail cache entries`);
         collections = collections.map((c) =>
           c.path === path ? { ...c, name: trimmed, path: newPath } : c,
         );

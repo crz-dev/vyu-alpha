@@ -839,6 +839,6 @@ export async function invokeDeleteCollectionFolder(
 export async function invokeMigrateThumbnailCache(
   oldDir: string,
   newDir: string,
-): Promise<void> {
+): Promise<number> {
   return invoke("migrate_thumbnail_cache", { oldDir, newDir });
 }

@@ -762,6 +762,13 @@
   }
 
   function handleKeydown(e: KeyboardEvent) {
+    const target = e.target as HTMLElement | null;
+    if (
+      target &&
+      target.closest("input, textarea, [contenteditable='true']")
+    ) {
+      return;
+    }
     if (e.key === "Escape") {
       e.preventDefault();
       if (isViewingCollection) {
