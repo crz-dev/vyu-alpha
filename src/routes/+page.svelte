@@ -956,6 +956,7 @@
   viewerToggleFullscreen={toggleFullscreen}
   zoomLevel={viewer.state.zoomLevel}
   zoomLocked={viewer.state.zoomLocked}
+  baseZoomLevel={viewer.state.baseZoomLevel}
   toggleZoomLock={handleToggleZoomLock}
   clipCount={clips.clipCount}
   clipMenuResetKey={clips.clipMenuResetKey}

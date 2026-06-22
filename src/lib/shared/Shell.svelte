@@ -57,6 +57,7 @@
     thumbnailBarVisible,
     zoomLevel,
     zoomLocked,
+    baseZoomLevel,
     resetZoom,
     toggleZoomLock,
     clipCount,
@@ -239,6 +240,7 @@
     thumbnailBarVisible: boolean;
     zoomLevel: number;
     zoomLocked: boolean;
+    baseZoomLevel: number;
     resetZoom: () => void;
     toggleZoomLock: () => void;
     clipCount: number;
@@ -736,6 +738,7 @@
     {fileSrc}
     {zoomLevel}
     {zoomLocked}
+    {baseZoomLevel}
     {resetZoom}
     {toggleZoomLock}
     toggleFullscreen={viewerToggleFullscreen}

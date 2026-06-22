@@ -81,6 +81,7 @@
     fileSrc,
     zoomLevel,
     zoomLocked,
+    baseZoomLevel,
     resetZoom,
     toggleZoomLock,
     toggleFullscreen,
@@ -141,6 +142,7 @@
     fileSrc: string;
     zoomLevel: number;
     zoomLocked: boolean;
+    baseZoomLevel: number;
     resetZoom: () => void;
     toggleZoomLock?: () => void;
     toggleFullscreen: () => void;
@@ -203,6 +205,14 @@
       dismissed = false;
     }
   });
+
+  function handleZoomClick() {
+    if (zoomLocked || zoomLevel === baseZoomLevel) {
+      toggleZoomLock?.();
+    } else {
+      resetZoom();
+    }
+  }
 
   function handleFileCountContext(e: MouseEvent) {
     e.preventDefault();
@@ -366,11 +376,11 @@
         class="zoom tooltip-above"
         class:active={zoomLocked}
         data-tooltip="Zoom"
-        onclick={resetZoom}
+        onclick={handleZoomClick}
         oncontextmenu={(e) => {
           e.preventDefault();
           toggleZoomLock?.();
-        }}>{Math.round(zoomLevel)}%{zoomLocked ? "-" : ""}</button
+        }}>{Math.round(zoomLevel)}%{zoomLocked ? "+" : ""}</button
       >
       <button
         class="fs-btn tooltip-above-shift-left"
