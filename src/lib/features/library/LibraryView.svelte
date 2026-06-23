@@ -753,6 +753,7 @@
     closeLibCtxMenu();
     library.clearSelection();
     library.toggleSelect(path);
+    library.closeCollection();
     library.setCollectMode(true);
     library.setActiveTab("collections");
   }
