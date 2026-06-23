@@ -4770,7 +4770,7 @@
     display: flex;
     justify-content: flex-end;
     gap: 6px;
-    padding: 0 20px 16px;
+    padding: 0 20px 8px;
   }
 
   .library-dialog-btn {
