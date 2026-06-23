@@ -1725,6 +1725,7 @@
                         class="library-cell"
                         class:active
                         class:selected
+                        class:names-on={library.namesOn}
                         data-path={path}
                         role="button"
                         tabindex="0"
@@ -1968,6 +1969,7 @@
                         class="river-cell"
                         class:active
                         class:selected
+                        class:names-on={library.namesOn}
                         data-path={path}
                         role="button"
                         tabindex="0"
@@ -2210,6 +2212,7 @@
                     class="filmstrip-cell"
                     class:active
                     class:selected
+                    class:names-on={library.namesOn}
                     data-path={path}
                     role="button"
                     tabindex="0"
@@ -4269,6 +4272,11 @@
     justify-content: center;
     color: var(--text-primary, #fff);
     pointer-events: none;
+    transition: bottom 190ms cubic-bezier(0.22, 0.9, 0.3, 1);
+  }
+
+  .names-on .library-badge {
+    bottom: 28px;
   }
 
   .library-badge-pdf {
