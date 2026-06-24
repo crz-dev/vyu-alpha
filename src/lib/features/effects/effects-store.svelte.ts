@@ -18,6 +18,7 @@ export interface EffectsStore {
   setDistortion: (value: number) => void;
   setFilter: (preset: FilterPreset | null) => void;
   resetAll: () => void;
+  setPlaybackSpeedFn: (fn: ((speed: number) => void) | null) => void;
 }
 
 let engineInitPending = false;
@@ -47,6 +48,12 @@ function createEffectsStore(): EffectsStore {
   let distortion = $state(0);
   let activeFilter = $state<FilterPreset | null>(null);
   let currentFilePath = $state("");
+  let playbackSpeedFn: ((speed: number) => void) | null = null;
+  let savedPlaybackSpeed: number | null = null;
+
+  function setPlaybackSpeedFn(fn: ((speed: number) => void) | null) {
+    playbackSpeedFn = fn;
+  }
 
   function loadForFile(filePath: string) {
     if (!filePath) return;
@@ -56,6 +63,10 @@ function createEffectsStore(): EffectsStore {
     chorus = 0;
     distortion = 0;
     activeFilter = null;
+    if (savedPlaybackSpeed !== null && playbackSpeedFn) {
+      playbackSpeedFn(savedPlaybackSpeed);
+      savedPlaybackSpeed = null;
+    }
     if (fxEngine.isInitialized()) {
       fxEngine.setFilter(null);
     }
@@ -107,6 +118,15 @@ function createEffectsStore(): EffectsStore {
     if (fxEngine.isInitialized()) {
       fxEngine.setFilter(preset);
     }
+    if (preset === "lofi") {
+      if (savedPlaybackSpeed === null && playbackSpeedFn) {
+        savedPlaybackSpeed = 1.0;
+      }
+      playbackSpeedFn?.(0.8);
+    } else if (savedPlaybackSpeed !== null && playbackSpeedFn) {
+      playbackSpeedFn(savedPlaybackSpeed);
+      savedPlaybackSpeed = null;
+    }
   }
 
   function resetAll() {
@@ -115,6 +135,10 @@ function createEffectsStore(): EffectsStore {
     chorus = 0;
     distortion = 0;
     activeFilter = null;
+    if (savedPlaybackSpeed !== null && playbackSpeedFn) {
+      playbackSpeedFn(savedPlaybackSpeed);
+      savedPlaybackSpeed = null;
+    }
     if (fxEngine.isInitialized()) {
       fxEngine.setPitch(0);
       fxEngine.setReverb(0);
@@ -150,6 +174,7 @@ function createEffectsStore(): EffectsStore {
     setDistortion,
     setFilter,
     resetAll,
+    setPlaybackSpeedFn,
   };
 }
 

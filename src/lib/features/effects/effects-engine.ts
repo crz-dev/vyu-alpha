@@ -419,16 +419,10 @@ class EffectsEngine {
       this.savedChorus = this.chorusWetGain!.gain.value;
       this.savedDistortion = this.distWetGain!.gain.value;
 
-      if (this.pitchNode) {
-        (
-          this.pitchNode as unknown as { playbackRate: { value: number } }
-        ).playbackRate.value = 0.8;
-      }
-
       this.reverbWetGain!.gain.value = 0.2;
       this.reverbDryGain!.gain.value = 0.8;
-      this.distWetGain!.gain.value = 0.1;
-      this.distDryGain!.gain.value = 0.9;
+      this.distWetGain!.gain.value = 0.08;
+      this.distDryGain!.gain.value = 0.92;
 
       this.filterLowpass = ctx.createBiquadFilter();
       this.filterLowpass.type = "lowpass";

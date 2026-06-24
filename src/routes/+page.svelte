@@ -261,6 +261,9 @@
     savePlaybackSpeed,
     loadPlaybackSpeed(),
   );
+  effectsStore.setPlaybackSpeedFn((speed) =>
+    playbackUI.setPlaybackSpeed(speed),
+  );
   const scrubbing = createScrubbingActions({
     getIsVideo: () => isVideo,
     getAudioEl: () => audioEl,
