@@ -659,34 +659,12 @@
                 stroke-linecap="round"
                 stroke-linejoin="round"
               >
-                <rect x="2" y="6" width="20" height="12" rx="2" />
-                <circle cx="8" cy="12" r="2.5" />
-                <circle cx="16" cy="12" r="2.5" />
-                <path d="M10.5 12h3" />
+                <path d="M17 8h1a4 4 0 1 1 0 8h-1" />
+                <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" />
+                <path d="M7 2v3" />
+                <path d="M11 2v3" />
               </svg>
               <span>Lo-Fi</span>
-            </button>
-            <button
-              class="edit-menu-btn yellow sub"
-              class:active={activeFilter === "eightBit"}
-              onclick={(e) => toggleFilterItem("eightBit", e)}
-            >
-              <svg
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <rect x="9" y="2" width="6" height="6" rx="1" />
-                <rect x="3" y="9" width="6" height="6" rx="1" />
-                <rect x="9" y="9" width="6" height="6" rx="1" />
-                <rect x="15" y="9" width="6" height="6" rx="1" />
-              </svg>
-              <span>8-Bit</span>
             </button>
             <button
               class="edit-menu-btn yellow sub"
@@ -703,16 +681,32 @@
                 stroke-linecap="round"
                 stroke-linejoin="round"
               >
-                <line x1="12" y1="8" x2="12" y2="20" />
-                <path d="M7 20h10" />
-                <path d="M9 20l3-8 3 8" />
-                <circle cx="12" cy="5" r="3" />
-                <path d="M4 10a6 6 0 0 1 4-2" />
-                <path d="M20 10a6 6 0 0 0-4-2" />
-                <path d="M2 14a10 10 0 0 1 6-3" />
-                <path d="M22 14a10 10 0 0 0-6-3" />
+                <rect x="4" y="10" width="16" height="10" rx="2" />
+                <circle cx="9" cy="15" r="3" />
+                <path d="M5 10l5-7" />
               </svg>
               <span>Radio</span>
+            </button>
+            <button
+              class="edit-menu-btn yellow sub"
+              class:active={activeFilter === "eightBit"}
+              onclick={(e) => toggleFilterItem("eightBit", e)}
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="4" y="14" width="16" height="6" rx="2" />
+                <path d="M12 14V7" />
+                <circle cx="12" cy="5" r="2" />
+              </svg>
+              <span>8-Bit</span>
             </button>
           </div>
         {/if}
