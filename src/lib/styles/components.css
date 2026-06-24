@@ -1445,6 +1445,15 @@ main.fs-controls-hidden .thumbnail-bar.fullscreen {
   pointer-events: none;
 }
 
+.privacy-blur img {
+  filter: blur(12px);
+  transition: filter 0.2s;
+}
+
+.privacy-blur:hover img {
+  filter: none;
+}
+
 /** Placeholder shown while thumbnail is loading */
 @keyframes thumbShimmer {
   0% {

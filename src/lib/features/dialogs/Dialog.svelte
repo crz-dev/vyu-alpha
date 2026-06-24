@@ -29,6 +29,8 @@
     loadShareOutputDir,
     saveShareOutputDir,
   } from "$lib/services/storage";
+  import { library } from "$lib/features/library/library.svelte";
+  import { obscurePath } from "$lib/shared/privacy";
   import { listen } from "@tauri-apps/api/event";
   import { showToast, updateToast } from "$lib/features/toast/toast.svelte";
 
@@ -2127,11 +2129,11 @@
         {/if}
         <div
           class="props-row"
-          onclick={() => copyPropValue(fileCreated || "Unknown")}
+          onclick={() => copyPropValue(library.privacyMode ? "••••••••••••••••••" : (fileCreated || "Unknown"))}
           onkeydown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              copyPropValue(fileCreated || "Unknown");
+              copyPropValue(library.privacyMode ? "••••••••••••••••••" : (fileCreated || "Unknown"));
             }
           }}
           role="button"
@@ -2161,15 +2163,15 @@
             >
             Created
           </span>
-          <span class="props-v">{fileCreated || "Unknown"}</span>
+          <span class="props-v">{library.privacyMode ? "••••••••••••••••••" : (fileCreated || "Unknown")}</span>
         </div>
         <div
           class="props-row"
-          onclick={() => copyPropValue(fileModified || "Unknown")}
+          onclick={() => copyPropValue(library.privacyMode ? "••••••••••••••••••" : (fileModified || "Unknown"))}
           onkeydown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              copyPropValue(fileModified || "Unknown");
+              copyPropValue(library.privacyMode ? "••••••••••••••••••" : (fileModified || "Unknown"));
             }
           }}
           role="button"
@@ -2199,7 +2201,7 @@
             >
             Modified
           </span>
-          <span class="props-v">{fileModified || "Unknown"}</span>
+          <span class="props-v">{library.privacyMode ? "••••••••••••••••••" : (fileModified || "Unknown")}</span>
         </div>
         <div
           class="props-row"
@@ -2228,7 +2230,7 @@
             >
             Folder
           </span>
-          <span class="props-v">{parentFolder() || "Unknown"}</span>
+          <span class="props-v">{library.privacyMode ? obscurePath(parentFolder() || "Unknown") : (parentFolder() || "Unknown")}</span>
         </div>
         <div
           class="props-row"
@@ -2265,7 +2267,7 @@
             >
             Path
           </span>
-          <span class="props-v">{filePath || "Unknown"}</span>
+          <span class="props-v">{library.privacyMode ? obscurePath(filePath || "Unknown") : (filePath || "Unknown")}</span>
         </div>
       </div>
       <div class="props-actions-card">

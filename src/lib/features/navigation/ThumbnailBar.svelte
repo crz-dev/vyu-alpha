@@ -3,6 +3,7 @@
   import { getFileExt } from "$lib/services/files";
   import { invokeGetThumbnail } from "$lib/features/media/tools";
   import { getCached, setCached } from "$lib/services/thumbnailCache";
+  import { library } from "$lib/features/library/library.svelte";
 
   let {
     fileList,
@@ -265,6 +266,7 @@
       <button
         class="thumbnail-item"
         class:active={item.index === currentIndex}
+        class:privacy-blur={library.privacyMode}
         data-path={item.path}
         data-index={item.index}
         style="width: {ITEM_W}px; height: {ITEM_W}px;"

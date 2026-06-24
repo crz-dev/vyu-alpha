@@ -76,6 +76,7 @@ Before creating code, find the existing owner.
 | Media-kind detection                     | `shared/media-kind.ts`                                |
 | Shared UI primitives                     | `shared/*.svelte`                                     |
 | File metadata formatting                 | `shared/file-meta.ts`                                 |
+| Privacy utilities                        | `shared/privacy.ts`                                   |
 | Initialization (drag-drop, paste, resume)| `routes/init.ts`                                      |
 | Collection directory operations          | `commands/collections.rs`                             |
 | Sidecar binary execution (songrec)       | `commands/external_apps.rs`                           |

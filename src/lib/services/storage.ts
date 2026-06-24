@@ -567,3 +567,13 @@ export function loadFavorites(): FavoriteItem[] {
 export function saveFavorites(items: FavoriteItem[]): void {
   localStorage.setItem("vyu-favorites", JSON.stringify(items));
 }
+
+// ── Privacy Mode ──
+
+export function loadPrivacyMode(): boolean {
+  return localStorage.getItem("vyu-privacy-mode") === "true";
+}
+
+export function savePrivacyMode(enabled: boolean): void {
+  localStorage.setItem("vyu-privacy-mode", String(enabled));
+}

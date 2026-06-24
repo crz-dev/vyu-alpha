@@ -35,6 +35,8 @@ import {
   saveDividersOn,
   loadNamesOn,
   saveNamesOn,
+  loadPrivacyMode,
+  savePrivacyMode,
 } from "$lib/services/storage";
 import type {
   CollectionItem,
@@ -100,6 +102,8 @@ function createLibrary() {
   // Dividers / Names toggle
   let dividersOn = $state(loadDividersOn());
   let namesOn = $state(loadNamesOn());
+
+  let privacyMode = $state(loadPrivacyMode());
 
   let selectedPaths = $state<Record<string, boolean>>({});
   let collectMode = $state(false);
@@ -315,6 +319,11 @@ function createLibrary() {
   function setNamesOn(enabled: boolean) {
     namesOn = enabled;
     saveNamesOn(enabled);
+  }
+
+  function setPrivacyMode(enabled: boolean) {
+    privacyMode = enabled;
+    savePrivacyMode(enabled);
   }
 
   function setDensity(v: number) {
@@ -623,6 +632,10 @@ function createLibrary() {
       return namesOn;
     },
     setNamesOn,
+    get privacyMode() {
+      return privacyMode;
+    },
+    setPrivacyMode,
     get totalSize() {
       return totalSize;
     },

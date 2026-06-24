@@ -1867,6 +1867,42 @@
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
+                  ><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+                  /></svg
+                >
+                <div class="settings-label-text">
+                  <span class="settings-label">Privacy Mode</span>
+                  <span class="settings-hint"
+                    >Blur thumbnails, obscure paths, censor dates</span
+                  >
+                </div>
+              </div>
+              <div class="settings-control">
+                <label class="toggle-row">
+                  <input
+                    type="checkbox"
+                    checked={library.privacyMode}
+                    onchange={(e) =>
+                      library.setPrivacyMode(e.currentTarget.checked)}
+                  />
+                  <span class="toggle-track" class:on={library.privacyMode}
+                    ><span class="toggle-thumb"></span></span
+                  >
+                </label>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-label-col">
+                <svg
+                  class="settings-row-icon"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
                   ><polyline points="3 6 5 6 21 6" /><path
                     d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"
                   /></svg

@@ -57,6 +57,7 @@ export async function copyAllPropertiesToClipboard(
   durationDisplay: string,
   parentFolder: string,
   mediaProps: MediaProperties | null,
+  privacyMode = false,
 ): Promise<void> {
   const typeLabel = isPdf ? `Document (PDF)` : isVideo ? "Video" : "Image";
   const lines = [
@@ -74,10 +75,14 @@ export async function copyAllPropertiesToClipboard(
     `Dimensions: ${fileDimensions || "Unknown"}`,
     ...(isVideo ? [`Duration: ${durationDisplay}`] : []),
     `Size: ${fileSize || "Unknown"}`,
-    `Created: ${fileCreated || "Unknown"}`,
-    `Modified: ${fileModified || "Unknown"}`,
-    `Folder: ${parentFolder || "Unknown"}`,
-    `Path: ${filePath || "Unknown"}`,
+    `Created: ${privacyMode ? "••••••••••••••••••" : (fileCreated || "Unknown")}`,
+    `Modified: ${privacyMode ? "••••••••••••••••••" : (fileModified || "Unknown")}`,
+    ...(privacyMode
+      ? []
+      : [
+          `Folder: ${parentFolder || "Unknown"}`,
+          `Path: ${filePath || "Unknown"}`,
+        ]),
   ];
   await navigator.clipboard.writeText(lines.join("\n"));
 }

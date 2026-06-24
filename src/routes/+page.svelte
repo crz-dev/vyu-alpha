@@ -39,6 +39,8 @@
     showFilenameTooltip,
     hideFilenameTooltip,
   } from "$lib/services/filenameTooltip";
+  import { obscurePath } from "$lib/shared/privacy";
+  import { library } from "$lib/features/library/library.svelte";
   import { showValue } from "$lib/services/clipboard";
   import {
     getParentFolder,
@@ -813,7 +815,11 @@
     onSortChange,
     navigate,
     startDrag,
-    showFilenameTooltip,
+    showFilenameTooltip: (e: MouseEvent) =>
+      showFilenameTooltip(
+        e,
+        library.privacyMode ? obscurePath(filePath) : filePath,
+      ),
     hideFilenameTooltip,
     closeFile,
     openFileDialog,

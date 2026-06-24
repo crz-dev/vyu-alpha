@@ -7,6 +7,7 @@ import { invokeOpenDirectory } from "$lib/features/media/tools";
 import { getFileExt } from "$lib/services/files";
 import type { MediaProperties } from "$lib/shared/types";
 import { showToast } from "$lib/features/toast/toast.svelte";
+import { library } from "$lib/features/library/library.svelte";
 
 export interface PropertiesFileSnapshot {
   fileName: string;
@@ -58,6 +59,7 @@ export function createPropertiesActions(deps: PropertiesActionsDeps) {
         f.durationDisplay,
         deps.getParentFolder(f.filePath),
         f.mediaProps,
+        library.privacyMode,
       );
       showToast({
         message: "Copied all properties to clipboard",

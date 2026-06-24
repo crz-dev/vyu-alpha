@@ -1706,6 +1706,7 @@
                         class:active
                         class:selected
                         class:names-on={library.namesOn}
+                        class:privacy-blur={library.privacyMode}
                         data-path={path}
                         role="button"
                         tabindex="0"
@@ -1912,6 +1913,7 @@
                         class:active
                         class:selected
                         class:names-on={library.namesOn}
+                        class:privacy-blur={library.privacyMode}
                         data-path={path}
                         role="button"
                         tabindex="0"
@@ -2157,6 +2159,7 @@
                         class:active
                         class:selected
                         class:names-on={library.namesOn}
+                        class:privacy-blur={library.privacyMode}
                         data-path={path}
                         role="button"
                         tabindex="0"
@@ -2400,6 +2403,7 @@
                     class:active
                     class:selected
                     class:names-on={library.namesOn}
+                    class:privacy-blur={library.privacyMode}
                     data-path={path}
                     role="button"
                     tabindex="0"
@@ -2778,6 +2782,7 @@
                         class:active
                         class:selected
                         class:even={idx % 2 === 0}
+                        class:privacy-blur={library.privacyMode}
                         data-path={path}
                         role="button"
                         tabindex="0"
@@ -3078,6 +3083,7 @@
                     class="library-collection-card"
                     class:collect-mode={library.collectMode}
                     class:renaming={renamingPath === col.path}
+                    class:privacy-blur={library.privacyMode}
                     role="button"
                     tabindex="0"
                     onclick={() => {
