@@ -308,7 +308,7 @@
   );
 
   const displayFiles = $derived.by(() => {
-    if (library.activeTab === "recents" && library.privacyMode) return [];
+    if (library.activeTab === "recents" && (library.privacyMode || library.recentsDisabled)) return [];
     if (library.activeTab === "recents") return library.getRecentPaths();
     if (library.activeTab === "favorites") return library.getFavoritePaths();
     if (isViewingCollection) return collectionFiles;
