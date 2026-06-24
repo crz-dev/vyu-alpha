@@ -19,6 +19,7 @@ export interface EffectsStore {
   setFilter: (preset: FilterPreset | null) => void;
   resetAll: () => void;
   setPlaybackSpeedFn: (fn: ((speed: number) => void) | null) => void;
+  setBackgroundPlaybackSpeedFn: (fn: ((speed: number) => void) | null) => void;
 }
 
 let engineInitPending = false;
@@ -49,10 +50,15 @@ function createEffectsStore(): EffectsStore {
   let activeFilter = $state<FilterPreset | null>(null);
   let currentFilePath = $state("");
   let playbackSpeedFn: ((speed: number) => void) | null = null;
+  let backgroundPlaybackSpeedFn: ((speed: number) => void) | null = null;
   let savedPlaybackSpeed: number | null = null;
 
   function setPlaybackSpeedFn(fn: ((speed: number) => void) | null) {
     playbackSpeedFn = fn;
+  }
+
+  function setBackgroundPlaybackSpeedFn(fn: ((speed: number) => void) | null) {
+    backgroundPlaybackSpeedFn = fn;
   }
 
   function loadForFile(filePath: string) {
@@ -63,8 +69,8 @@ function createEffectsStore(): EffectsStore {
     chorus = 0;
     distortion = 0;
     activeFilter = null;
-    if (savedPlaybackSpeed !== null && playbackSpeedFn) {
-      playbackSpeedFn(savedPlaybackSpeed);
+    if (savedPlaybackSpeed !== null) {
+      backgroundPlaybackSpeedFn?.(savedPlaybackSpeed);
       savedPlaybackSpeed = null;
     }
     if (fxEngine.isInitialized()) {
@@ -119,12 +125,15 @@ function createEffectsStore(): EffectsStore {
       fxEngine.setFilter(preset);
     }
     if (preset === "lofi" || preset === "nightcore") {
+      backgroundPlaybackSpeedFn?.(preset === "lofi" ? 0.8 : 1.1);
+    } else if (savedPlaybackSpeed !== null) {
+      backgroundPlaybackSpeedFn?.(savedPlaybackSpeed);
+    }
+    if (preset === "lofi" || preset === "nightcore") {
       if (savedPlaybackSpeed === null && playbackSpeedFn) {
         savedPlaybackSpeed = 1.0;
       }
-      playbackSpeedFn?.(preset === "lofi" ? 0.8 : 1.1);
     } else if (savedPlaybackSpeed !== null && playbackSpeedFn) {
-      playbackSpeedFn(savedPlaybackSpeed);
       savedPlaybackSpeed = null;
     }
   }
@@ -135,8 +144,8 @@ function createEffectsStore(): EffectsStore {
     chorus = 0;
     distortion = 0;
     activeFilter = null;
-    if (savedPlaybackSpeed !== null && playbackSpeedFn) {
-      playbackSpeedFn(savedPlaybackSpeed);
+    if (savedPlaybackSpeed !== null) {
+      backgroundPlaybackSpeedFn?.(savedPlaybackSpeed);
       savedPlaybackSpeed = null;
     }
     if (fxEngine.isInitialized()) {
@@ -175,6 +184,7 @@ function createEffectsStore(): EffectsStore {
     setFilter,
     resetAll,
     setPlaybackSpeedFn,
+    setBackgroundPlaybackSpeedFn,
   };
 }
 

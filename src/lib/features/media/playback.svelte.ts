@@ -205,6 +205,11 @@ export function createPlaybackUI(
     onSpeedChange?.(val);
   }
 
+  function setPlaybackRateDirect(val: number) {
+    const mediaEl = mediaElRef();
+    if (mediaEl) mediaEl.playbackRate = val;
+  }
+
   function showSpeedOverlay() {
     speedHovered = true;
   }
@@ -546,6 +551,7 @@ export function createPlaybackUI(
     startVolumeDrag,
     handleVolumeScroll,
     setPlaybackSpeed,
+    setPlaybackRateDirect,
     showSpeedOverlay,
     handleSpeedAreaLeave,
     handleSpeedDiamondHover,
