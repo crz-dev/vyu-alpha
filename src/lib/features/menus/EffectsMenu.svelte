@@ -1,6 +1,5 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
-  import { effectsEngine } from "$lib/features/effects/effects-engine";
   import { eqEngine } from "$lib/features/equalizer/equalizer-engine";
 
   let {
@@ -55,22 +54,13 @@
     ];
   }
 
-  function applyTuneEffect(item: typeof activeTuneItem, value: number) {
-    if (item === "pitch") effectsEngine.setPitch(value);
-    else if (item === "reverb") effectsEngine.setReverb(value);
-    else if (item === "chorus") effectsEngine.setChorus(value);
-    else if (item === "distortion") effectsEngine.setDistortion(value);
-  }
-
   function updateTuneFromX(clientX: number) {
     if (!tuneTrackEl || !activeTuneItem) return;
     const rect = tuneTrackEl.getBoundingClientRect();
     const x = clientX - rect.left;
     const pct = Math.max(0, Math.min(1, x / rect.width));
     const { min, max } = getTuneRange();
-    const val = Math.round(min + pct * (max - min));
-    tuneValues[activeTuneItem] = val;
-    applyTuneEffect(activeTuneItem, val);
+    tuneValues[activeTuneItem] = Math.round(min + pct * (max - min));
   }
 
   function handleTunePointerDown(e: PointerEvent) {
@@ -95,7 +85,6 @@
   function jumpToTune(val: number) {
     if (!activeTuneItem) return;
     tuneValues[activeTuneItem] = val;
-    applyTuneEffect(activeTuneItem, val);
   }
 
   const tuneScrubberPct = $derived.by(() => {

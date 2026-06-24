@@ -1,6 +1,5 @@
 // EQ engine
 import { BAND_FREQUENCIES, BAND_Q } from "./band-config";
-import { effectsEngine } from "../effects/effects-engine";
 
 const NUM_BANDS = BAND_FREQUENCIES.length;
 
@@ -50,8 +49,7 @@ class EqualizerEngine {
       return true;
     }
 
-    // Tear down the old graph so effectsEngine.setup() performs a full
-    // rebuild instead of short-circuiting on a stale cached chain.
+    // Tear down the old graph so connectMediaElement() performs a full rebuild.
     if (this.connectedElement) {
       this.disconnect();
     }
@@ -78,9 +76,8 @@ class EqualizerEngine {
       this.analyser.fftSize = 256;
       this.analyser.smoothingTimeConstant = 0.8;
 
-      // Source → effects → filters → outputGain → analyser → destination
-      const effectsTail = effectsEngine.setup(ctx, this.source);
-      effectsTail.connect(this.filters[0]);
+      // Source → filters → outputGain → analyser → destination
+      this.source.connect(this.filters[0]);
       for (let i = 1; i < this.filters.length; i++) {
         this.filters[i - 1].connect(this.filters[i]);
       }
@@ -106,20 +103,7 @@ class EqualizerEngine {
       this.outputGain.gain.setValueAtTime(this.outputGain.gain.value, now);
       this.outputGain.gain.linearRampToValueAtTime(0, now + 0.03);
     }
-    if (this.source) {
-      try {
-        this.source.disconnect();
-      } catch {
-        /* disconnected */
-      }
-      this.source = null;
-    }
     this.connectedElement = null;
-
-    // Tear down the effects chain so that the next connectMediaElement() call
-    // performs a full rebuild (including source→effects wiring) instead of
-    // short-circuiting on the cached graph whose input was just severed.
-    effectsEngine.teardown();
 
     // Snapshot nodes for deferred cleanup; null fields so new graph builds immediately
     if (this.stageAnimFrame !== null) {
@@ -128,6 +112,9 @@ class EqualizerEngine {
     }
     this.stageGainNode = null;
     this.stagePanner = null;
+
+    const oldSource = this.source;
+    this.source = null;
 
     this.orphanedNodes = [
       ...this.filters,
@@ -144,6 +131,13 @@ class EqualizerEngine {
     // Allow the 30ms gain ramp to complete before tearing down the graph.
     this.pendingCleanup = setTimeout(() => {
       this.pendingCleanup = null;
+      if (oldSource) {
+        try {
+          oldSource.disconnect();
+        } catch {
+          /* disconnected */
+        }
+      }
       this.cleanupOrphaned();
     }, 50);
   }
@@ -169,7 +163,6 @@ class EqualizerEngine {
   }
 
   private cleanup(): void {
-    effectsEngine.teardown();
     this.teardownStage();
     this.stageMode = null;
     for (const f of this.filters) {
@@ -409,7 +402,6 @@ class EqualizerEngine {
 
   destroy(): void {
     this.cancelPendingCleanup();
-    effectsEngine.destroy();
 
     if (this.stageAnimFrame !== null) {
       cancelAnimationFrame(this.stageAnimFrame);
