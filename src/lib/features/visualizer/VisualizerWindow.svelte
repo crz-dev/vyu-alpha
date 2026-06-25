@@ -7,7 +7,9 @@
     drawScope,
     drawParticles,
     createParticles,
+    createBarsState,
     type Particle,
+    type BarsState,
   } from "./renderers";
 
   let {
@@ -28,6 +30,7 @@
   let rafId = 0;
   let lastFrame = 0;
   let particles: Particle[] = [];
+  let barsState: BarsState | null = null;
 
   // Session-scoped position state (starts at default offset)
   let posX = $state(80);
@@ -44,8 +47,24 @@
       particles = createParticles(60, analyser.frequencyBinCount);
     }
 
+    if (type === "bars") {
+      barsState = createBarsState();
+    }
+
     const ctx = canvasEl?.getContext("2d");
     if (!ctx) return;
+
+    ctx.imageSmoothingEnabled = true;
+    if (type === "bars" || type === "spectrum") {
+      ctx.shadowColor = "rgba(255, 68, 68, 0.15)";
+      ctx.shadowBlur = 4;
+    } else if (type === "scope") {
+      ctx.shadowColor = "rgba(0, 204, 102, 0.15)";
+      ctx.shadowBlur = 4;
+    } else {
+      ctx.shadowColor = "rgba(170, 68, 255, 0.15)";
+      ctx.shadowBlur = 4;
+    }
 
     function tick(timestamp: number) {
       if (timestamp - lastFrame < 16.67) {
@@ -60,7 +79,7 @@
       } else {
         analyser!.getByteFrequencyData(freqData);
         if (type === "bars") {
-          drawBars(ctx!, freqData, CANVAS_W, CANVAS_H);
+          drawBars(ctx!, freqData, CANVAS_W, CANVAS_H, barsState!);
         } else if (type === "spectrum") {
           drawSpectrum(ctx!, freqData, CANVAS_W, CANVAS_H);
         } else if (type === "particles") {
