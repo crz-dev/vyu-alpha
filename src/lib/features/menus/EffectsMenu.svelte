@@ -22,6 +22,7 @@
   let filterRowOpen = $state(false);
   let stageRowOpen = $state(false);
   let visualRowOpen = $state(false);
+  let activeVisuals: Set<string> = $state(new Set());
   let activeTuneItem: "pitch" | "reverb" | "chorus" | "distortion" | null =
     $state(null);
   let tuneValues = $state({ pitch: 0, reverb: 0, chorus: 0, distortion: 0 });
@@ -214,12 +215,14 @@
     }
   }
 
-  function flashVisual(name: string, e: Event) {
-    e.stopPropagation();
-    const target = e.currentTarget as HTMLElement;
-    target.classList.remove("flash");
-    void target.offsetWidth;
-    target.classList.add("flash");
+  function toggleVisualMode(name: string) {
+    const next = new Set(activeVisuals);
+    if (next.has(name)) {
+      next.delete(name);
+    } else {
+      next.add(name);
+    }
+    activeVisuals = next;
   }
 
   $effect(() => {
@@ -815,48 +818,8 @@
           >
             <button
               class="edit-menu-btn blue sub"
-              onclick={(e) => flashVisual("thumbnail", e)}
-            >
-              <svg
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <path d="m21 15-5-5L5 21" />
-              </svg>
-              <span>Thumbnail</span>
-            </button>
-            <button
-              class="edit-menu-btn blue sub"
-              onclick={(e) => flashVisual("card", e)}
-            >
-              <svg
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <path d="M8 8h8" />
-                <path d="M8 12h5" />
-                <path d="M8 16h7" />
-              </svg>
-              <span>Card</span>
-            </button>
-            <button
-              class="edit-menu-btn blue sub"
-              onclick={(e) => flashVisual("waveform", e)}
+              class:active={activeVisuals.has("bars")}
+              onclick={() => toggleVisualMode("bars")}
             >
               <svg
                 width="13"
@@ -874,11 +837,35 @@
                 <rect x="15" y="7" width="2" height="10" rx="1" />
                 <rect x="19" y="10" width="2" height="4" rx="1" />
               </svg>
-              <span>Waveform</span>
+              <span>Bars</span>
             </button>
             <button
               class="edit-menu-btn blue sub"
-              onclick={(e) => flashVisual("spectrogram", e)}
+              class:active={activeVisuals.has("particles")}
+              onclick={() => toggleVisualMode("particles")}
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="8" cy="8" r="1.5" />
+                <circle cx="16" cy="6" r="1.5" />
+                <circle cx="12" cy="14" r="1.5" />
+                <circle cx="6" cy="18" r="1.5" />
+                <circle cx="18" cy="16" r="1.5" />
+              </svg>
+              <span>Particles</span>
+            </button>
+            <button
+              class="edit-menu-btn blue sub"
+              class:active={activeVisuals.has("spectrogram")}
+              onclick={() => toggleVisualMode("spectrogram")}
             >
               <svg
                 width="13"
@@ -901,6 +888,25 @@
                 <rect x="17" y="17" width="5" height="5" rx="1" />
               </svg>
               <span>Spectrum</span>
+            </button>
+            <button
+              class="edit-menu-btn blue sub"
+              class:active={activeVisuals.has("scope")}
+              onclick={() => toggleVisualMode("scope")}
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M3 12c3-4 6 4 9 0s6 4 9 0" />
+              </svg>
+              <span>Scope</span>
             </button>
           </div>
         {/if}
