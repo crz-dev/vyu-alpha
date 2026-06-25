@@ -204,7 +204,7 @@ class EffectsEngine {
     return buffer;
   }
 
-  private makeDistortionCurve(drive: number): Float32Array {
+  private makeDistortionCurve(drive: number): Float32Array<ArrayBuffer> {
     const samples = 44100;
     const curve = new Float32Array(samples);
     if (drive <= 0) {
@@ -221,7 +221,7 @@ class EffectsEngine {
     return curve;
   }
 
-  private makeBitCrushCurve(bits: number): Float32Array {
+  private makeBitCrushCurve(bits: number): Float32Array<ArrayBuffer> {
     const samples = 256;
     const curve = new Float32Array(samples);
     const step = Math.pow(0.5, bits);
