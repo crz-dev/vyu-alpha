@@ -5,40 +5,40 @@
       "label": "Tauri Dev",
       "type": "shell",
       "command": "pnpm",
-      "args": [
-        "tauri",
-        "dev"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
+      "args": ["tauri", "dev"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "Vite Dev (WSL)",
+      "detail": "Start Vite dev server bound to 0.0.0.0 for Windows WebView2 access",
+      "type": "shell",
+      "command": "TAURI_DEV_HOST=$(hostname -I | awk '{print $1}') pnpm dev",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated", "group": "vite" },
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "(.)",
+          "file": 1,
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "VITE",
+          "endsPattern": "ready in"
+        }
       }
     },
     {
       "label": "Tauri Win",
       "type": "shell",
       "command": "pnpm",
-      "args": [
-        "tauri:win",
-        "--run"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "group": {
-        "kind": "build"
-      },
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
+      "args": ["tauri:win", "--run"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "build" },
+      "presentation": { "reveal": "always", "panel": "dedicated", "group": "build" },
       "problemMatcher": []
     }
   ]

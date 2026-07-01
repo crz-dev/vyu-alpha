@@ -87,6 +87,8 @@ pub fn run() {
                 eprintln!("Database initialization failed: {e}");
             }
 
+            util::init_sidecar_paths();
+
             app.manage(types::ThumbState::new());
 
             util::cleanup_vyu_temp();

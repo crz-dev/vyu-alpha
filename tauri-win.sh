@@ -27,23 +27,38 @@ PLACEHOLDER="src-tauri/binaries/songrec-x86_64-pc-windows-msvc.exe"
 WSL_IP="$(hostname -I | awk '{print $1}')"
 echo "[tauri-win] WSL IP: $WSL_IP"
 
-# Start Vite in background if not already running
-if ss -tlnp 'sport = :1420' 2>/dev/null | grep -q .; then
-  echo "[tauri-win] Vite already running on :1420"
-else
-  echo "[tauri-win] Starting Vite on 0.0.0.0:1420..."
-  nohup env TAURI_DEV_HOST="$WSL_IP" pnpm dev --host 0.0.0.0 &>/tmp/vyu-vite.log &
-  disown $! 2>/dev/null || true
-  for i in $(seq 1 10); do
-    if curl -s -o /dev/null http://127.0.0.1:1420/ 2>/dev/null; then
-      echo "[tauri-win] Vite ready"
-      break
-    fi
-    sleep 1
-  done
+# Vite dev server must already be running — this script does not manage it.
+# It must be listening on 0.0.0.0 so the Windows WebView2 can reach it via the WSL IP.
+if ! ss -tlnp 'sport = :1420' 2>/dev/null | grep -q .; then
+  echo "[ERROR] No Vite dev server detected on port 1420."
+  echo "        Start it in a separate terminal first:"
+  echo ""
+  echo "          TAURI_DEV_HOST=$WSL_IP pnpm dev"
+  echo ""
+  exit 1
 fi
 
-# Build TAURI_CONFIG with devUrl pointing at WSL IP
+if curl -s -o /dev/null "http://$WSL_IP:1420/" 2>/dev/null; then
+  echo "[tauri-win] Vite dev server reachable at http://$WSL_IP:1420"
+elif curl -s -o /dev/null http://127.0.0.1:1420/ 2>/dev/null; then
+  echo "[ERROR] Vite is running on 127.0.0.1 but not on $WSL_IP."
+  echo "        It was started without TAURI_DEV_HOST, so it only binds to localhost."
+  echo "        Restart it with:"
+  echo ""
+  echo "          TAURI_DEV_HOST=$WSL_IP pnpm dev"
+  echo ""
+  exit 1
+else
+  echo "[ERROR] Port 1420 is open but Vite is not responding."
+  echo "        The dev server may be starting or crashed."
+  echo "        Restart it with:"
+  echo ""
+  echo "          TAURI_DEV_HOST=$WSL_IP pnpm dev"
+  echo ""
+  exit 1
+fi
+
+# Build TAURI_CONFIG with devUrl pointing at WSL IP for Windows WebView2
 TAURI_CONFIG="$(python3 -c "
 import json
 with open('src-tauri/tauri.conf.json') as f:

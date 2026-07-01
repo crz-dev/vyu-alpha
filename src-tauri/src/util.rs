@@ -2,6 +2,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 use xxhash_rust::xxh3::xxh3_64;
 
@@ -9,6 +10,71 @@ use xxhash_rust::xxh3::xxh3_64;
 use std::os::windows::process::CommandExt;
 #[cfg(target_os = "windows")]
 use crate::constants::CREATE_NO_WINDOW;
+
+static SIDECAR_DIR: OnceLock<Option<PathBuf>> = OnceLock::new();
+
+/// Initialize sidecar directory search. Called once at startup.
+pub fn init_sidecar_paths() {
+    let dir = find_sidecar_dir();
+    let _ = SIDECAR_DIR.set(dir);
+}
+
+fn find_sidecar_dir() -> Option<PathBuf> {
+    // Production: sidecar is next to the app executable
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(exe_dir) = exe.parent() {
+            let candidate = exe_dir.join("binaries");
+            if candidate.is_dir() {
+                return Some(candidate);
+            }
+            // Dev mode: exe is in target/debug/, project root is 2 levels up
+            if let Some(project_root) = exe_dir.parent().and_then(|p| p.parent()) {
+                let candidate = project_root.join("src-tauri").join("binaries");
+                if candidate.is_dir() {
+                    return Some(candidate);
+                }
+            }
+        }
+    }
+    // Fallback: check cwd-relative paths
+    if let Ok(cwd) = std::env::current_dir() {
+        for candidate in [cwd.join("binaries"), cwd.join("src-tauri").join("binaries")] {
+            if candidate.is_dir() {
+                return Some(candidate);
+            }
+        }
+    }
+    None
+}
+
+fn resolve_sidecar(name: &str) -> Option<PathBuf> {
+    let dir = SIDECAR_DIR.get().and_then(|d| d.as_ref())?;
+    let target = target_triple();
+    #[cfg(target_os = "windows")]
+    let path = dir.join(format!("{}-{}.exe", name, target));
+    #[cfg(not(target_os = "windows"))]
+    let path = dir.join(format!("{}-{}", name, target));
+    if path.is_file() { Some(path) } else { None }
+}
+
+fn target_triple() -> &'static str {
+    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+    {
+        "x86_64-pc-windows-msvc"
+    }
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    {
+        "x86_64-unknown-linux-gnu"
+    }
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    {
+        "aarch64-apple-darwin"
+    }
+    #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
+    {
+        "x86_64-apple-darwin"
+    }
+}
 
 /// Cache filename hash
 pub fn hash_path_xxh3(path: &str) -> String {
@@ -128,14 +194,18 @@ pub fn unique_path(path: PathBuf) -> PathBuf {
 }
 
 pub fn ffmpeg_command() -> Command {
-    let mut cmd = Command::new("ffmpeg");
+    let prog = resolve_sidecar("ffmpeg").unwrap_or_else(|| PathBuf::from("ffmpeg"));
+    #[allow(unused_mut)]
+    let mut cmd = Command::new(prog);
     #[cfg(target_os = "windows")]
     cmd.creation_flags(CREATE_NO_WINDOW);
     cmd
 }
 
 pub fn ffprobe_command() -> Command {
-    let mut cmd = Command::new("ffprobe");
+    let prog = resolve_sidecar("ffprobe").unwrap_or_else(|| PathBuf::from("ffprobe"));
+    #[allow(unused_mut)]
+    let mut cmd = Command::new(prog);
     #[cfg(target_os = "windows")]
     cmd.creation_flags(CREATE_NO_WINDOW);
     cmd

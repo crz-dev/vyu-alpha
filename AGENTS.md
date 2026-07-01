@@ -13,14 +13,15 @@ See `ARCHITECTURE.md` before creating modules, moving state, changing ownership 
 | Type check | `pnpm check`              |
 | Format     | `pnpm prettier --write .` |
 
-**Prereqs:** Rust toolchain + FFmpeg on PATH. Not bundled — `install_ffmpeg()` via winget when missing.
+**Prereqs:** Rust toolchain.
+**Dev environment:** WSL Debian via VSCodium — code, lint, and type-check in WSL; build targets Windows (`pnpm tauri build` produces a Windows `.msi`).
 
 ## Hard rules
 
 - **State goes in `src/lib/features/*/` only.** `src/routes/+page.svelte` is a layout shell — no state, no handlers, no business logic.
 - **New top-level dependencies (npm or cargo) require an explicit reason before adding.**
 - **SvelteKit routes stay as-is.** Intentionally a single-page app. Do not add routes.
-- **FFmpeg stays external.** Backend shells out to `ffmpeg` on PATH. Do not bundle it.
+- **FFmpeg is bundled as a Tauri sidecar.** Binaries in `src-tauri/binaries/` (`ffmpeg-{triple}` and `ffprobe-{triple}`). Backend resolves via `util::init_sidecar_paths()` and `ffmpeg_command()`/`ffprobe_command()`. Falls back to PATH in development.
 - **Top-level toolbar icons stay fixed.** Shell bar design is locked.
 - **Constants must stay in sync.** `IMAGE_EXTS`, `VIDEO_EXTS`, `AUDIO_EXTS`, `DOCUMENT_EXTS` in `shared/constants.ts` must match `*_RUST` constants in `src-tauri/src/constants.rs`.
 
