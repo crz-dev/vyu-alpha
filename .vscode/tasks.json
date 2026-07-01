@@ -5,7 +5,10 @@
       "label": "Tauri Dev",
       "type": "shell",
       "command": "pnpm",
-      "args": ["tauri", "dev"],
+      "args": [
+        "tauri",
+        "dev"
+      ],
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -17,6 +20,26 @@
         "reveal": "always",
         "panel": "shared"
       }
+    },
+    {
+      "label": "Tauri Win",
+      "type": "shell",
+      "command": "pnpm",
+      "args": [
+        "tauri:win",
+        "--run"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "build"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
     }
   ]
 }

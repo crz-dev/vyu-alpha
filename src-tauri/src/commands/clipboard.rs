@@ -5,7 +5,9 @@ use std::process::Command;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 
-use crate::constants::{CREATE_NO_WINDOW, RAW_IMAGE_EXTS_RUST};
+#[cfg(target_os = "windows")]
+use crate::constants::CREATE_NO_WINDOW;
+use crate::constants::RAW_IMAGE_EXTS_RUST;
 use crate::util::{ffmpeg_command, hash_path_xxh3};
 
 #[tauri::command]

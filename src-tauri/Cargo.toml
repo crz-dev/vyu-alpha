@@ -28,7 +28,8 @@ xxhash-rust = { version = "0.8", features = ["xxh3"] }
 jpeg-decoder = "0.3"
 arboard = "3"
 rusqlite = { version = "0.31", features = ["bundled"] }
-windows = { version = "0.61", features = [
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
     "Win32_UI_Shell",
     "Win32_UI_WindowsAndMessaging",
     "Win32_System_Com",

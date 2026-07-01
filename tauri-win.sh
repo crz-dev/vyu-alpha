@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Cross-compile Vyu for Windows via cargo-xwin from WSL.
+#
+# Prerequisites:
+#   cargo install cargo-xwin
+#   rustup target add x86_64-pc-windows-msvc
+#   sudo apt install lld clang
+#   sudo ln -sf /usr/bin/clang-cl-19   /usr/local/bin/clang-cl
+#   sudo ln -sf /usr/bin/llvm-lib-19   /usr/local/bin/llvm-lib
+#   sudo ln -sf /usr/bin/llvm-rc-19    /usr/local/bin/llvm-rc
+#
+# Usage: ./tauri-win.sh [--run]
+#   --run    launch the .exe from Windows side after build
+
+FAIL=
+for cmd in clang-cl llvm-lib llvm-rc; do
+  if ! command -v "$cmd" &>/dev/null; then echo "[ERROR] $cmd not found on PATH"; FAIL=1; fi
+done
+[ -n "$FAIL" ] && exit 1
+! command -v cargo-xwin &>/dev/null && echo "[ERROR] cargo-xwin not found" && exit 1
+
+PLACEHOLDER="src-tauri/binaries/songrec-x86_64-pc-windows-msvc.exe"
+[ ! -f "$PLACEHOLDER" ] && touch "$PLACEHOLDER"
+
+WSL_IP="$(hostname -I | awk '{print $1}')"
+echo "[tauri-win] WSL IP: $WSL_IP"
+
+# Start Vite in background if not already running
+if ss -tlnp 'sport = :1420' 2>/dev/null | grep -q .; then
+  echo "[tauri-win] Vite already running on :1420"
+else
+  echo "[tauri-win] Starting Vite on 0.0.0.0:1420..."
+  nohup env TAURI_DEV_HOST="$WSL_IP" pnpm dev --host 0.0.0.0 &>/tmp/vyu-vite.log &
+  disown $! 2>/dev/null || true
+  for i in $(seq 1 10); do
+    if curl -s -o /dev/null http://127.0.0.1:1420/ 2>/dev/null; then
+      echo "[tauri-win] Vite ready"
+      break
+    fi
+    sleep 1
+  done
+fi
+
+# Build TAURI_CONFIG with devUrl pointing at WSL IP
+TAURI_CONFIG="$(python3 -c "
+import json
+with open('src-tauri/tauri.conf.json') as f:
+    c = json.load(f)
+c['build']['devUrl'] = 'http://$WSL_IP:1420'
+print(json.dumps(c))
+")"
+
+export TAURI_CONFIG
+echo "[tauri-win] devUrl -> http://$WSL_IP:1420"
+
+echo "[tauri-win] Cross-compiling for x86_64-pc-windows-msvc (debug)..."
+(cd src-tauri && cargo xwin build --target x86_64-pc-windows-msvc)
+
+EXE_PATH="src-tauri/target/x86_64-pc-windows-msvc/debug/vyu.exe"
+WIN_PATH="$(wslpath -w "$(pwd)/$EXE_PATH")"
+
+echo ""
+echo "============================================"
+echo "  Build complete!"
+echo "  Binary: $WIN_PATH"
+echo "  Vite:   http://$WSL_IP:1420"
+echo ""
+echo "  Run from Windows:"
+echo "    $WIN_PATH"
+echo "============================================"
+
+if [[ "${1:-}" == "--run" ]]; then
+  echo "[tauri-win] Launching..."
+  cmd.exe /c start "" "$WIN_PATH" &>/dev/null &
+fi

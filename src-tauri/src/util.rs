@@ -7,6 +7,7 @@ use xxhash_rust::xxh3::xxh3_64;
 
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
+#[cfg(target_os = "windows")]
 use crate::constants::CREATE_NO_WINDOW;
 
 /// Cache filename hash

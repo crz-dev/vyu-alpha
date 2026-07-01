@@ -12,7 +12,9 @@ use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tauri::{Listener, Manager, WindowEvent};
+#[cfg(target_os = "windows")]
 use windows::core::w;
+#[cfg(target_os = "windows")]
 use windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID;
 
 pub fn run() {
@@ -76,6 +78,7 @@ pub fn run() {
             delete_collection_folder,
         ])
         .setup(|app| {
+            #[cfg(target_os = "windows")]
             unsafe {
                 let _ = SetCurrentProcessExplicitAppUserModelID(w!("com.vyu.app"));
             }

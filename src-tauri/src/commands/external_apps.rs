@@ -8,6 +8,7 @@ use std::os::windows::process::CommandExt;
 use windows::core::Interface;
 use serde::Serialize;
 
+#[cfg(target_os = "windows")]
 use crate::constants::CREATE_NO_WINDOW;
 use crate::util::{canonicalize_path, ffprobe_command};
 
